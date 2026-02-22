@@ -10,7 +10,7 @@ interface Props {
 const { title, description, pubDate, slug, tags } = Astro.props;
 ---
 
-<article>
+<article class="card">
   <h3><a href={"/journal/" + slug}>{title}</a></h3>
   <time datetime={pubDate.toISOString()}>
     {pubDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
@@ -24,26 +24,40 @@ const { title, description, pubDate, slug, tags } = Astro.props;
 </article>
 
 <style>
-  article {
-    padding: var(--space-md);
+  .card {
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 8px;
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    border-radius: 10px;
+    padding: var(--space-md) var(--space-lg);
+    transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
   }
 
-  article:hover {
+  .card:hover {
     border-color: var(--color-accent);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(224, 122, 58, 0.08);
   }
 
   h3 {
     margin-top: 0;
   }
 
+  h3 a {
+    font-family: var(--font-display);
+    color: var(--color-text);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  h3 a:hover {
+    color: var(--color-accent);
+  }
+
   time {
     display: block;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
     color: var(--color-muted);
-    font-size: 0.9rem;
   }
 
   p {
@@ -61,10 +75,11 @@ const { title, description, pubDate, slug, tags } = Astro.props;
   }
 
   .tags li {
-    font-size: 0.8rem;
-    padding: 0.15em 0.55em;
-    background-color: var(--color-border);
+    font-size: 0.75rem;
+    padding: 0.2em 0.65em;
+    border: 1px solid var(--color-border);
     border-radius: 9999px;
     color: var(--color-muted);
+    letter-spacing: 0.02em;
   }
 </style>

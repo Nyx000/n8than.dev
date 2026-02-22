@@ -9,8 +9,8 @@ const posts = (await getCollection('journal')).sort(
 ---
 
 <BaseLayout title="Journal | n8than.dev" description="Thoughts and notes">
-  <section>
-    <h1>Journal</h1>
+  <section class="stagger">
+    <h1 class="section-heading">Journal</h1>
     {posts.map(post => (
       <PostPreview
         title={post.data.title}
@@ -25,9 +25,19 @@ const posts = (await getCollection('journal')).sort(
 
 <style>
   section {
-    max-width: 60rem;
+    max-width: 64rem;
     margin: 0 auto;
     padding: var(--space-lg);
+  }
+
+  .section-heading {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 400;
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 2px solid var(--color-border);
+    display: inline-block;
   }
 
   section > :global(article + article) {
