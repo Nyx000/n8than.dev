@@ -3,25 +3,21 @@ export interface Project {
   description: string;
   url: string;
   tags: string[];
+  image?: string;
 }
 
 export const projects: Project[] = [
   {
-    title: "Portfolio Site",
-    description: "Personal portfolio built with Astro",
+    title: "Cafe Nightclub",
+    description:
+      "Website for a nightlife venue featuring events, gallery, and booking",
+    url: "https://cafenightclub.com",
+    tags: ["Next.js", "TypeScript", "Tailwind CSS"],
+  },
+  {
+    title: "n8than.dev",
+    description: "Personal portfolio built with Astro 5 and hand-crafted CSS",
     url: "https://n8than.dev",
-    tags: ["Astro", "CSS"],
-  },
-  {
-    title: "Side Project",
-    description: "A cool side project",
-    url: "#",
-    tags: ["TypeScript", "React"],
-  },
-  {
-    title: "CLI Tool",
-    description: "A command-line utility for automating workflows",
-    url: "#",
-    tags: ["Node.js", "TypeScript"],
+    tags: ["Astro", "TypeScript", "CSS"],
   },
 ];
