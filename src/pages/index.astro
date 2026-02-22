@@ -3,9 +3,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout title="n8than.dev" description="Developer, designer, and builder of things on the web">
-  <section class="hero">
-    <h1>Hey, I'm Nathan</h1>
-    <p>I design and build things on the web.</p>
+  <section class="hero stagger">
+    <h1>Hey, I'm <span class="name-accent">Nathan</span></h1>
+    <p>Full-stack developer & builder of things on the web.</p>
+    <div class="accent-line"></div>
     <nav class="hero-links">
       <a href="/projects">Projects</a>
       <a href="/journal">Journal</a>
@@ -22,18 +23,30 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     justify-content: center;
     text-align: center;
     padding: var(--space-xl) var(--space-md);
-    min-height: 60vh;
+    min-height: 85vh;
   }
 
   .hero h1 {
-    font-size: 2.5rem;
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 5vw, 4rem);
     margin-bottom: var(--space-sm);
   }
 
+  .name-accent {
+    color: var(--color-accent);
+  }
+
   .hero p {
-    font-size: 1.25rem;
+    font-size: 1.2rem;
     color: var(--color-muted);
-    margin-bottom: var(--space-lg);
+    margin-bottom: 0;
+  }
+
+  .accent-line {
+    width: 48px;
+    height: 2px;
+    background: var(--color-accent);
+    margin: var(--space-lg) auto;
   }
 
   .hero-links {
@@ -42,6 +55,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   .hero-links a {
-    font-size: 1.1rem;
+    border: 1px solid var(--color-border);
+    padding: 0.5em 1.25em;
+    border-radius: 9999px;
+    color: var(--color-text);
+    font-size: 0.9rem;
+    transition: all 0.25s ease;
+  }
+
+  .hero-links a:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
   }
 </style>
