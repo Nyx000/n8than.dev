@@ -1,0 +1,60 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="About | n8than.dev" description="About me">
+  <section class="container">
+    <h1>About</h1>
+    <p>
+      I'm Nathan, a developer and designer who enjoys building clean, thoughtful
+      interfaces. I care about performance, accessibility, and code that's easy
+      to maintain.
+    </p>
+    <p>
+      When I'm not writing code, you'll find me exploring new tools, reading
+      about systems design, or working on side projects that scratch an itch.
+    </p>
+    <p>
+      This site is built with Astro and serves as a home for my projects,
+      writing, and anything else I want to share.
+    </p>
+
+    <section class="links">
+      <h2>Find me online</h2>
+      <ul>
+        <li><a href="https://github.com/n8than">GitHub</a></li>
+        <li><a href="mailto:hello@n8than.dev">Email</a></li>
+        <li><a href="https://twitter.com/n8than">Twitter</a></li>
+      </ul>
+    </section>
+  </section>
+</BaseLayout>
+
+<style>
+  .container {
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  p {
+    margin-bottom: var(--space-md);
+    color: var(--color-text);
+  }
+
+  .links {
+    margin-top: var(--space-xl);
+  }
+
+  .links h2 {
+    margin-bottom: var(--space-md);
+  }
+
+  .links ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+</style>
