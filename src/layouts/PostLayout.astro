@@ -1,0 +1,67 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  pubDate: Date;
+  tags?: string[];
+}
+
+const { title, description, pubDate, tags } = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <article>
+    <header class="post-header">
+      <h1>{title}</h1>
+      <time datetime={pubDate.toISOString()}>
+        {pubDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+      </time>
+      {tags && tags.length > 0 && (
+        <ul class="tags">
+          {tags.map(tag => <li>{tag}</li>)}
+        </ul>
+      )}
+    </header>
+    <slot />
+  </article>
+</BaseLayout>
+
+<style>
+  article {
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: var(--space-lg);
+  }
+
+  .post-header {
+    margin-bottom: var(--space-lg);
+  }
+
+  .post-header h1 {
+    margin-bottom: var(--space-sm);
+  }
+
+  time {
+    display: block;
+    color: var(--color-muted);
+    font-size: 0.9rem;
+  }
+
+  .tags {
+    display: flex;
+    gap: var(--space-sm);
+    list-style: none;
+    padding: 0;
+    margin: var(--space-sm) 0 0;
+  }
+
+  .tags li {
+    background-color: #e5e7eb;
+    padding: 0.15em 0.5em;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    color: var(--color-muted);
+  }
+</style>

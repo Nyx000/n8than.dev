@@ -1,0 +1,31 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <p>&copy; {year} n8than.dev</p>
+  <a href="/rss.xml">RSS</a>
+</footer>
+
+<style>
+  .site-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md) var(--space-lg);
+    max-width: 60rem;
+    margin: 0 auto;
+    margin-top: var(--space-xl);
+    border-top: 1px solid #e5e7eb;
+    color: var(--color-muted);
+    font-size: 0.875rem;
+  }
+
+  .site-footer a {
+    color: var(--color-muted);
+  }
+
+  .site-footer a:hover {
+    color: var(--color-text);
+  }
+</style>
