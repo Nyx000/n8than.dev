@@ -1,0 +1,12 @@
+n8than.dev {
+	root * /var/www/n8than.dev/dist
+
+	encode gzip
+
+	file_server
+
+	header {
+		-Server
+		Cache-Control "public, max-age=3600"
+	}
+}

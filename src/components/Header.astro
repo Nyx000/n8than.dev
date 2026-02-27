@@ -33,6 +33,7 @@ function isActive(href: string): boolean {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: var(--space-lg);
     padding: var(--space-md) var(--space-lg);
     max-width: 64rem;
     margin: 0 auto;
@@ -55,6 +56,7 @@ function isActive(href: string): boolean {
   nav {
     display: flex;
     gap: var(--space-md);
+    flex-wrap: wrap;
   }
 
   nav a {
@@ -74,5 +76,19 @@ function isActive(href: string): boolean {
   nav a[aria-current='page'] {
     color: var(--color-accent);
     font-weight: 600;
+  }
+
+  @media (max-width: 600px) {
+    .site-header {
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-sm) var(--space-md);
+    }
+
+    nav {
+      justify-content: center;
+      gap: var(--space-sm);
+    }
   }
 </style>

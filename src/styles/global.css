@@ -84,15 +84,16 @@ code {
   color: var(--color-bg);
 }
 
-/* Noise texture overlay */
-body::before {
-  content: '';
+/* Animated grain overlay (canvas-based, driven by grain.js) */
+#grain {
   position: fixed;
   inset: 0;
+  width: 100%;
+  height: 100%;
   z-index: 10;
   pointer-events: none;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.02;
+  image-rendering: pixelated;
 }
 
 /* Stagger fade-in animation */
@@ -115,6 +116,10 @@ body::before {
   .stagger > * {
     animation: none;
     opacity: 1;
+  }
+
+  #grain {
+    display: none;
   }
 }
 
