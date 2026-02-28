@@ -1,0 +1,12 @@
+n8than.dev {
+	root * /var/www/n8than.dev/deploy
+	encode gzip
+
+	rewrite * /maintenance.html
+	file_server
+
+	header {
+		-Server
+		Cache-Control "no-cache, no-store, must-revalidate"
+	}
+}

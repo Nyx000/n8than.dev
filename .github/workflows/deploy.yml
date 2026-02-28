@@ -28,6 +28,11 @@ jobs:
             bun install --frozen-lockfile
             bun run build
 
-            cp deploy/Caddyfile /etc/caddy/sites/n8than.dev
-            caddy validate --config /etc/caddy/Caddyfile
-            systemctl reload caddy
+            # Skip Caddy reload if maintenance mode is active
+            if grep -q "maintenance.html" /etc/caddy/sites/n8than.dev 2>/dev/null; then
+              echo "Maintenance mode active — skipping Caddy config update"
+            else
+              cp deploy/Caddyfile /etc/caddy/sites/n8than.dev
+              caddy validate --config /etc/caddy/Caddyfile
+              systemctl reload caddy
+            fi
