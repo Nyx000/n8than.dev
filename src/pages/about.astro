@@ -5,26 +5,47 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <BaseLayout title="About | n8than.dev" description="About me">
   <section class="container stagger">
     <h1 class="section-heading">About</h1>
+    <blockquote class="epigraph">
+      "The obstacle is the way."
+      <cite>— Marcus Aurelius</cite>
+    </blockquote>
     <p>
-      I'm Nathan, a developer and designer who enjoys building clean, thoughtful
-      interfaces. I care about performance, accessibility, and code that's easy
-      to maintain.
+      I'm a developer based in San Diego building web applications that solve real problems for real
+      people. I got here the long way around.
     </p>
     <p>
-      When I'm not writing code, you'll find me exploring new tools, reading
-      about systems design, or working on side projects that scratch an itch.
+      I studied Computer Science from 2012 to 2020. During that time I struggled to build anything
+      meaningful outside of coursework. Nothing I could make felt useful enough to actually pursue,
+      and the motivation wasn't there. After graduating, I stepped away from development for a few
+      years. Not because I gave up on it, but because I needed to live and grow first.
     </p>
     <p>
-      This site is built with Astro and serves as a home for my projects,
-      writing, and anything else I want to share.
+      In 2024 I started building again. Instead of waiting for someone to hand me direction or
+      tools, I just started solving a problem I could see. A food ordering system for the hospital
+      staff I worked with. I iterated on it at least six times before deploying, rebuilding it from
+      scratch each time to fully understand what I was doing and why. For the first time, I was
+      making something for real users, solving a real problem. By early 2026 it had more than 50
+      active users.
+    </p>
+    <p>
+      AI tooling, Claude Code especially, accelerated that process. Not by writing code for me, but
+      by making problems less intimidating. What used to take hours of tracing code line by line, I
+      could now break down and understand quickly. It gave me the confidence to push through projects
+      and actually finish them.
+    </p>
+    <p>
+      Now I'm building on that momentum. This portfolio, the projects in it, they're the start of
+      putting my CS education to work the way I always wanted to. I'm sharpening my skills and
+      looking for the right opportunity to grow further as a developer.
     </p>
 
     <section class="links">
       <h2>Find me online</h2>
       <ul>
-        <li><a href="https://github.com/n8than" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        <li>
+          <a href="https://github.com/Nyx000" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </li>
         <li><a href="mailto:hello@n8than.dev">Email</a></li>
-        <li><a href="https://twitter.com/n8than" target="_blank" rel="noopener noreferrer">Twitter</a></li>
       </ul>
     </section>
   </section>
@@ -45,6 +66,22 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     padding-bottom: var(--space-md);
     border-bottom: 2px solid var(--color-border);
     display: inline-block;
+  }
+
+  .epigraph {
+    border-left: 2px solid var(--color-accent);
+    padding-left: var(--space-md);
+    margin-bottom: var(--space-lg);
+    font-style: italic;
+    color: var(--color-muted);
+    line-height: 1.75;
+  }
+
+  .epigraph cite {
+    display: block;
+    margin-top: var(--space-xs);
+    font-style: normal;
+    font-size: 0.875rem;
   }
 
   p {
@@ -76,7 +113,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     border-radius: 9999px;
     color: var(--color-text);
     text-decoration: none;
-    transition: border-color 0.2s ease, color 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      color 0.2s ease;
   }
 
   .links ul a:hover {

@@ -4,10 +4,12 @@ import { getCollection } from 'astro:content';
 
 export async function GET(context: APIContext) {
   if (!context.site) {
-    return new Response('Site URL is not configured in astro.config.mjs', { status: 500 });
+    return new Response('Site URL is not configured in astro.config.mjs', {
+      status: 500,
+    });
   }
   const posts = (await getCollection('journal')).sort(
-    (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+    (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
   );
   return rss({
     title: 'n8than.dev',

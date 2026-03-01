@@ -21,7 +21,7 @@ body {
   --color-border: #25252b;
 
   /* Typography — Google Fonts loaded in Head.astro */
-  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-display: 'Share Tech Mono', ui-monospace, monospace;
   --font-body: 'Outfit', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
@@ -98,19 +98,37 @@ code {
 
 /* Stagger fade-in animation */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .stagger > * {
   animation: fadeUp 0.5s ease both;
 }
-.stagger > *:nth-child(1) { animation-delay: 0s; }
-.stagger > *:nth-child(2) { animation-delay: 0.08s; }
-.stagger > *:nth-child(3) { animation-delay: 0.16s; }
-.stagger > *:nth-child(4) { animation-delay: 0.24s; }
-.stagger > *:nth-child(5) { animation-delay: 0.32s; }
-.stagger > *:nth-child(6) { animation-delay: 0.4s; }
+.stagger > *:nth-child(1) {
+  animation-delay: 0s;
+}
+.stagger > *:nth-child(2) {
+  animation-delay: 0.08s;
+}
+.stagger > *:nth-child(3) {
+  animation-delay: 0.16s;
+}
+.stagger > *:nth-child(4) {
+  animation-delay: 0.24s;
+}
+.stagger > *:nth-child(5) {
+  animation-delay: 0.32s;
+}
+.stagger > *:nth-child(6) {
+  animation-delay: 0.4s;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .stagger > * {

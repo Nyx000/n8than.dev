@@ -17,14 +17,13 @@ function isActive(href: string): boolean {
 <header class="site-header">
   <a href="/" class="brand">n8than.dev</a>
   <nav>
-    {links.map(link => (
-      <a
-        href={link.href}
-        aria-current={isActive(link.href) ? 'page' : undefined}
-      >
-        {link.label}
-      </a>
-    ))}
+    {
+      links.map((link) => (
+        <a href={link.href} aria-current={isActive(link.href) ? 'page' : undefined}>
+          {link.label}
+        </a>
+      ))
+    }
   </nav>
 </header>
 

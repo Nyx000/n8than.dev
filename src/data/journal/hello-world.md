@@ -1,8 +1,8 @@
 ---
-title: "Hello World"
-description: "My first journal entry — getting started with Astro."
-pubDate: "2026-02-21"
-tags: ["astro", "intro"]
+title: 'Hello World'
+description: 'My first journal entry — getting started with Astro.'
+pubDate: '2026-02-21'
+tags: ['astro', 'intro']
 ---
 
 This is the beginning of my journal. I have been exploring Astro as a framework for building my personal site, and so far the experience has been excellent. The content layer API makes it straightforward to manage posts as plain Markdown files while still getting type safety and build-time validation.

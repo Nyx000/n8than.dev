@@ -19,7 +19,7 @@ const { title, description, canonicalURL, ogImage } = Astro.props;
     <Head title={title} description={description} canonicalURL={canonicalURL} ogImage={ogImage} />
   </head>
   <body>
-    <canvas id="grain" aria-hidden="true"></canvas>
+    <canvas id="grain" aria-hidden="true" transition:persist></canvas>
     <Header />
     <main>
       <slot />
@@ -53,7 +53,7 @@ const { title, description, canonicalURL, ogImage } = Astro.props;
         const buffer32 = new Uint32Array(idata.data.buffer);
 
         for (let i = 0; i < buffer32.length; i++) {
-          buffer32[i] = ((255 * Math.random()) | 0) << 24 | 0x00FFFFFF;
+          buffer32[i] = (((255 * Math.random()) | 0) << 24) | 0x00ffffff;
         }
 
         ctx.putImageData(idata, 0, 0);
