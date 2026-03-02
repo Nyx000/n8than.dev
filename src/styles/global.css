@@ -92,7 +92,7 @@ code {
   height: 100%;
   z-index: 10;
   pointer-events: none;
-  opacity: 0.02;
+  opacity: 0.01;
   image-rendering: pixelated;
 }
 
