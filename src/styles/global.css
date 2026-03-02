@@ -129,6 +129,15 @@ code {
 .stagger > *:nth-child(6) {
   animation-delay: 0.4s;
 }
+.stagger > *:nth-child(7) {
+  animation-delay: 0.48s;
+}
+.stagger > *:nth-child(8) {
+  animation-delay: 0.56s;
+}
+.stagger > *:nth-child(9) {
+  animation-delay: 0.64s;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .stagger > * {
