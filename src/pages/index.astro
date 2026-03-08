@@ -98,8 +98,28 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   @media (max-width: 600px) {
+    .hero {
+      padding: var(--space-md) var(--space-sm);
+    }
+
+    .hero h1 {
+      font-size: 2rem;
+    }
+
     .hero-links {
-      gap: var(--space-md);
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-sm);
+    }
+
+    .hero-links a {
+      min-width: auto;
+      padding: .4em .8em;
+      font-size: 0.8rem;
+    }
+
+    .contact-links {
+      margin-top: var(--space-md);
     }
   }
 </style>
