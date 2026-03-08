@@ -11,14 +11,14 @@ body {
 
 /* Design Tokens */
 :root {
-  /* Color palette */
-  --color-bg: #0b0b0f;
-  --color-surface: #141418;
-  --color-text: #ededec;
-  --color-muted: #7a7a80;
-  --color-accent: #e07a3a;
-  --color-accent-hover: #f09050;
-  --color-border: #25252b;
+  /* Color palette — Half-Life 2 */
+  --color-bg: #0a0a0a;
+  --color-surface: #131313;
+  --color-text: #d4d0c8;
+  --color-muted: #6b6b72;
+  --color-accent: #FF6600;
+  --color-accent-hover: #FF8833;
+  --color-border: #1e1e22;
 
   /* Typography — Google Fonts loaded in Head.astro */
   --font-display: 'Share Tech Mono', ui-monospace, monospace;
@@ -92,8 +92,24 @@ code {
   height: 100%;
   z-index: 10;
   pointer-events: none;
-  opacity: 0.01;
+  opacity: 0.018;
   image-rendering: pixelated;
+}
+
+/* CRT scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
 }
 
 /* Stagger fade-in animation */
@@ -146,6 +162,10 @@ code {
   }
 
   #grain {
+    display: none;
+  }
+
+  body::after {
     display: none;
   }
 }

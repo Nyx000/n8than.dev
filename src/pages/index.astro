@@ -2,14 +2,16 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="n8than.dev" description="Developer, designer, and builder of things on the web">
+<BaseLayout title="n8than.dev" description="Computer scientist, software engineer, and problem solver">
   <section class="hero stagger">
     <h1><span class="name-accent">๖ۣۜNathan</span></h1>
-    <p>I build things for the web.</p>
+    <p>Making computers do what I want.</p>
     <div class="accent-line"></div>
     <nav class="hero-links">
       <a href="/projects">Projects</a>
       <a href="/journal">Journal</a>
+      <a href="/recognition">Recognition</a>
+      <a href="/services">Services</a>
       <a href="/about">About</a>
     </nav>
   </section>
@@ -38,7 +40,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   .hero p {
     font-size: 1.2rem;
-    color: #a0a0a6;
+    color: var(--color-muted);
     margin-bottom: 0;
   }
 
@@ -56,7 +58,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   .hero-links a {
     border: 1px solid var(--color-muted);
-    padding: 0.5em 1.25em;
+    padding: .5em 1em;
+    min-width: 7rem;
+    text-align: center;
     border-radius: 9999px;
     color: var(--color-text);
     font-size: 0.9rem;
