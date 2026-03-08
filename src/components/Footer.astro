@@ -4,17 +4,13 @@ const year = new Date().getFullYear();
 
 <footer class="site-footer">
   <p>&copy; {year} n8than.dev</p>
-  <div class="footer-links">
-    <a href="https://github.com/Nyx000" target="_blank" rel="noopener noreferrer">GitHub</a>
-  </div>
 </footer>
 
 <style>
   .site-footer {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--space-lg);
+    justify-content: center;
     padding: var(--space-md) var(--space-lg);
     width: 100%;
     max-width: 64rem;
@@ -26,17 +22,4 @@ const year = new Date().getFullYear();
     flex-wrap: wrap;
   }
 
-  .footer-links {
-    display: flex;
-    gap: var(--space-md);
-  }
-
-  .site-footer a {
-    color: var(--color-muted);
-    transition: color 0.2s ease;
-  }
-
-  .site-footer a:hover {
-    color: var(--color-text);
-  }
 </style>

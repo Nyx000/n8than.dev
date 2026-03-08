@@ -14,6 +14,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <a href="/services">Services</a>
       <a href="/about">About</a>
     </nav>
+    <div class="contact-links">
+      <a href="https://github.com/Nyx000" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href="https://www.linkedin.com/in/sd-nhuse/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      <a href="mailto:hello@n8than.dev">Email</a>
+    </div>
   </section>
 </BaseLayout>
 
@@ -72,6 +77,23 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   .hero-links a:hover {
     border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .contact-links {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-lg);
+  }
+
+  .contact-links a {
+    color: var(--color-muted);
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: color 0.25s ease;
+  }
+
+  .contact-links a:hover {
     color: var(--color-accent);
   }
 
