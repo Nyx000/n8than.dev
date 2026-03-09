@@ -13,7 +13,7 @@ export const projects: Project[] = [
     title: 'Claude Skills Framework',
     description:
       'A custom skill system for Claude Code that orchestrates development through structured pipelines — from brainstorming through implementation to verified, reviewable results',
-    tags: ['Claude Code', 'TypeScript', 'Agent Orchestration', 'CLI'],
+    tags: ['Claude Code', 'Claude Opus 4.6', 'TypeScript', 'Agent Orchestration', 'CLI'],
     expandable: true,
     details: `
       <div class="detail-section">
@@ -23,11 +23,11 @@ export const projects: Project[] = [
       <div class="detail-section">
         <h4>Skills</h4>
         <ul class="skills-list">
-          <li><code>/dev</code> Full development pipeline orchestration <span class="model">Claude Opus 4</span></li>
-          <li><code>/plan</code> Structured implementation planning <span class="model">Claude Opus 4</span></li>
-          <li><code>/research</code> Parallel codebase exploration <span class="model">Claude Opus 4</span></li>
-          <li><code>/review</code> Two-stage code review <span class="model">Claude Opus 4</span></li>
-          <li><code>/debug</code> Root cause analysis <span class="model">Claude Opus 4</span></li>
+          <li><code>/dev</code> Full development pipeline orchestration</li>
+          <li><code>/plan</code> Structured implementation planning</li>
+          <li><code>/research</code> Parallel codebase exploration</li>
+          <li><code>/review</code> Two-stage code review</li>
+          <li><code>/debug</code> Root cause analysis</li>
         </ul>
       </div>
       <div class="detail-section">
