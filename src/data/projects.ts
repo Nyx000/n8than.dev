@@ -84,6 +84,26 @@ export const projects: Project[] = [
     title: 'n8than.dev',
     description: 'Personal portfolio built with Astro 5 and vanilla CSS',
     url: 'https://n8than.dev',
-    tags: ['Astro', 'TypeScript', 'CSS'],
+    tags: ['Astro 5', 'TypeScript', 'CSS'],
+    expandable: true,
+    details: `
+      <div class="detail-section">
+        <h4>Design</h4>
+        <ul class="tech-list">
+          <li>Half-Life 2 inspired aesthetic — industrial orange on dark</li>
+          <li>CRT scanline overlay and animated film grain via canvas</li>
+          <li>Share Tech Mono display font, Outfit body, JetBrains Mono code</li>
+          <li>Staggered fade-in animations with prefers-reduced-motion support</li>
+        </ul>
+      </div>
+      <div class="detail-section">
+        <h4>Built With</h4>
+        <ul class="tech-list">
+          <li>Astro 5 static site generation — zero client JS by default</li>
+          <li>File-based routing with content collections for journal posts</li>
+          <li>RSS feed and sitemap generation</li>
+          <li>Vanilla CSS with custom properties — no frameworks</li>
+        </ul>
+      </div>`,
   },
 ];

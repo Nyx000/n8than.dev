@@ -51,6 +51,8 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     border: 1px solid var(--color-border);
     border-radius: 10px;
     padding: var(--space-md) var(--space-lg);
+    display: flex;
+    flex-direction: column;
     transition:
       border-color 0.25s ease,
       transform 0.25s ease,
@@ -107,6 +109,7 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     list-style: none;
     padding: 0;
     margin: 0;
+    margin-top: auto;
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-sm);
