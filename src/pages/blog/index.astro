@@ -3,14 +3,14 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PostPreview from '../../components/PostPreview.astro';
 
-const posts = (await getCollection('journal')).sort(
+const posts = (await getCollection('blog')).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
 );
 ---
 
-<BaseLayout title="Journal | n8than.dev" description="Thoughts and notes">
+<BaseLayout title="Blog | n8than.dev" description="Thoughts and notes">
   <section class="stagger">
-    <h1 class="section-heading">Journal</h1>
+    <h1 class="section-heading">Blog</h1>
     {
       posts.map((post) => (
         <PostPreview

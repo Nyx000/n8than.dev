@@ -8,18 +8,18 @@ export async function GET(context: APIContext) {
       status: 500,
     });
   }
-  const posts = (await getCollection('journal')).sort(
+  const posts = (await getCollection('blog')).sort(
     (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
   );
   return rss({
     title: 'n8than.dev',
-    description: 'Journal',
+    description: 'Blog',
     site: context.site,
     items: posts.map((post) => ({
       title: post.data.title,
       pubDate: post.data.pubDate,
       description: post.data.description,
-      link: `/journal/${post.id}/`,
+      link: `/blog/${post.id}/`,
     })),
   });
 }

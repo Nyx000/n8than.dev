@@ -11,7 +11,7 @@ const { title, description, pubDate, slug, tags } = Astro.props;
 ---
 
 <article class="card">
-  <h3><a href={'/journal/' + slug}>{title}</a></h3>
+  <h3><a href={'/blog/' + slug}>{title}</a></h3>
   <time datetime={pubDate.toISOString()}>
     {
       pubDate.toLocaleDateString('en-US', {

@@ -44,7 +44,7 @@ export const projects: Project[] = [
   {
     title: 'CafeNightclub',
     description:
-      'Full-stack app for browsing menus and placing orders in real time, with user accounts, live updates, and a custom admin dashboard',
+      'Full-stack ordering platform built for real clients. Real-time order tracking via WebSockets, push notifications, and an admin dashboard for managing menus, users, and operating hours. Runs on Supabase with row-level security and atomic transactions.',
     url: 'https://cafenightclub.com',
     tags: ['Next.js', 'React 19', 'Supabase', 'Tailwind CSS', 'TypeScript'],
     expandable: true,
@@ -100,7 +100,7 @@ export const projects: Project[] = [
         <h4>Built With</h4>
         <ul class="tech-list">
           <li>Astro 5 static site generation — zero client JS by default</li>
-          <li>File-based routing with content collections for journal posts</li>
+          <li>File-based routing with content collections for blog posts</li>
           <li>RSS feed and sitemap generation</li>
           <li>Vanilla CSS with custom properties — no frameworks</li>
         </ul>
