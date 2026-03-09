@@ -123,8 +123,8 @@ const { title, description, url, tags, expandable, details } = Astro.props;
 
   .expand-toggle {
     background: transparent;
-    border: 1px solid var(--color-border);
-    color: var(--color-muted);
+    border: 1px solid var(--color-accent);
+    color: var(--color-accent);
     font-family: var(--font-display);
     font-size: 0.75rem;
     padding: 0.3em 0.8em;
@@ -132,13 +132,13 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     cursor: pointer;
     margin-top: var(--space-sm);
     transition:
-      border-color 0.2s ease,
+      background-color 0.2s ease,
       color 0.2s ease;
   }
 
   .expand-toggle:hover {
-    color: var(--color-accent);
-    border-color: var(--color-accent);
+    background-color: var(--color-accent);
+    color: var(--color-bg);
   }
 
   .expand-toggle:focus-visible {
