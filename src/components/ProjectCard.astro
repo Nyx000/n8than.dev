@@ -35,6 +35,12 @@ const { title, description, url, tags, expandable, details } = Astro.props;
       btn.setAttribute('aria-expanded', String(isOpen));
       details.setAttribute('aria-hidden', String(!isOpen));
       btn.textContent = isOpen ? 'Details ▾' : 'Details ▸';
+
+      if (isOpen) {
+        requestAnimationFrame(() => {
+          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
     });
   });
 </script>
@@ -210,6 +216,13 @@ const { title, description, url, tags, expandable, details } = Astro.props;
   .details :global(.skills-list li),
   .details :global(.tech-list li) {
     padding: 0.25em 0;
+  }
+
+  .details :global(.model) {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--color-border);
+    margin-left: 0.25em;
   }
 
   @media (prefers-reduced-motion: reduce) {

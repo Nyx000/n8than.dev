@@ -23,16 +23,12 @@ export const projects: Project[] = [
       <div class="detail-section">
         <h4>Skills</h4>
         <ul class="skills-list">
-          <li><code>/dev</code> Full development pipeline orchestration</li>
-          <li><code>/plan</code> Structured implementation planning</li>
-          <li><code>/research</code> Parallel codebase exploration</li>
-          <li><code>/review</code> Two-stage code review</li>
-          <li><code>/debug</code> Root cause analysis</li>
+          <li><code>/dev</code> Full development pipeline orchestration <span class="model">Claude Opus 4</span></li>
+          <li><code>/plan</code> Structured implementation planning <span class="model">Claude Opus 4</span></li>
+          <li><code>/research</code> Parallel codebase exploration <span class="model">Claude Opus 4</span></li>
+          <li><code>/review</code> Two-stage code review <span class="model">Claude Opus 4</span></li>
+          <li><code>/debug</code> Root cause analysis <span class="model">Claude Opus 4</span></li>
         </ul>
-      </div>
-      <div class="detail-section">
-        <h4>sage8</h4>
-        <p>Philosophical analysis through 8 perspectives — Stoicism, Existentialism, Socratic dialogue, Strategy, Taoism, Buddhism, Logotherapy, and Absurdism.</p>
       </div>
       <div class="detail-section">
         <h4>Under the Hood</h4>
@@ -42,7 +38,7 @@ export const projects: Project[] = [
           <li>File ownership boundaries prevent merge conflicts</li>
           <li>Evidence-driven — never trusts self-reports, reads actual diffs</li>
         </ul>
-        <p class="stats">6 skills · 13 files · ~1,300 lines</p>
+        <p class="stats">5 skills · 13 files · ~1,300 lines</p>
       </div>`,
   },
   {
