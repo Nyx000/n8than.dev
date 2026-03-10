@@ -42,6 +42,40 @@ export const projects: Project[] = [
       </div>`,
   },
   {
+    title: 'Claude Job Search',
+    description:
+      'Open-source job search toolkit built on Claude Code. Drop in source materials, generate a verified profile and resume, then tailor application materials for each posting — with strict anti-hallucination rules that prevent fabrication.',
+    url: 'https://github.com/Nyx000/claude-job-search',
+    tags: ['Claude Code', 'Claude Opus 4.6', 'Agent Orchestration', 'HTML/CSS', 'Open Source'],
+    expandable: true,
+    details: `
+      <div class="detail-section">
+        <h4>The Pipeline</h4>
+        <p class="pipeline">source materials → profile extraction → interview → verified profile + resume</p>
+      </div>
+      <div class="detail-section">
+        <h4>Skills</h4>
+        <ul class="skills-list">
+          <li><code>/setup</code> Scan materials, interview, generate profile + resume</li>
+          <li><code>/apply</code> Tailored resume and cover letter from a job posting</li>
+          <li><code>/compare</code> Match scoring with head-to-head comparison</li>
+          <li><code>/interview</code> Role-specific prep with gap analysis</li>
+          <li><code>/track</code> Application status dashboard</li>
+          <li><code>/update-base</code> Re-sync profile from updated materials</li>
+        </ul>
+      </div>
+      <div class="detail-section">
+        <h4>Under the Hood</h4>
+        <ul class="tech-list">
+          <li>Every claim traces to source files — skills never fabricate experience</li>
+          <li>Immutable fields system locks names, dates, titles, and metrics</li>
+          <li>Tone spectrum adapts between assertive and humble per role</li>
+          <li>Mandatory verification pass before any document is presented</li>
+        </ul>
+        <p class="stats">6 skills · MIT licensed</p>
+      </div>`,
+  },
+  {
     title: 'CafeNightclub',
     description:
       'Full-stack ordering platform built for real clients. Real-time order tracking via WebSockets, push notifications, and an admin dashboard for managing menus, users, and operating hours. Runs on Supabase with row-level security and atomic transactions.',
