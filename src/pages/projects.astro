@@ -32,8 +32,13 @@ import { projects } from '../data/projects';
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--space-lg);
-    align-items: start;
+  }
+
+  @media (max-width: 860px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
