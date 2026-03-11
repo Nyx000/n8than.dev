@@ -6,106 +6,58 @@ type Props = Project;
 const { title, description, url, tags, expandable, details } = Astro.props;
 ---
 
-<div class="card-container">
-  <article class="card">
-    <div class="card-front">
-      <h3>
-        {url ? (
-          <a href={url} target="_blank" rel="noopener noreferrer">{title}</a>
-        ) : (
-          <span class="title-text">{title}</span>
-        )}
-      </h3>
-      <p>{description}</p>
+<article class="card">
+  <div class="card-summary">
+    <h3>
+      {url ? (
+        <a href={url} target="_blank" rel="noopener noreferrer">{title}</a>
+      ) : (
+        <span class="title-text">{title}</span>
+      )}
+    </h3>
+    <p class="description">{description}</p>
+    <div class="card-footer">
       <ul class="tags">
         {tags.map((tag) => <li>{tag}</li>)}
       </ul>
       {expandable && details && (
-        <button class="flip-btn" aria-label="Show details">Details ▸</button>
+        <button class="details-btn" aria-expanded="false">Details &#9656;</button>
       )}
     </div>
-    {expandable && details && (
-      <div class="card-back">
-        <div class="back-content" set:html={details} />
-        <button class="flip-btn back-btn" aria-label="Go back">&#9666; Back</button>
-      </div>
-    )}
-  </article>
-</div>
+  </div>
+  {expandable && details && (
+    <div class="card-expand">
+      <div class="expand-inner" set:html={details} />
+    </div>
+  )}
+</article>
 
 <script>
-  document.querySelectorAll('.flip-btn').forEach((btn) => {
+  document.querySelectorAll('.details-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const container = btn.closest('.card-container');
-      const card = container?.querySelector('.card');
+      const card = btn.closest('.card');
       if (!card) return;
-      card.classList.toggle('flipped');
+      const isExpanded = card.classList.toggle('expanded');
+      btn.setAttribute('aria-expanded', String(isExpanded));
+      btn.innerHTML = isExpanded ? 'Close &#9662;' : 'Details &#9656;';
     });
   });
 </script>
 
 <style>
-  .card-container {
-    perspective: 1000px;
-    height: 340px;
-  }
-
   .card {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    transform-style: preserve-3d;
-    transition: transform 0.5s ease;
-  }
-
-  .card.flipped {
-    transform: rotateY(180deg);
-  }
-
-  .card-front,
-  .card-back {
-    position: absolute;
-    inset: 0;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 10px;
     padding: var(--space-md) var(--space-lg);
-    display: flex;
-    flex-direction: column;
     transition:
       border-color 0.25s ease,
       box-shadow 0.25s ease;
   }
 
-  .card-front {
-    overflow: hidden;
-  }
-
-  .card-container:hover .card-front,
-  .card-container:hover .card-back {
+  .card:hover {
     border-color: var(--color-accent);
     box-shadow: 0 4px 20px rgba(255, 102, 0, 0.08);
-  }
-
-  .card-back {
-    transform: rotateY(180deg);
-    overflow-y: auto;
-  }
-
-  /* Scrollbar styling for back face */
-  .card-back::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  .card-back::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .card-back::-webkit-scrollbar-thumb {
-    background: var(--color-border);
-    border-radius: 2px;
   }
 
   h3 {
@@ -133,20 +85,23 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     color: var(--color-text);
   }
 
-  p {
+  .description {
     color: var(--color-muted);
     margin: var(--space-sm) 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 5;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-md);
+    margin-top: var(--space-sm);
   }
 
   .tags {
     list-style: none;
     padding: 0;
     margin: 0;
-    margin-top: auto;
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-sm);
@@ -161,7 +116,7 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     letter-spacing: 0.02em;
   }
 
-  .flip-btn {
+  .details-btn {
     background: transparent;
     border: 1px solid var(--color-accent);
     color: var(--color-accent);
@@ -170,69 +125,86 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     padding: 0.3em 0.8em;
     border-radius: 3px;
     cursor: pointer;
-    margin-top: var(--space-sm);
-    align-self: flex-start;
+    white-space: nowrap;
+    flex-shrink: 0;
     transition:
       background-color 0.2s ease,
       color 0.2s ease;
   }
 
-  .flip-btn:hover {
+  .details-btn:hover {
     background-color: var(--color-accent);
     color: var(--color-bg);
   }
 
-  .flip-btn:focus-visible {
+  .details-btn:focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
 
-  .back-btn {
-    margin-top: auto;
-    flex-shrink: 0;
+  /* Expand animation */
+  .card-expand {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.35s ease;
   }
 
-  .back-content {
-    flex: 1;
-    min-height: 0;
+  .card.expanded .card-expand {
+    grid-template-rows: 1fr;
   }
 
-  .back-content :global(h4) {
-    font-family: var(--font-display);
-    color: var(--color-accent);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin: var(--space-md) 0 var(--space-sm);
+  .expand-inner {
+    overflow: hidden;
   }
 
-  .back-content :global(.detail-section:first-child h4) {
-    margin-top: 0;
+  .card.expanded .expand-inner {
+    padding-top: var(--space-md);
+    margin-top: var(--space-md);
+    border-top: 1px solid var(--color-border);
   }
 
-  .back-content :global(p),
-  .back-content :global(li) {
+  /* Detail content styles */
+  .expand-inner :global(.hook) {
+    color: var(--color-text);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0 0 var(--space-md);
+  }
+
+  .expand-inner :global(.highlights) {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .expand-inner :global(.highlights li) {
     color: var(--color-muted);
     font-size: 0.875rem;
+    line-height: 1.55;
+    padding-left: 1em;
+    position: relative;
   }
 
-  .back-content :global(code) {
-    font-family: var(--font-mono);
-    color: var(--color-accent);
-    font-size: 0.8rem;
-    background: none;
-    border: none;
-    padding: 0;
+  .expand-inner :global(.highlights li::before) {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.6em;
+    width: 4px;
+    height: 4px;
+    background: var(--color-accent);
+    border-radius: 50%;
   }
 
-  .back-content :global(.pipeline) {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
+  .expand-inner :global(.highlights strong) {
     color: var(--color-text);
-    letter-spacing: 0.02em;
+    font-weight: 600;
   }
 
-  .back-content :global(.stats) {
+  .expand-inner :global(.stats) {
     font-family: var(--font-mono);
     font-size: 0.75rem;
     color: var(--color-muted);
@@ -241,40 +213,9 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     border-top: 1px solid var(--color-border);
   }
 
-  .back-content :global(.skills-list),
-  .back-content :global(.tech-list) {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  .back-content :global(.skills-list li),
-  .back-content :global(.tech-list li) {
-    padding: 0.25em 0;
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .card,
-    .flip-btn {
+    .card-expand {
       transition: none;
-    }
-
-    .card.flipped {
-      transform: none;
-    }
-
-    .card.flipped .card-front {
-      opacity: 0;
-      visibility: hidden;
-    }
-
-    .card-back {
-      transform: none;
-      opacity: 0;
-    }
-
-    .card.flipped .card-back {
-      opacity: 1;
     }
   }
 </style>
