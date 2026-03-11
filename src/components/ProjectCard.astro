@@ -258,5 +258,23 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     .flip-btn {
       transition: none;
     }
+
+    .card.flipped {
+      transform: none;
+    }
+
+    .card.flipped .card-front {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .card-back {
+      transform: none;
+      opacity: 0;
+    }
+
+    .card.flipped .card-back {
+      opacity: 1;
+    }
   }
 </style>
