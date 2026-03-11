@@ -92,7 +92,7 @@ code {
   height: 100%;
   z-index: 10;
   pointer-events: none;
-  opacity: 0.018;
+  opacity: 0.013;
   image-rendering: pixelated;
 }
 
@@ -107,8 +107,8 @@ body::after {
     0deg,
     transparent,
     transparent 2px,
-    rgba(0, 0, 0, 0.03) 2px,
-    rgba(0, 0, 0, 0.03) 4px
+    rgba(0, 0, 0, 0.05) 2px,
+    rgba(0, 0, 0, 0.05) 4px
   );
 }
 

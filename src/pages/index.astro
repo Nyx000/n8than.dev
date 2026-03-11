@@ -5,7 +5,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <BaseLayout title="n8than.dev" description="Computer scientist, software engineer, and problem solver">
   <section class="hero stagger">
     <h1><span class="name-accent">๖ۣۜNathan</span></h1>
-    <p>Making computers do what I want.</p>
+    <div class="cmdline">
+      <span class="cmdline-prompt">&gt;</span><span class="cmdline-text"></span><span class="cmdline-cursor" aria-hidden="true"></span>
+    </div>
     <svg class="lambda" viewBox="0 0 177 185" aria-hidden="true">
       <path d="M47.243238 12.929372v25.907582h21.335657l8.762858 27.050564-65.14995 100.963372h32.003485l46.48125-68.578894 30.479512 76.960764 48.00522-15.23976-7.61987-23.62162-22.09765 6.85789L87.628587 12.929372H47.243238z"/>
     </svg>
@@ -21,6 +23,32 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <a href="mailto:husenathan@gmail.com"><span class="prompt">~</span> email</a>
     </nav>
   </section>
+  <script>
+    document.addEventListener('astro:page-load', () => {
+      const el = document.querySelector('.cmdline-text');
+      if (!el) return;
+
+      const text = 'Making computers do what I want.';
+      const played = sessionStorage.getItem('hero-typed');
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      if (played || prefersReducedMotion) {
+        el.textContent = text;
+      } else {
+        let i = 0;
+        setTimeout(() => {
+          const interval = setInterval(() => {
+            el.textContent += text[i];
+            i++;
+            if (i >= text.length) {
+              clearInterval(interval);
+              sessionStorage.setItem('hero-typed', '1');
+            }
+          }, 55);
+        }, 700);
+      }
+    });
+  </script>
 </BaseLayout>
 
 <style>
@@ -37,31 +65,55 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   .hero h1 {
     font-family: var(--font-display);
     font-size: clamp(2.5rem, 5vw, 4rem);
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-md);
   }
 
   .name-accent {
     color: var(--color-accent);
   }
 
-  .hero p {
-    font-size: 1.2rem;
+  .cmdline {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-display);
+    font-size: 1rem;
     color: var(--color-muted);
-    margin-bottom: 0;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    padding: 0.4em 0.8em;
+    border-radius: 3px;
+  }
+
+  .cmdline-prompt {
+    color: var(--color-accent);
+    margin-right: 0.5em;
+  }
+
+  .cmdline-cursor {
+    display: inline-block;
+    width: 0.6em;
+    height: 1.15em;
+    background: var(--color-accent);
+    vertical-align: text-bottom;
+    animation: blink 0.8s step-end infinite;
+  }
+
+  @keyframes blink {
+    50% { opacity: 0; }
   }
 
   .lambda {
     width: 22px;
     height: 22px;
     fill: var(--color-accent);
-    margin: var(--space-md) 0;
+    margin: var(--space-lg) 0;
   }
 
   .hero-links {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.35rem;
+    gap: 0.55rem;
   }
 
   .hero-links a {
@@ -69,7 +121,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     font-size: 1rem;
     color: var(--color-muted);
     text-decoration: none;
-    padding: 0.15em 0;
+    padding: 0.2em 0;
     transition: color 0.2s ease;
   }
 

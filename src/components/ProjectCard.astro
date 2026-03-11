@@ -27,7 +27,9 @@ const { title, description, url, tags, expandable, details } = Astro.props;
   </div>
   {expandable && details && (
     <div class="card-expand">
-      <div class="expand-inner" set:html={details} />
+      <div class="expand-inner">
+        <div class="expand-content" set:html={details} />
+      </div>
     </div>
   )}
 </article>
@@ -157,21 +159,21 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     overflow: hidden;
   }
 
-  .card.expanded .expand-inner {
+  .expand-content {
     padding-top: var(--space-md);
     margin-top: var(--space-md);
     border-top: 1px solid var(--color-border);
   }
 
   /* Detail content styles */
-  .expand-inner :global(.hook) {
+  .expand-content :global(.hook) {
     color: var(--color-text);
     font-size: 0.95rem;
     line-height: 1.6;
     margin: 0 0 var(--space-md);
   }
 
-  .expand-inner :global(.highlights) {
+  .expand-content :global(.highlights) {
     list-style: none;
     padding: 0;
     margin: 0;
@@ -180,7 +182,7 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     gap: var(--space-sm);
   }
 
-  .expand-inner :global(.highlights li) {
+  .expand-content :global(.highlights li) {
     color: var(--color-muted);
     font-size: 0.875rem;
     line-height: 1.55;
@@ -188,7 +190,7 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     position: relative;
   }
 
-  .expand-inner :global(.highlights li::before) {
+  .expand-content :global(.highlights li::before) {
     content: '';
     position: absolute;
     left: 0;
@@ -199,12 +201,12 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     border-radius: 50%;
   }
 
-  .expand-inner :global(.highlights strong) {
+  .expand-content :global(.highlights strong) {
     color: var(--color-text);
     font-weight: 600;
   }
 
-  .expand-inner :global(.stats) {
+  .expand-content :global(.stats) {
     font-family: var(--font-mono);
     font-size: 0.75rem;
     color: var(--color-muted);
