@@ -35,13 +35,15 @@ const { title, description, url, tags, expandable, details } = Astro.props;
 </article>
 
 <script>
-  document.querySelectorAll('.details-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const card = btn.closest('.card');
-      if (!card) return;
-      const isExpanded = card.classList.toggle('expanded');
-      btn.setAttribute('aria-expanded', String(isExpanded));
-      btn.innerHTML = isExpanded ? 'Close &#9662;' : 'Details &#9656;';
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll('.details-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const card = btn.closest('.card');
+        if (!card) return;
+        const isExpanded = card.classList.toggle('expanded');
+        btn.setAttribute('aria-expanded', String(isExpanded));
+        btn.innerHTML = isExpanded ? 'Close &#9662;' : 'Details &#9656;';
+      });
     });
   });
 </script>
