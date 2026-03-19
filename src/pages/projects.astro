@@ -7,6 +7,7 @@ import { projects } from '../data/projects';
 <BaseLayout title="Projects | n8than.dev" description="Things I've built">
   <section class="container">
     <h1 class="section-heading">Projects</h1>
+    <p class="intro">A mix of production apps, AI tooling, and open-source projects.</p>
     <div class="grid stagger">
       {projects.map((project) => <ProjectCard {...project} />)}
     </div>
@@ -29,6 +30,13 @@ import { projects } from '../data/projects';
     padding-bottom: var(--space-md);
     border-bottom: 2px solid var(--color-border);
     display: inline-block;
+  }
+
+  .intro {
+    color: var(--color-muted);
+    font-size: 0.95rem;
+    margin-top: calc(-0.5 * var(--space-lg));
+    margin-bottom: var(--space-lg);
   }
 
   .grid {
