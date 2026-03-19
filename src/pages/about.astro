@@ -11,51 +11,54 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </blockquote>
     <p>
       I'm a developer based in San Diego building web applications that solve real problems for real
-      people. I got here the long way around.
+      people. I got here the long way around — a CS degree from San Diego State (2020), then a
+      pivot into hospital food service at Scripps Mercy during COVID, where running the overnight
+      cafeteria alone turned ordering bottlenecks into a problem worth solving.
     </p>
     <p>
-      I studied Computer Science from 2012 to 2020. During that time I struggled to build anything
-      meaningful outside of coursework. Nothing I could make felt useful enough to actually pursue,
-      and the motivation wasn't there. After graduating, the COVID pandemic was reshaping the world
-      around me. I wanted to help. Not from behind a screen, but on the ground, serving the people
-      who were putting themselves at risk every day.
+      In 2025 I built CafeNightClub, a food ordering system for 80+ hospital staff, and shipped it
+      to production. I rebuilt it from scratch as OrderKit to deepen my understanding. AI tooling —
+      Claude Code especially — accelerated the process, turning hours of research into minutes of
+      focused engineering.
     </p>
     <p>
-      In 2021, at the height of the pandemic, I picked up a job at Scripps Mercy Hospital doing
-      food service — cooking for hospital staff on the overnight shift, running the cafeteria by
-      myself, and providing a place for people to escape into during their breaks. Running a shift
-      alone was already demanding, and the more care I put into it, the more people showed up. The
-      wait times and volume became a real problem I needed to solve.
-    </p>
-    <p>
-      In 2025 I started building again. Instead of waiting for someone to hand me direction or
-      tools, I just started solving a problem I could see. A food ordering system for the hospital
-      staff I worked with. I spent the year iterating on it, rebuilding it from scratch multiple
-      times to fully understand what I was doing and why. For the first time, I was making something
-      for real users, solving a real problem.
-    </p>
-    <p>
-      Three months after launching in January 2026, I had over 80 registered accounts. Staff
-      could order from their floor and pick up when it was ready, no more waiting around in the
-      cafeteria. It freed up time for patient care, quality breaks, and faster turnaround across the
-      board. A small tool, but it measurably improved how the staff spent their night.
-    </p>
-    <p>
-      AI tooling, Claude Code especially, accelerated that process. Not by writing code for me, but
-      by turning hours of googling into minutes of understanding. That shift let me spend my time on
-      what actually matters: designing systems, engineering solutions, and building things.
-    </p>
-    <p>
-      Now I'm building on that momentum. I want to engineer things for people and industries that
-      matter — healthcare, infrastructure, the systems that hold communities together. Sympatheia,
-      the idea that we're all connected and responsible for one another, is what drives the
-      work. This portfolio and the projects in it are where that starts.
+      Now I'm building on that momentum toward healthcare, infrastructure, and the systems that hold
+      communities together. Sympatheia — the idea that we're all connected and responsible for one
+      another — is what drives the work.
     </p>
 
     <blockquote class="epigraph">
       "Accept the things to which fate binds you, and love the people with whom fate brings you together, and do so with all your heart."
       <cite>— Marcus Aurelius</cite>
     </blockquote>
+
+    <section class="skills">
+      <h2>Technical Skills</h2>
+      <dl>
+        <dt>Languages</dt>
+        <dd>JavaScript, TypeScript, Python, SQL, HTML, CSS</dd>
+        <dt>Frontend</dt>
+        <dd>React, Next.js, Astro, Tailwind CSS, SSR, Responsive Design, Accessibility</dd>
+        <dt>Backend</dt>
+        <dd>Node.js, Bun, PostgreSQL, SQLite, Drizzle ORM, Supabase, Docker, Linux</dd>
+        <dt>Tools</dt>
+        <dd>Git, GitHub, CI/CD, Vitest, AI-augmented development</dd>
+      </dl>
+    </section>
+
+    <section class="education">
+      <h2>Education</h2>
+      <div class="degree">
+        <p class="school">San Diego State University</p>
+        <p class="program">Bachelor of Science in Computer Science</p>
+        <span class="year">2020</span>
+      </div>
+      <div class="degree">
+        <p class="school">Grossmont College</p>
+        <p class="program">Associate of Science in Mathematics / Computer Science</p>
+        <span class="year">2017</span>
+      </div>
+    </section>
 
     <section class="links">
       <h2>Find me online</h2>
@@ -143,5 +146,66 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   .links ul a:hover {
     border-color: var(--color-accent);
     color: var(--color-accent);
+  }
+
+  .skills {
+    margin-top: var(--space-xl);
+  }
+
+  .skills h2 {
+    margin-bottom: var(--space-md);
+  }
+
+  .skills dl {
+    margin: 0;
+    padding: 0;
+  }
+
+  .skills dt {
+    font-family: var(--font-mono);
+    color: var(--color-accent);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: var(--space-md);
+  }
+
+  .skills dt:first-child {
+    margin-top: 0;
+  }
+
+  .skills dd {
+    color: var(--color-text);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0.25rem 0 0 0;
+  }
+
+  .education {
+    margin-top: var(--space-xl);
+  }
+
+  .education h2 {
+    margin-bottom: var(--space-md);
+  }
+
+  .degree {
+    margin-bottom: var(--space-md);
+  }
+
+  .school {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+
+  .program {
+    color: var(--color-muted);
+    font-size: 0.95rem;
+  }
+
+  .year {
+    font-family: var(--font-mono);
+    color: var(--color-muted);
+    font-size: 0.85rem;
   }
 </style>
