@@ -25,9 +25,9 @@ export const projects: Project[] = [
       <p class="stats">v0.1.0 · MIT licensed · Active development</p>`,
   },
   {
-    title: 'Claude Skills Framework',
+    title: 'DevPipe',
     description:
-      'A development orchestrator for Claude Code. The /dev skill takes a goal from brainstorming through parallel research, structured planning, concurrent execution, and two-stage code review. Coordinates research and review sub-skills across a 7-phase pipeline.',
+      'Feature development pipeline for Claude Code. Takes a goal from brainstorming through parallel research, structured planning, concurrent execution, and two-stage code review. Coordinates research and review sub-skills across a 7-phase pipeline.',
     tags: ['Claude Code', 'Agent Orchestration', 'Prompt Engineering'],
     expandable: true,
     details: `
@@ -53,21 +53,6 @@ export const projects: Project[] = [
         <li><strong>Curated tension.</strong> Recommended pairings exploit genuine philosophical disagreements — Camus vs. Frankl on meaning, Nietzsche vs. Buddha on desire, Sun Tzu vs. Lao Tzu on action.</li>
       </ul>
       <p class="stats">~610 lines · 8 philosophers · 3 execution modes</p>`,
-  },
-  {
-    title: 'Narrative',
-    description:
-      'Processes journal entries through five validated psychological frameworks to build a longitudinal narrative identity document. Extracts structured data, tracks patterns across entries, and renders the result as a print-ready PDF.',
-    tags: ['Claude Code', 'Multi-Agent', 'Psychology', 'PDF Generation'],
-    expandable: true,
-    details: `
-      <p class="hook">Five psychology frameworks applied simultaneously to your own writing — not a chatbot summary, but a longitudinal analysis system that tracks who you're becoming.</p>
-      <ul class="highlights">
-        <li><strong>Evidence-grounded extraction.</strong> Every claim includes verbatim source text. Confidence scores prevent false certainty. SHA256 deduplication prevents reprocessing.</li>
-        <li><strong>Longitudinal tracking.</strong> Pennebaker linguistic ratios, Self-Determination Theory need scores, and cognitive distortion patterns accumulate across entries. Life phases emerge from temporal proximity and thematic coherence, not manual labels.</li>
-        <li><strong>Print-ready output.</strong> Synthesis renders to flowing narrative prose, then to PDF via Chrome headless with serif typography and page-break-aware layout.</li>
-      </ul>
-      <p class="stats">~960 lines · 5 frameworks · 3-phase pipeline</p>`,
   },
   {
     title: 'CafeNightclub',
