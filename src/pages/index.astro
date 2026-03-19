@@ -31,8 +31,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         'echo "Making computers do what I want."',
         "python3 -c 'print(\"Making computers do what I want.\")'",
         "npx tsx -e 'console.log(\"Making computers do what I want.\")'",
-        "dotnet script eval 'Console.WriteLine(\"Making computers do what I want.\")'",
-        "g++ -xc++ - <<< 'int main(){puts(\"Making computers do what I want.\");}' && ./a.out",
       ];
 
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -42,16 +40,26 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         return;
       }
 
+      if (window.__cmdlineCleanup) window.__cmdlineCleanup();
+
+      let activeInterval = null;
+      let activeTimeout = null;
       let cmdIndex = 0;
       let firstTypeDone = false;
 
+      window.__cmdlineCleanup = () => {
+        if (activeInterval) clearInterval(activeInterval);
+        if (activeTimeout) clearTimeout(activeTimeout);
+      };
+
       function typeCommand(text, onDone) {
         let i = 0;
-        const interval = setInterval(() => {
+        activeInterval = setInterval(() => {
           el.textContent += text[i];
           i++;
           if (i >= text.length) {
-            clearInterval(interval);
+            clearInterval(activeInterval);
+            activeInterval = null;
             if (!firstTypeDone) {
               firstTypeDone = true;
               sessionStorage.setItem('hero-typed', '1');
@@ -63,32 +71,26 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       function cycleNext() {
         el.textContent = '';
-        setTimeout(() => {
+        activeTimeout = setTimeout(() => {
           cmdIndex = (cmdIndex + 1) % commands.length;
           typeCommand(commands[cmdIndex], () => {
-            setTimeout(() => {
+            activeTimeout = setTimeout(() => {
               cycleNext();
             }, 2000);
           });
-        }, 500);
+        }, 150);
       }
 
       const played = sessionStorage.getItem('hero-typed');
+      const initialDelay = played ? 0 : 700;
 
-      if (played) {
-        el.textContent = commands[0];
-        setTimeout(() => {
-          cycleNext();
-        }, 2000);
-      } else {
-        setTimeout(() => {
-          typeCommand(commands[0], () => {
-            setTimeout(() => {
-              cycleNext();
-            }, 2000);
-          });
-        }, 700);
-      }
+      activeTimeout = setTimeout(() => {
+        typeCommand(commands[0], () => {
+          activeTimeout = setTimeout(() => {
+            cycleNext();
+          }, 2000);
+        });
+      }, initialDelay);
     });
   </script>
 </BaseLayout>
@@ -115,8 +117,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   .cmdline {
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    align-self: flex-start;
+    width: 80ch;
+    max-width: 100%;
     font-family: var(--font-display);
     font-size: 1rem;
     color: var(--color-muted);
@@ -124,7 +129,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     border: 1px solid rgba(30, 30, 34, 0.6);
     padding: 0.4em 0.8em;
     border-radius: 3px;
-    animation: revealLeft 0.4s ease-out 0.08s both;
   }
 
   .cmdline-prompt {
@@ -155,15 +159,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     50% { opacity: 0; }
   }
 
-  @keyframes revealLeft {
-    from { clip-path: inset(0 100% 0 0); }
-    to { clip-path: inset(0 0 0 0); }
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .cmdline {
+    .cmdline-cursor {
       animation: none;
-      clip-path: none;
     }
   }
 
