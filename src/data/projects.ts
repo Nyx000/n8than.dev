@@ -42,7 +42,7 @@ export const projects: Project[] = [
   {
     title: 'Sage8',
     description:
-      'Eight philosophical perspectives analyzed in parallel through dedicated AI agents, with full council, single philosopher, and debate modes.',
+      'Eight philosophical perspectives analyzed in parallel through dedicated AI agents. Full council, single philosopher, and structured debate modes — each voice encoded with its own reasoning method, vocabulary, and blind spots.',
     tags: ['Claude Code', 'Multi-Agent', 'Philosophy', 'Prompt Engineering'],
     expandable: true,
     details: `
@@ -57,7 +57,7 @@ export const projects: Project[] = [
   {
     title: 'Narrative',
     description:
-      'Processes journal entries through five validated psychological frameworks to build a longitudinal narrative identity document.',
+      'Processes journal entries through five validated psychological frameworks to build a longitudinal narrative identity document. Extracts structured data, tracks patterns across entries, and renders the result as a print-ready PDF.',
     tags: ['Claude Code', 'Multi-Agent', 'Psychology', 'PDF Generation'],
     expandable: true,
     details: `
