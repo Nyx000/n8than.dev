@@ -6,7 +6,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   <section class="hero stagger">
     <h1><span class="name-accent">๖ۣۜNathan</span></h1>
     <div class="cmdline">
-      <span class="cmdline-prompt">&gt;</span><span class="cmdline-text"></span><span class="cmdline-cursor" aria-hidden="true"></span>
+      <span class="cmdline-prompt"><span class="cmdline-user">nathan@dev</span><span class="cmdline-path">:~</span>$ </span><span class="cmdline-text"></span><span class="cmdline-cursor" aria-hidden="true"></span>
     </div>
     <svg class="lambda" viewBox="0 0 177 185" aria-hidden="true">
       <path d="M47.243238 12.929372v25.907582h21.335657l8.762858 27.050564-65.14995 100.963372h32.003485l46.48125-68.578894 30.479512 76.960764 48.00522-15.23976-7.61987-23.62162-22.09765 6.85789L87.628587 12.929372H47.243238z"/>
@@ -27,23 +27,66 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       const el = document.querySelector('.cmdline-text');
       if (!el) return;
 
-      const text = 'Making computers do what I want.';
-      const played = sessionStorage.getItem('hero-typed');
+      const commands = [
+        'echo "Making computers do what I want."',
+        "python3 -c 'print(\"Making computers do what I want.\")'",
+        "npx tsx -e 'console.log(\"Making computers do what I want.\")'",
+        "dotnet script eval 'Console.WriteLine(\"Making computers do what I want.\")'",
+        "g++ -xc++ - <<< 'int main(){puts(\"Making computers do what I want.\");}' && ./a.out",
+      ];
+
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      if (played || prefersReducedMotion) {
-        el.textContent = text;
-      } else {
+      if (prefersReducedMotion) {
+        el.textContent = commands[0];
+        return;
+      }
+
+      let cmdIndex = 0;
+      let firstTypeDone = false;
+
+      function typeCommand(text, onDone) {
         let i = 0;
-        setTimeout(() => {
-          const interval = setInterval(() => {
-            el.textContent += text[i];
-            i++;
-            if (i >= text.length) {
-              clearInterval(interval);
+        const interval = setInterval(() => {
+          el.textContent += text[i];
+          i++;
+          if (i >= text.length) {
+            clearInterval(interval);
+            if (!firstTypeDone) {
+              firstTypeDone = true;
               sessionStorage.setItem('hero-typed', '1');
             }
-          }, 55);
+            onDone();
+          }
+        }, 95);
+      }
+
+      function cycleNext() {
+        el.textContent = '';
+        setTimeout(() => {
+          cmdIndex = (cmdIndex + 1) % commands.length;
+          typeCommand(commands[cmdIndex], () => {
+            setTimeout(() => {
+              cycleNext();
+            }, 2000);
+          });
+        }, 500);
+      }
+
+      const played = sessionStorage.getItem('hero-typed');
+
+      if (played) {
+        el.textContent = commands[0];
+        setTimeout(() => {
+          cycleNext();
+        }, 2000);
+      } else {
+        setTimeout(() => {
+          typeCommand(commands[0], () => {
+            setTimeout(() => {
+              cycleNext();
+            }, 2000);
+          });
         }, 700);
       }
     });
@@ -77,28 +120,51 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     font-family: var(--font-display);
     font-size: 1rem;
     color: var(--color-muted);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
+    background: rgba(19, 19, 19, 0.5);
+    border: 1px solid rgba(30, 30, 34, 0.6);
     padding: 0.4em 0.8em;
     border-radius: 3px;
+    animation: revealLeft 0.4s ease-out 0.08s both;
   }
 
   .cmdline-prompt {
-    color: var(--color-accent);
+    color: var(--color-muted);
     margin-right: 0.5em;
+    opacity: 0.7;
+    white-space: pre;
+  }
+
+  .cmdline-user {
+    color: var(--color-accent);
+  }
+
+  .cmdline-path {
+    color: #5f87af;
   }
 
   .cmdline-cursor {
     display: inline-block;
     width: 0.6em;
     height: 1.15em;
-    background: var(--color-accent);
+    background: rgba(255, 102, 0, 0.45);
     vertical-align: text-bottom;
     animation: blink 0.8s step-end infinite;
   }
 
   @keyframes blink {
     50% { opacity: 0; }
+  }
+
+  @keyframes revealLeft {
+    from { clip-path: inset(0 100% 0 0); }
+    to { clip-path: inset(0 0 0 0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cmdline {
+      animation: none;
+      clip-path: none;
+    }
   }
 
   .lambda {
