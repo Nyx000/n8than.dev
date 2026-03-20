@@ -51,12 +51,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <div class="degree">
         <p class="school">San Diego State University</p>
         <p class="program">Bachelor of Science in Computer Science</p>
-        <span class="year">2020</span>
+        <time class="year">2020</time>
       </div>
       <div class="degree">
         <p class="school">Grossmont College</p>
         <p class="program">Associate of Science in Mathematics / Computer Science</p>
-        <span class="year">2017</span>
+        <time class="year">2017</time>
       </div>
     </section>
 
@@ -196,14 +196,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   .school {
     color: var(--color-text);
     font-weight: 600;
+    margin: 0;
   }
 
   .program {
     color: var(--color-muted);
     font-size: 0.95rem;
+    margin: 0;
   }
 
   .year {
+    display: block;
     font-family: var(--font-mono);
     color: var(--color-muted);
     font-size: 0.85rem;
