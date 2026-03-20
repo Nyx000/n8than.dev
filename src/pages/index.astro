@@ -81,6 +81,19 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         }, 150);
       }
 
+      const cmdline = document.querySelector('.cmdline');
+      function scheduleGlitch() {
+        const delay = 3000 + Math.random() * 4000;
+        setTimeout(() => {
+          cmdline.classList.add('glitching');
+          setTimeout(() => {
+            cmdline.classList.remove('glitching');
+            scheduleGlitch();
+          }, 200);
+        }, delay);
+      }
+      scheduleGlitch();
+
       const played = sessionStorage.getItem('hero-typed');
       const initialDelay = played ? 0 : 700;
 
@@ -104,6 +117,71 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     text-align: center;
     flex: 1;
     padding: var(--space-lg) var(--space-md);
+    text-shadow:
+      2px 0 rgba(255, 40, 40, 0.18),
+      -2px 0 rgba(0, 180, 255, 0.18);
+  }
+
+  .cmdline {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cmdline::before,
+  .cmdline::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .cmdline::before {
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(180, 70, 0, 0.09) 0px,
+      transparent 1px,
+      transparent 3px
+    );
+  }
+
+  .cmdline::after {
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(120, 40, 0, 0.06) 0px,
+      transparent 1px,
+      transparent 3px
+    );
+  }
+
+  .cmdline.glitching::before {
+    opacity: 1;
+    animation: glitch-r 200ms steps(6);
+  }
+
+  .cmdline.glitching::after {
+    opacity: 1;
+    animation: glitch-b 200ms steps(6);
+  }
+
+  @keyframes glitch-r {
+    0% { clip-path: inset(10% -4px 60% 0); transform: translateX(6px); }
+    17% { clip-path: inset(65% -4px 5% 0); transform: translateX(-8px); }
+    33% { clip-path: inset(25% -4px 45% 0); transform: translateX(10px); }
+    50% { clip-path: inset(80% -4px 0% 0); transform: translateX(-5px); }
+    67% { clip-path: inset(5% -4px 70% 0); transform: translateX(7px); }
+    83% { clip-path: inset(45% -4px 25% 0); transform: translateX(-9px); }
+    100% { clip-path: inset(0); transform: none; }
+  }
+
+  @keyframes glitch-b {
+    0% { clip-path: inset(55% -4px 15% 0); transform: translateX(-7px); }
+    17% { clip-path: inset(5% -4px 65% 0); transform: translateX(9px); }
+    33% { clip-path: inset(70% -4px 5% 0); transform: translateX(-6px); }
+    50% { clip-path: inset(20% -4px 50% 0); transform: translateX(8px); }
+    67% { clip-path: inset(50% -4px 20% 0); transform: translateX(-10px); }
+    83% { clip-path: inset(85% -4px 0% 0); transform: translateX(5px); }
+    100% { clip-path: inset(0); transform: none; }
   }
 
   .hero h1 {
@@ -124,10 +202,18 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     font-family: var(--font-display);
     font-size: 1rem;
     color: var(--color-muted);
-    background: rgba(19, 19, 19, 0.5);
-    border: 1px solid rgba(30, 30, 34, 0.6);
+    background:
+      repeating-linear-gradient(
+        0deg,
+        rgba(180, 70, 0, 0.03) 0px,
+        transparent 1px,
+        transparent 3px
+      ),
+      radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.15) 100%);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 4%, transparent);
     padding: 0.4em 0.8em;
     border-radius: 3px;
+    box-shadow: inset 0 0 30px rgba(180, 70, 0, 0.03);
   }
 
   .cmdline-prompt {
@@ -138,18 +224,18 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   .cmdline-user {
-    color: var(--color-accent);
+    color: color-mix(in srgb, var(--color-accent) 60%, var(--color-muted));
   }
 
   .cmdline-path {
-    color: #5f87af;
+    color: color-mix(in srgb, #5f87af 55%, var(--color-muted));
   }
 
   .cmdline-cursor {
     display: inline-block;
     width: 0.6em;
     height: 1.15em;
-    background: rgba(255, 102, 0, 0.45);
+    background: rgba(255, 102, 0, 0.30);
     vertical-align: text-bottom;
     animation: blink 0.8s step-end infinite;
   }
@@ -159,7 +245,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .cmdline-cursor {
+    .cmdline-cursor,
+    .cmdline.glitching::before,
+    .cmdline.glitching::after {
       animation: none;
     }
   }
