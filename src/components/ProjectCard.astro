@@ -9,29 +9,39 @@ const { title, description, url, tags, expandable, details } = Astro.props;
 <article class="card">
   <div class="card-summary">
     <h3>
-      {url ? (
-        <a href={url} target="_blank" rel="noopener noreferrer">{title}</a>
-      ) : (
-        <span class="title-text">{title}</span>
-      )}
+      {
+        url ? (
+          <a href={url} target="_blank" rel="noopener noreferrer">
+            {title}
+          </a>
+        ) : (
+          <span class="title-text">{title}</span>
+        )
+      }
     </h3>
     <p class="description">{description}</p>
     <div class="card-footer">
       <ul class="tags">
         {tags.map((tag) => <li>{tag}</li>)}
       </ul>
-      {expandable && details && (
-        <button class="details-btn" aria-expanded="false">Details &#9656;</button>
-      )}
+      {
+        expandable && details && (
+          <button class="details-btn" aria-expanded="false">
+            Details &#9656;
+          </button>
+        )
+      }
     </div>
   </div>
-  {expandable && details && (
-    <div class="card-expand">
-      <div class="expand-inner">
-        <div class="expand-content" set:html={details} />
+  {
+    expandable && details && (
+      <div class="card-expand">
+        <div class="expand-inner">
+          <div class="expand-content" set:html={details} />
+        </div>
       </div>
-    </div>
-  )}
+    )
+  }
 </article>
 
 <script>

@@ -6,31 +6,28 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   <section class="container stagger">
     <h1 class="section-heading">About</h1>
     <blockquote class="epigraph">
-      "He who has a why to live can bear almost any how."
-      <cite>— Friedrich Nietzsche</cite>
+      "Accept the things to which fate binds you, and love the people with whom fate brings you
+      together, and do so with all your heart."
+      <cite>— Marcus Aurelius</cite>
     </blockquote>
     <p>
-      I'm a developer based in San Diego building web applications that solve real problems for real
-      people. I got here the long way around — a CS degree from San Diego State (2020), then a
-      pivot into hospital food service at Scripps Mercy during COVID, where running the overnight
-      cafeteria alone turned ordering bottlenecks into a problem worth solving.
+      I'm a developer based in San Diego. CS degree from San Diego State (2020), then a pivot to
+      hospital food service at Scripps Mercy during COVID. I ran the overnight cafeteria solo,
+      cooking for 50+ staff at a full inner-city hospital. The more care I put into it, the more
+      people showed up. Wait times and volume became a real problem I could actually solve.
     </p>
     <p>
       In 2025 I built CafeNightClub, a food ordering system for 80+ hospital staff, and shipped it
-      to production. I rebuilt it from scratch as OrderKit to deepen my understanding. AI tooling —
-      Claude Code especially — accelerated the process, turning hours of research into minutes of
-      focused engineering.
+      to production. Staff could order from their floor and pick up when it was ready, no more
+      waiting around. I rebuilt it from scratch as OrderKit to go deeper, replacing cloud
+      dependencies with a self-hosted stack any venue can deploy with Docker. Claude Code made the
+      whole process faster.
     </p>
     <p>
-      Now I'm building on that momentum toward healthcare, infrastructure, and the systems that hold
-      communities together. Sympatheia — the idea that we're all connected and responsible for one
-      another — is what drives the work.
+      I want to build for healthcare, infrastructure, and the systems that hold communities
+      together. Sympatheia: the idea that we're all connected and responsible for one another.
+      That's what drives the work. This portfolio and the projects in it are where that starts.
     </p>
-
-    <blockquote class="epigraph">
-      "Accept the things to which fate binds you, and love the people with whom fate brings you together, and do so with all your heart."
-      <cite>— Marcus Aurelius</cite>
-    </blockquote>
 
     <section class="skills">
       <h2>Technical Skills</h2>
@@ -38,11 +35,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <dt>Languages</dt>
         <dd>JavaScript, TypeScript, Python, SQL, HTML, CSS</dd>
         <dt>Frontend</dt>
-        <dd>React, Next.js, Astro, Tailwind CSS, SSR, Responsive Design, Accessibility</dd>
+        <dd>React, Next.js, Astro, Tailwind CSS, DaisyUI, SSR, Responsive Design, Accessibility</dd>
         <dt>Backend</dt>
-        <dd>Node.js, Bun, PostgreSQL, SQLite, Drizzle ORM, Supabase, Docker, Linux</dd>
-        <dt>Tools</dt>
-        <dd>Git, GitHub, CI/CD, Vitest, AI-augmented development</dd>
+        <dd>
+          Node.js, Bun, PostgreSQL, SQLite, Drizzle ORM, Supabase, better-auth, RESTful APIs, SSE,
+          Docker, Linux, Caddy, PM2
+        </dd>
+        <dt>Tools &amp; Practices</dt>
+        <dd>
+          Git, GitHub, CI/CD, Vitest, AI-augmented development, State Management, Database Design
+        </dd>
       </dl>
     </section>
 
@@ -67,7 +69,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           <a href="https://github.com/Nyx000" target="_blank" rel="noopener noreferrer">GitHub</a>
         </li>
         <li>
-          <a href="https://www.linkedin.com/in/sd-nhuse/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+          <a href="https://www.linkedin.com/in/sd-nhuse/" target="_blank" rel="noopener noreferrer"
+            >LinkedIn</a
+          >
         </li>
         <li><a href="mailto:husenathan@gmail.com">Email</a></li>
       </ul>
@@ -119,7 +123,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     margin-top: var(--space-xl);
   }
 
+  .skills h2,
+  .education h2,
   .links h2 {
+    display: inline-block;
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
     margin-bottom: var(--space-md);
   }
 
@@ -135,7 +144,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     display: inline-block;
     border: 1px solid var(--color-muted);
     padding: 0.5em 1.25em;
-    border-radius: 9999px;
+    border-radius: 3px;
     color: var(--color-text);
     text-decoration: none;
     transition:
@@ -152,9 +161,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     margin-top: var(--space-xl);
   }
 
-  .skills h2 {
-    margin-bottom: var(--space-md);
-  }
 
   .skills dl {
     margin: 0;
@@ -185,9 +191,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     margin-top: var(--space-xl);
   }
 
-  .education h2 {
-    margin-bottom: var(--space-md);
-  }
 
   .degree {
     margin-bottom: var(--space-md);

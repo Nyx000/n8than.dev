@@ -16,8 +16,8 @@ body {
   --color-surface: #131313;
   --color-text: #d4d0c8;
   --color-muted: #6b6b72;
-  --color-accent: #FF6600;
-  --color-accent-hover: #FF8833;
+  --color-accent: #ff6600;
+  --color-accent-hover: #ff8833;
   --color-border: #1e1e22;
 
   /* Typography — Google Fonts loaded in Head.astro */

@@ -2,14 +2,22 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="n8than.dev" description="Computer scientist, software engineer, and problem solver">
+<BaseLayout
+  title="n8than.dev"
+  description="Computer scientist, software engineer, and problem solver"
+>
   <section class="hero stagger">
     <h1><span class="name-accent">๖ۣۜNathan</span></h1>
     <div class="cmdline">
-      <span class="cmdline-prompt"><span class="cmdline-user">nathan@dev</span><span class="cmdline-path">:~</span>$ </span><span class="cmdline-text"></span><span class="cmdline-cursor" aria-hidden="true"></span>
+      <span class="cmdline-prompt"
+        ><span class="cmdline-user">nathan@dev</span><span class="cmdline-path">:~</span>$
+      </span><span class="cmdline-text"></span><span class="cmdline-cursor" aria-hidden="true"
+      ></span>
     </div>
     <svg class="lambda" viewBox="0 0 177 185" aria-hidden="true">
-      <path d="M47.243238 12.929372v25.907582h21.335657l8.762858 27.050564-65.14995 100.963372h32.003485l46.48125-68.578894 30.479512 76.960764 48.00522-15.23976-7.61987-23.62162-22.09765 6.85789L87.628587 12.929372H47.243238z"/>
+      <path
+        d="M47.243238 12.929372v25.907582h21.335657l8.762858 27.050564-65.14995 100.963372h32.003485l46.48125-68.578894 30.479512 76.960764 48.00522-15.23976-7.61987-23.62162-22.09765 6.85789L87.628587 12.929372H47.243238z"
+      ></path>
     </svg>
     <nav class="hero-links">
       <a href="/projects"><span class="prompt">&gt;</span> projects</a>
@@ -17,20 +25,29 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <a href="/recognition"><span class="prompt">&gt;</span> recognition</a>
       <a href="/about"><span class="prompt">&gt;</span> about</a>
       <div class="nav-divider"></div>
-      <a href="https://github.com/Nyx000" target="_blank" rel="noopener noreferrer"><span class="prompt">~</span> github</a>
-      <a href="https://www.linkedin.com/in/sd-nhuse/" target="_blank" rel="noopener noreferrer"><span class="prompt">~</span> linkedin</a>
+      <a href="https://github.com/Nyx000" target="_blank" rel="noopener noreferrer"
+        ><span class="prompt">~</span> github</a
+      >
+      <a href="https://www.linkedin.com/in/sd-nhuse/" target="_blank" rel="noopener noreferrer"
+        ><span class="prompt">~</span> linkedin</a
+      >
       <a href="mailto:husenathan@gmail.com"><span class="prompt">~</span> email</a>
     </nav>
   </section>
   <script>
+    declare global {
+      interface Window {
+        __cmdlineCleanup?: () => void;
+      }
+    }
     document.addEventListener('astro:page-load', () => {
       const el = document.querySelector('.cmdline-text');
       if (!el) return;
 
       const commands = [
         'echo "Making computers do what I want."',
-        "python3 -c 'print(\"Making computers do what I want.\")'",
-        "npx tsx -e 'console.log(\"Making computers do what I want.\")'",
+        'python3 -c \'print("Making computers do what I want.")\'',
+        'npx tsx -e \'console.log("Making computers do what I want.")\'',
       ];
 
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -66,7 +83,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             }
             onDone();
           }
-        }, 95);
+        }, 85);
       }
 
       function cycleNext() {
@@ -165,23 +182,65 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   @keyframes glitch-r {
-    0% { clip-path: inset(10% -4px 60% 0); transform: translateX(6px); }
-    17% { clip-path: inset(65% -4px 5% 0); transform: translateX(-8px); }
-    33% { clip-path: inset(25% -4px 45% 0); transform: translateX(10px); }
-    50% { clip-path: inset(80% -4px 0% 0); transform: translateX(-5px); }
-    67% { clip-path: inset(5% -4px 70% 0); transform: translateX(7px); }
-    83% { clip-path: inset(45% -4px 25% 0); transform: translateX(-9px); }
-    100% { clip-path: inset(0); transform: none; }
+    0% {
+      clip-path: inset(10% -4px 60% 0);
+      transform: translateX(6px);
+    }
+    17% {
+      clip-path: inset(65% -4px 5% 0);
+      transform: translateX(-8px);
+    }
+    33% {
+      clip-path: inset(25% -4px 45% 0);
+      transform: translateX(10px);
+    }
+    50% {
+      clip-path: inset(80% -4px 0% 0);
+      transform: translateX(-5px);
+    }
+    67% {
+      clip-path: inset(5% -4px 70% 0);
+      transform: translateX(7px);
+    }
+    83% {
+      clip-path: inset(45% -4px 25% 0);
+      transform: translateX(-9px);
+    }
+    100% {
+      clip-path: inset(0);
+      transform: none;
+    }
   }
 
   @keyframes glitch-b {
-    0% { clip-path: inset(55% -4px 15% 0); transform: translateX(-7px); }
-    17% { clip-path: inset(5% -4px 65% 0); transform: translateX(9px); }
-    33% { clip-path: inset(70% -4px 5% 0); transform: translateX(-6px); }
-    50% { clip-path: inset(20% -4px 50% 0); transform: translateX(8px); }
-    67% { clip-path: inset(50% -4px 20% 0); transform: translateX(-10px); }
-    83% { clip-path: inset(85% -4px 0% 0); transform: translateX(5px); }
-    100% { clip-path: inset(0); transform: none; }
+    0% {
+      clip-path: inset(55% -4px 15% 0);
+      transform: translateX(-7px);
+    }
+    17% {
+      clip-path: inset(5% -4px 65% 0);
+      transform: translateX(9px);
+    }
+    33% {
+      clip-path: inset(70% -4px 5% 0);
+      transform: translateX(-6px);
+    }
+    50% {
+      clip-path: inset(20% -4px 50% 0);
+      transform: translateX(8px);
+    }
+    67% {
+      clip-path: inset(50% -4px 20% 0);
+      transform: translateX(-10px);
+    }
+    83% {
+      clip-path: inset(85% -4px 0% 0);
+      transform: translateX(5px);
+    }
+    100% {
+      clip-path: inset(0);
+      transform: none;
+    }
   }
 
   .hero h1 {
@@ -203,12 +262,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     font-size: 1rem;
     color: var(--color-muted);
     background:
-      repeating-linear-gradient(
-        0deg,
-        rgba(180, 70, 0, 0.03) 0px,
-        transparent 1px,
-        transparent 3px
-      ),
+      repeating-linear-gradient(0deg, rgba(180, 70, 0, 0.03) 0px, transparent 1px, transparent 3px),
       radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.15) 100%);
     border: 1px solid color-mix(in srgb, var(--color-accent) 4%, transparent);
     padding: 0.4em 0.8em;
@@ -235,13 +289,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     display: inline-block;
     width: 0.6em;
     height: 1.15em;
-    background: rgba(255, 102, 0, 0.30);
+    background: rgba(255, 102, 0, 0.3);
     vertical-align: text-bottom;
     animation: blink 0.8s step-end infinite;
   }
 
   @keyframes blink {
-    50% { opacity: 0; }
+    50% {
+      opacity: 0;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {

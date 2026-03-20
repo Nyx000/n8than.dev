@@ -58,7 +58,6 @@ export const projects: Project[] = [
     title: 'CafeNightclub',
     description:
       'The project that started it all. Full-stack ordering platform built for 80+ night-shift hospital staff at Scripps Health. Real-time order tracking, push notifications, role-based access control. Ran in production Jan–Mar 2026.',
-    url: 'https://cafenightclub.com',
     tags: ['Next.js', 'React 19', 'Supabase', 'Tailwind CSS', 'TypeScript'],
     expandable: true,
     details: `
@@ -73,7 +72,6 @@ export const projects: Project[] = [
   {
     title: 'n8than.dev',
     description: 'Personal portfolio built with Astro 5 and vanilla CSS',
-    url: 'https://n8than.dev',
     tags: ['Astro 5', 'TypeScript', 'CSS'],
     expandable: true,
     details: `

@@ -7,14 +7,17 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "check": "astro check",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@astrojs/check": "^0.9.8",
     "@astrojs/node": "^9.5.4",
     "@astrojs/rss": "^4.0.15",
     "@astrojs/sitemap": "^3.7.0",
-    "astro": "^5.17.1"
+    "astro": "^5.17.1",
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
     "prettier": "^3.8.1",

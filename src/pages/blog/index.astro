@@ -12,15 +12,21 @@ const posts = (await getCollection('blog')).sort(
   <section class="stagger">
     <h1 class="section-heading">Blog</h1>
     {
-      posts.map((post) => (
-        <PostPreview
-          title={post.data.title}
-          description={post.data.description}
-          pubDate={post.data.pubDate}
-          slug={post.id}
-          tags={post.data.tags}
-        />
-      ))
+      posts.length > 0 ? (
+        posts.map((post) => (
+          <PostPreview
+            title={post.data.title}
+            description={post.data.description}
+            pubDate={post.data.pubDate}
+            slug={post.id}
+            tags={post.data.tags}
+          />
+        ))
+      ) : (
+        <div class="empty">
+          <p>[ feelings go here eventually ]</p>
+        </div>
+      )
     }
   </section>
 </BaseLayout>
@@ -45,5 +51,18 @@ const posts = (await getCollection('blog')).sort(
 
   section > :global(article + article) {
     margin-top: var(--space-md);
+  }
+
+  .empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+  }
+
+  .empty p {
+    color: var(--color-muted);
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
   }
 </style>

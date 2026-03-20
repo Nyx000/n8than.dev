@@ -6,8 +6,7 @@ const testimonials = [
     name: 'Kayla',
     date: 'July 30, 2025',
     category: 'Respect',
-    message:
-      'Thank you for always going above and beyond!! You are very much appreciated!!',
+    message: 'Thank you for always going above and beyond!! You are very much appreciated!!',
   },
   {
     name: 'Mindy',
@@ -20,8 +19,7 @@ const testimonials = [
     name: 'Michael',
     date: 'July 8, 2025',
     category: 'Efficiency',
-    message:
-      "It's always a joy working when you're on. You always take care of the night shift.",
+    message: "It's always a joy working when you're on. You always take care of the night shift.",
   },
   {
     name: 'Deborah',
@@ -77,7 +75,7 @@ const testimonials = [
     date: 'May 6, 2024',
     category: 'Quality',
     message:
-      'Nathan, you are always friendly to people and the people you serve. We are always happy to see you when you are on duty. Because I know the food will be extra good. You give great quality service and meet customer\'s expectations. You are only one man but can tackle many orders like a boss. And fast service. I appreciate your hard work and dedication to your duties.',
+      "Nathan, you are always friendly to people and the people you serve. We are always happy to see you when you are on duty. Because I know the food will be extra good. You give great quality service and meet customer's expectations. You are only one man but can tackle many orders like a boss. And fast service. I appreciate your hard work and dedication to your duties.",
   },
   {
     name: 'Norma',
@@ -98,7 +96,7 @@ const testimonials = [
     date: 'February 4, 2024',
     category: 'Quality',
     message:
-      'Nate, Thank you from all of us in the Emergency Dept for always showing up in the middle of the night to bring us yummy food, fed to us from your heart, great music and immaculate vibes! The heart shaped pancakes the other night really took the cake. Thank you for always going above and beyond, making sure night shift has access to all that Colors cafe has to offer, including the grill, which we miss so much when you\'re not there.',
+      "Nate, Thank you from all of us in the Emergency Dept for always showing up in the middle of the night to bring us yummy food, fed to us from your heart, great music and immaculate vibes! The heart shaped pancakes the other night really took the cake. Thank you for always going above and beyond, making sure night shift has access to all that Colors cafe has to offer, including the grill, which we miss so much when you're not there.",
   },
   {
     name: 'Christine',
@@ -175,10 +173,7 @@ const categoryColors: Record<string, string> = {
         {
           testimonials.map((t) => (
             <article class="card">
-              <span
-                class="badge"
-                style={`--badge-color: ${categoryColors[t.category]}`}
-              >
+              <span class="badge" style={`--badge-color: ${categoryColors[t.category]}`}>
                 {t.category}
               </span>
               <p class="card-name">{t.name}</p>
