@@ -9,9 +9,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   <section class="hero stagger">
     <h1><span class="name-accent">๖ۣۜNathan</span></h1>
     <div class="cmdline">
-      <span class="cmdline-prompt"
-        ><span class="cmdline-user">nathan@dev</span><span class="cmdline-path">:~</span>$
-      </span><span class="cmdline-text"></span><span class="cmdline-cursor" aria-hidden="true"
+      <span class="cmdline-prompt">#</span><span class="cmdline-text"></span><span class="cmdline-cursor" aria-hidden="true"
       ></span>
     </div>
     <svg class="lambda" viewBox="0 0 177 185" aria-hidden="true">
@@ -49,6 +47,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         'python3 -c \'print("Making computers do what I want.")\'',
         'npx tsx -e \'console.log("Making computers do what I want.")\'',
       ];
+
+      const cmdline = document.querySelector('.cmdline') as HTMLElement;
+
+      // Lock width to longest command so the box stays centered while typing
+      const longest = commands.reduce((a, b) => (a.length > b.length ? a : b));
+      el.textContent = longest;
+      cmdline.style.width = cmdline.scrollWidth + 'px';
+      el.textContent = '';
 
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -98,7 +104,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         }, 150);
       }
 
-      const cmdline = document.querySelector('.cmdline');
       function scheduleGlitch() {
         const delay = 3000 + Math.random() * 4000;
         setTimeout(() => {
@@ -256,7 +261,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   .cmdline {
     display: flex;
     align-items: center;
-    width: 80ch;
+    white-space: nowrap;
     max-width: 100%;
     font-family: var(--font-display);
     font-size: 1rem;
@@ -277,13 +282,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     white-space: pre;
   }
 
-  .cmdline-user {
-    color: color-mix(in srgb, var(--color-accent) 60%, var(--color-muted));
-  }
-
-  .cmdline-path {
-    color: color-mix(in srgb, #5f87af 55%, var(--color-muted));
-  }
 
   .cmdline-cursor {
     display: inline-block;
@@ -363,5 +361,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     .hero-links a {
       font-size: 0.9rem;
     }
+
+    .cmdline {
+      font-size: 0.75rem;
+    }
+
   }
 </style>
