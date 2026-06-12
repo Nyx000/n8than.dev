@@ -1,0 +1,426 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const probes = [
+  { id: 'canopy', label: 'CANOPY', note: 'at the plant tops — drives VPD', spark: true },
+  { id: 'lower', label: 'LOWER TENT', note: 'under the canopy — gradient sentinel', spark: true },
+  { id: 'room', label: 'INTAKE AIR', note: 'ambient air feeding the tent', spark: false },
+];
+---
+
+<BaseLayout
+  title="Grow Tent Telemetry | n8than.dev"
+  description="Live environmental telemetry from a self-built, read-only grow tent monitoring stack."
+>
+  <section class="container" id="grow-root">
+    <div class="heading-row">
+      <h1 class="section-heading">Grow Tent Telemetry</h1>
+      <span id="grow-pill" class="pill">CONNECTING</span>
+    </div>
+    <p class="intro">
+      Live readings from a self-built monitoring stack running on this same server: a controller in
+      a grow tent is polled read-only every 10 seconds, logged to Postgres, and streamed here. Three
+      probes — canopy, lower tent, and intake air.
+      <span id="grow-updated"></span>
+    </p>
+
+    <div class="grid stagger">
+      {
+        probes.map((p) => (
+          <article class="card" data-probe={p.id}>
+            <header class="card-head">
+              <h2 class="probe-name">{p.label}</h2>
+              <span class="probe-note">{p.note}</span>
+            </header>
+            <div class="readout">
+              <div class="metric">
+                <span class="value" data-f="tempF">
+                  —
+                </span>
+                <span class="unit">°F</span>
+                <span class="label">temp</span>
+              </div>
+              <div class="metric">
+                <span class="value" data-f="rh">
+                  —
+                </span>
+                <span class="unit">%</span>
+                <span class="label">humidity</span>
+              </div>
+              <div class="metric">
+                <span class="value" data-f="vpdKpa">
+                  —
+                </span>
+                <span class="unit">kPa</span>
+                <span class="label">VPD</span>
+              </div>
+              <div class="metric">
+                <span class="value" data-f="dewF">
+                  —
+                </span>
+                <span class="unit">°F</span>
+                <span class="label">dew point</span>
+              </div>
+            </div>
+            {p.spark && (
+              <>
+                <svg
+                  class="spark"
+                  viewBox="0 0 100 28"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  <polyline class="spark-temp" points="" />
+                  <polyline class="spark-rh" points="" />
+                </svg>
+                <p class="spark-caption">
+                  <span class="k k-temp">temp</span> · <span class="k k-rh">RH</span> — last 5 min
+                </p>
+              </>
+            )}
+          </article>
+        ))
+      }
+    </div>
+
+    <p class="footnote">
+      Read-only by design — the monitor never writes to the hardware. TypeScript poller → Postgres
+      time-series → deterministic alert engine → this feed. More in <a href="/projects">Projects</a>.
+    </p>
+  </section>
+</BaseLayout>
+
+<style>
+  .container {
+    width: 100%;
+    max-width: 64rem;
+    margin: 0 auto;
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .heading-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+  }
+
+  .section-heading {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 400;
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 2px solid var(--color-border);
+    display: inline-block;
+  }
+
+  .pill {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    padding: 0.25em 0.7em;
+    border: 1px solid var(--color-muted);
+    border-radius: 3px;
+    color: var(--color-muted);
+  }
+
+  .pill.live {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+
+  .pill.stale {
+    border-color: #c9a227;
+    color: #c9a227;
+  }
+
+  .pill.offline {
+    border-color: #b3404a;
+    color: #b3404a;
+  }
+
+  @keyframes pulse {
+    50% {
+      opacity: 0.55;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pill.live {
+      animation: none;
+    }
+  }
+
+  .intro {
+    color: var(--color-muted);
+    font-size: 0.95rem;
+    margin-top: calc(-0.5 * var(--space-lg));
+    margin-bottom: var(--space-lg);
+  }
+
+  #grow-updated {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+
+  @media (min-width: 720px) {
+    .grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: var(--space-md) var(--space-lg);
+    transition: border-color 0.25s ease;
+  }
+
+  .card:hover {
+    border-color: var(--color-accent);
+  }
+
+  .card-head {
+    margin-bottom: var(--space-md);
+  }
+
+  .probe-name {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+    color: var(--color-accent);
+    margin: 0;
+  }
+
+  .probe-note {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+  }
+
+  .readout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md) var(--space-sm);
+  }
+
+  .metric {
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-rows: auto auto;
+    align-items: baseline;
+    column-gap: 0.25em;
+  }
+
+  .value {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    color: var(--color-text);
+  }
+
+  .offline .value {
+    color: var(--color-muted);
+  }
+
+  .unit {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+  }
+
+  .label {
+    grid-column: 1 / -1;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .spark {
+    width: 100%;
+    height: 56px;
+    margin-top: var(--space-md);
+    display: block;
+  }
+
+  .spark polyline {
+    fill: none;
+    stroke-width: 1.2;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .spark-temp {
+    stroke: var(--color-accent);
+  }
+
+  .spark-rh {
+    stroke: var(--color-muted);
+  }
+
+  .spark-caption {
+    font-size: 0.7rem;
+    color: var(--color-muted);
+    margin: var(--space-sm) 0 0;
+  }
+
+  .k-temp {
+    color: var(--color-accent);
+  }
+
+  .footnote {
+    margin-top: var(--space-xl);
+    font-size: 0.85rem;
+    color: var(--color-muted);
+  }
+</style>
+
+<script>
+  interface PublicSensor {
+    tempF: number | null;
+    rh: number | null;
+    vpdKpa: number | null;
+    dewF: number | null;
+  }
+  interface SparkPoint {
+    t: number;
+    tempF: number | null;
+    rh: number | null;
+    vpd: number | null;
+  }
+  interface PublicLive {
+    ts: number | null;
+    freshness: 'live' | 'stale' | 'none';
+    sensors: Record<'canopy' | 'lower' | 'room', PublicSensor | null>;
+    spark: Record<'canopy' | 'lower', SparkPoint[]>;
+  }
+
+  const POLL_MS = 10_000;
+  let timer: number | undefined;
+  let failures = 0;
+  let lastTs: number | null = null;
+
+  const fmt = (v: number | null, digits = 1) => (v == null ? '—' : v.toFixed(digits));
+
+  function setPill(state: '' | 'live' | 'stale' | 'offline', text: string) {
+    const pill = document.getElementById('grow-pill');
+    if (!pill) return;
+    pill.className = state ? `pill ${state}` : 'pill';
+    pill.textContent = text;
+  }
+
+  function renderProbe(id: string, s: PublicSensor | null) {
+    const card = document.querySelector(`[data-probe="${id}"]`);
+    if (!card) return;
+    const fields: Array<[keyof PublicSensor, number]> = [
+      ['tempF', 1],
+      ['rh', 1],
+      ['vpdKpa', 2],
+      ['dewF', 1],
+    ];
+    for (const [key, digits] of fields) {
+      const el = card.querySelector(`[data-f="${key}"]`);
+      if (el) el.textContent = s ? fmt(s[key], digits) : '—';
+    }
+  }
+
+  // One polyline per series, each normalized to its own min..max (with a little
+  // headroom) so shape is visible regardless of absolute scale.
+  function polylinePoints(pts: SparkPoint[], pick: (p: SparkPoint) => number | null): string {
+    const xs = pts.map(pick);
+    const valid = xs.filter((v): v is number => v != null);
+    if (valid.length < 2 || pts.length < 2) return '';
+    const lo = Math.min(...valid);
+    const hi = Math.max(...valid);
+    const pad = Math.max((hi - lo) * 0.15, 0.1);
+    const t0 = pts[0].t;
+    const t1 = pts[pts.length - 1].t;
+    const span = Math.max(t1 - t0, 1);
+    return pts
+      .map((p, i) => {
+        const v = xs[i];
+        if (v == null) return null;
+        const x = ((p.t - t0) / span) * 100;
+        const y = 28 - ((v - (lo - pad)) / (hi - lo + 2 * pad)) * 28;
+        return `${x.toFixed(2)},${y.toFixed(2)}`;
+      })
+      .filter(Boolean)
+      .join(' ');
+  }
+
+  function renderSpark(id: 'canopy' | 'lower', pts: SparkPoint[]) {
+    const svg = document.querySelector(`[data-probe="${id}"] svg.spark`);
+    if (!svg) return;
+    svg.querySelector('.spark-temp')?.setAttribute('points', polylinePoints(pts, (p) => p.tempF));
+    svg.querySelector('.spark-rh')?.setAttribute('points', polylinePoints(pts, (p) => p.rh));
+  }
+
+  function renderUpdated() {
+    const el = document.getElementById('grow-updated');
+    if (!el) return;
+    if (lastTs == null) {
+      el.textContent = '';
+      return;
+    }
+    const age = Math.max(0, Math.round((Date.now() - lastTs) / 1000));
+    el.textContent = `Last reading ${age}s ago.`;
+  }
+
+  async function tick() {
+    const root = document.getElementById('grow-root');
+    if (!root) return;
+    try {
+      const res = await fetch('/api/grow/live', { cache: 'no-store' });
+      if (!res.ok) throw new Error(String(res.status));
+      const d = (await res.json()) as PublicLive;
+      failures = 0;
+      lastTs = d.ts;
+      renderProbe('canopy', d.sensors.canopy);
+      renderProbe('lower', d.sensors.lower);
+      renderProbe('room', d.sensors.room);
+      renderSpark('canopy', d.spark.canopy);
+      renderSpark('lower', d.spark.lower);
+      root.classList.remove('offline');
+      if (d.freshness === 'live') setPill('live', 'LIVE');
+      else if (d.freshness === 'stale') setPill('stale', 'STALE');
+      else setPill('', 'NO DATA');
+    } catch {
+      failures += 1;
+      if (failures >= 2) {
+        setPill('offline', 'OFFLINE');
+        root.classList.add('offline');
+      }
+    }
+    renderUpdated();
+  }
+
+  function stop() {
+    if (timer != null) clearInterval(timer);
+    timer = undefined;
+  }
+
+  function start() {
+    stop();
+    void tick();
+    timer = window.setInterval(tick, POLL_MS);
+  }
+
+  // ClientRouter is active: init on every page load, stop when leaving /grow or
+  // when the tab is hidden.
+  document.addEventListener('astro:page-load', () => {
+    if (document.getElementById('grow-root')) start();
+    else stop();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.getElementById('grow-root')) return;
+    if (document.hidden) stop();
+    else start();
+  });
+</script>
