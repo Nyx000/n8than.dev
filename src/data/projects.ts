@@ -10,6 +10,22 @@ export interface Project {
 
 export const projects: Project[] = [
   {
+    title: 'Grow Tent Telemetry',
+    description:
+      'Live environmental monitoring for an automated grow tent — and it streams to this site. A read-only TypeScript poller captures three climate probes into Postgres, with a deterministic alert engine, an MCP server for AI-assisted queries, and a weekly LLM advisory analyst.',
+    url: '/grow',
+    tags: ['TypeScript', 'Node', 'PostgreSQL', 'Drizzle ORM', 'Next.js', 'IoT', 'MCP'],
+    expandable: true,
+    details: `
+      <p class="hook">A 24/7 telemetry stack where the hardware is the source of truth: the controller is never written to — every adjustment is a human decision informed by data. <a href="/grow">Watch it live →</a></p>
+      <ul class="highlights">
+        <li><strong>Multi-probe climate model.</strong> Canopy, lower-tent, and intake probes drive VPD targeting, stratification detection, and a night dew-point sentinel that guards against condensation.</li>
+        <li><strong>Deterministic alert engine.</strong> Pure, unit-tested rules with sustain windows and reconciliation — alerts raise and resolve from data, not vibes.</li>
+        <li><strong>AI advisory layer.</strong> An MCP server exposes the tent to AI assistants, and a weekly analyst turns 30-day aggregates into reviewable recommendations. Advisory only — no write path to hardware exists.</li>
+      </ul>
+      <p class="stats">180+ tests · 10s poll cadence · live at /grow</p>`,
+  },
+  {
     title: 'OrderKit',
     description:
       'Self-hosted ordering platform for small venues. Extracted from CafeNightClub, rebuilt with a modern self-contained stack: Next.js 16, SQLite, Drizzle ORM, and Docker. No cloud dependencies, no vendor lock-in.',

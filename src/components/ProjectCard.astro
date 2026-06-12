@@ -11,7 +11,11 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     <h3>
       {
         url ? (
-          <a href={url} target="_blank" rel="noopener noreferrer">
+          <a
+            href={url}
+            target={url.startsWith('/') ? undefined : '_blank'}
+            rel={url.startsWith('/') ? undefined : 'noopener noreferrer'}
+          >
             {title}
           </a>
         ) : (

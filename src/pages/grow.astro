@@ -85,7 +85,8 @@ const probes = [
 
     <p class="footnote">
       Read-only by design — the monitor never writes to the hardware. TypeScript poller → Postgres
-      time-series → deterministic alert engine → this feed. More in <a href="/projects">Projects</a>.
+      time-series → deterministic alert engine → this feed. More in <a href="/projects">Projects</a
+      >.
     </p>
   </section>
 </BaseLayout>
@@ -357,8 +358,14 @@ const probes = [
   function renderSpark(id: 'canopy' | 'lower', pts: SparkPoint[]) {
     const svg = document.querySelector(`[data-probe="${id}"] svg.spark`);
     if (!svg) return;
-    svg.querySelector('.spark-temp')?.setAttribute('points', polylinePoints(pts, (p) => p.tempF));
-    svg.querySelector('.spark-rh')?.setAttribute('points', polylinePoints(pts, (p) => p.rh));
+    svg.querySelector('.spark-temp')?.setAttribute(
+      'points',
+      polylinePoints(pts, (p) => p.tempF),
+    );
+    svg.querySelector('.spark-rh')?.setAttribute(
+      'points',
+      polylinePoints(pts, (p) => p.rh),
+    );
   }
 
   function renderUpdated() {
