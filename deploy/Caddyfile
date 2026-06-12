@@ -1,15 +1,23 @@
 n8than.dev {
-	root * /var/www/n8than.dev/dist
-
 	encode gzip
 
-	file_server
-
-	header {
-		-Server
-		Cache-Control "public, max-age=3600"
+	handle /api/grow/live {
+		rewrite * /api/public/live
+		reverse_proxy 127.0.0.1:3001
+		header {
+			-Server
+			Cache-Control "public, max-age=5"
+		}
 	}
 
-	@assets path_regexp \.(js|css|jpg|jpeg|png|gif|svg|ico|woff2?|ttf|otf|webp|avif)$
-	header @assets Cache-Control "public, max-age=31536000, immutable"
+	handle {
+		root * /var/www/n8than.dev/dist
+		file_server
+		header {
+			-Server
+			Cache-Control "public, max-age=3600"
+		}
+		@assets path_regexp \.(js|css|jpg|jpeg|png|gif|svg|ico|woff2?|ttf|otf|webp|avif)$
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+	}
 }
