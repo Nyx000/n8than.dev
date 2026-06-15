@@ -6,32 +6,31 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   title="n8than.dev"
   description="Computer scientist, software engineer, and problem solver"
 >
-  <section class="hero stagger">
-    <h1><span class="name-accent">๖ۣۜNathan</span></h1>
-    <div class="cmdline">
-      <span class="cmdline-prompt">#</span><span class="cmdline-text"></span><span class="cmdline-cursor" aria-hidden="true"
-      ></span>
+  <section class="hero">
+    <div class="hero-inner stagger">
+      <h1 class="hero-name">๖ۣۜNathan</h1>
+      <div class="cmdline">
+        <span class="cmdline-prompt">#</span><span class="cmdline-text"></span><span
+          class="cmdline-cursor"
+          aria-hidden="true"></span>
+      </div>
+      <nav class="hero-links">
+        <a href="/projects">projects</a>
+        <a href="/blog">blog</a>
+        <a href="/recognition">recognition</a>
+        <a href="/about">about</a>
+      </nav>
+      <div class="nav-divider" aria-hidden="true"></div>
+      <nav class="hero-social">
+        <a href="https://github.com/Nyx000" target="_blank" rel="noopener noreferrer">github</a>
+        <a href="https://www.linkedin.com/in/sd-nhuse/" target="_blank" rel="noopener noreferrer"
+          >linkedin</a
+        >
+        <a href="mailto:husenathan@gmail.com">email</a>
+      </nav>
     </div>
-    <svg class="lambda" viewBox="0 0 177 185" aria-hidden="true">
-      <path
-        d="M47.243238 12.929372v25.907582h21.335657l8.762858 27.050564-65.14995 100.963372h32.003485l46.48125-68.578894 30.479512 76.960764 48.00522-15.23976-7.61987-23.62162-22.09765 6.85789L87.628587 12.929372H47.243238z"
-      ></path>
-    </svg>
-    <nav class="hero-links">
-      <a href="/projects"><span class="prompt">&gt;</span> projects</a>
-      <a href="/blog"><span class="prompt">&gt;</span> blog</a>
-      <a href="/recognition"><span class="prompt">&gt;</span> recognition</a>
-      <a href="/about"><span class="prompt">&gt;</span> about</a>
-      <div class="nav-divider"></div>
-      <a href="https://github.com/Nyx000" target="_blank" rel="noopener noreferrer"
-        ><span class="prompt">~</span> github</a
-      >
-      <a href="https://www.linkedin.com/in/sd-nhuse/" target="_blank" rel="noopener noreferrer"
-        ><span class="prompt">~</span> linkedin</a
-      >
-      <a href="mailto:husenathan@gmail.com"><span class="prompt">~</span> email</a>
-    </nav>
   </section>
+
   <script>
     declare global {
       interface Window {
@@ -50,7 +49,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       const cmdline = document.querySelector('.cmdline') as HTMLElement;
 
-      // Lock width to longest command so the box stays centered while typing
+      // Lock width to longest command so the box doesn't resize while typing
       const longest = commands.reduce((a, b) => (a.length > b.length ? a : b));
       el.textContent = longest;
       cmdline.style.width = cmdline.scrollWidth + 'px';
@@ -104,18 +103,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         }, 150);
       }
 
-      function scheduleGlitch() {
-        const delay = 3000 + Math.random() * 4000;
-        setTimeout(() => {
-          cmdline.classList.add('glitching');
-          setTimeout(() => {
-            cmdline.classList.remove('glitching');
-            scheduleGlitch();
-          }, 200);
-        }, delay);
-      }
-      scheduleGlitch();
-
       const played = sessionStorage.getItem('hero-typed');
       const initialDelay = played ? 0 : 700;
 
@@ -132,130 +119,49 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 <style>
   .hero {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: center;
-    text-align: center;
-    flex: 1;
-    padding: var(--space-lg) var(--space-md);
-    text-shadow:
-      2px 0 rgba(255, 40, 40, 0.18),
-      -2px 0 rgba(0, 180, 255, 0.18);
+    padding: var(--space-lg) 0;
   }
 
-  .cmdline {
+  /* Centered, capped column — matches Header's max-width so the menu's left
+     edge sits directly under the brand and margins stay balanced on wide screens */
+  .hero-inner {
+    --pad-l: var(--space-lg);
     position: relative;
-    overflow: hidden;
+    width: 100%;
+    max-width: 64rem;
+    margin: 0 auto;
+    padding-left: var(--pad-l);
+    padding-right: var(--space-lg);
   }
 
-  .cmdline::before,
-  .cmdline::after {
+  /* The spine — faint orange rail down the left gutter, fading at both ends */
+  .hero-inner::before {
     content: '';
     position: absolute;
-    inset: 0;
+    left: calc(var(--pad-l) - 1.15rem);
+    top: 0.25rem;
+    bottom: 0.25rem;
+    width: 1px;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      rgba(255, 102, 0, 0.16) 12%,
+      rgba(255, 102, 0, 0.16) 88%,
+      transparent
+    );
     pointer-events: none;
-    opacity: 0;
   }
 
-  .cmdline::before {
-    background: repeating-linear-gradient(
-      0deg,
-      rgba(180, 70, 0, 0.09) 0px,
-      transparent 1px,
-      transparent 3px
-    );
-  }
-
-  .cmdline::after {
-    background: repeating-linear-gradient(
-      0deg,
-      rgba(120, 40, 0, 0.06) 0px,
-      transparent 1px,
-      transparent 3px
-    );
-  }
-
-  .cmdline.glitching::before {
-    opacity: 1;
-    animation: glitch-r 200ms steps(6);
-  }
-
-  .cmdline.glitching::after {
-    opacity: 1;
-    animation: glitch-b 200ms steps(6);
-  }
-
-  @keyframes glitch-r {
-    0% {
-      clip-path: inset(10% -4px 60% 0);
-      transform: translateX(6px);
-    }
-    17% {
-      clip-path: inset(65% -4px 5% 0);
-      transform: translateX(-8px);
-    }
-    33% {
-      clip-path: inset(25% -4px 45% 0);
-      transform: translateX(10px);
-    }
-    50% {
-      clip-path: inset(80% -4px 0% 0);
-      transform: translateX(-5px);
-    }
-    67% {
-      clip-path: inset(5% -4px 70% 0);
-      transform: translateX(7px);
-    }
-    83% {
-      clip-path: inset(45% -4px 25% 0);
-      transform: translateX(-9px);
-    }
-    100% {
-      clip-path: inset(0);
-      transform: none;
-    }
-  }
-
-  @keyframes glitch-b {
-    0% {
-      clip-path: inset(55% -4px 15% 0);
-      transform: translateX(-7px);
-    }
-    17% {
-      clip-path: inset(5% -4px 65% 0);
-      transform: translateX(9px);
-    }
-    33% {
-      clip-path: inset(70% -4px 5% 0);
-      transform: translateX(-6px);
-    }
-    50% {
-      clip-path: inset(20% -4px 50% 0);
-      transform: translateX(8px);
-    }
-    67% {
-      clip-path: inset(50% -4px 20% 0);
-      transform: translateX(-10px);
-    }
-    83% {
-      clip-path: inset(85% -4px 0% 0);
-      transform: translateX(5px);
-    }
-    100% {
-      clip-path: inset(0);
-      transform: none;
-    }
-  }
-
-  .hero h1 {
+  .hero-name {
     font-family: var(--font-display);
-    font-size: clamp(2.5rem, 5vw, 4rem);
-    margin-bottom: var(--space-md);
-  }
-
-  .name-accent {
+    font-size: clamp(2.75rem, 6vw, 4rem);
     color: var(--color-accent);
+    line-height: 1.05;
+    margin-bottom: var(--space-sm);
   }
 
   .cmdline {
@@ -263,16 +169,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     align-items: center;
     white-space: nowrap;
     max-width: 100%;
+    overflow: hidden;
     font-family: var(--font-display);
-    font-size: 1rem;
+    font-size: clamp(0.85rem, 1.4vw, 0.95rem);
     color: var(--color-muted);
-    background:
-      repeating-linear-gradient(0deg, rgba(180, 70, 0, 0.03) 0px, transparent 1px, transparent 3px),
-      radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.15) 100%);
-    border: 1px solid color-mix(in srgb, var(--color-accent) 4%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 6%, transparent);
     padding: 0.4em 0.8em;
     border-radius: 3px;
-    box-shadow: inset 0 0 30px rgba(180, 70, 0, 0.03);
+    margin-bottom: var(--space-lg);
   }
 
   .cmdline-prompt {
@@ -281,7 +185,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     opacity: 0.7;
     white-space: pre;
   }
-
 
   .cmdline-cursor {
     display: inline-block;
@@ -298,73 +201,85 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .cmdline-cursor,
-    .cmdline.glitching::before,
-    .cmdline.glitching::after {
-      animation: none;
-    }
-  }
-
-  .lambda {
-    width: 22px;
-    height: 22px;
-    fill: var(--color-accent);
-    margin: var(--space-lg) 0;
-  }
-
-  .hero-links {
+  /* Menu — all text on one left line; selection is colour + cursor only */
+  .hero-links,
+  .hero-social {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.55rem;
+  }
+
+  .hero-links a,
+  .hero-social a {
+    position: relative;
+    font-family: var(--font-display);
+    color: var(--color-text);
+    text-decoration: none;
+    line-height: 1.75;
+    transition: color 0.15s ease;
   }
 
   .hero-links a {
-    font-family: var(--font-display);
-    font-size: 1rem;
+    font-size: clamp(1.35rem, 2.4vw, 1.6rem);
+  }
+
+  .hero-social a {
+    font-size: clamp(1rem, 1.6vw, 1.15rem);
     color: var(--color-muted);
-    text-decoration: none;
-    padding: 0.2em 0;
-    transition: color 0.2s ease;
   }
 
-  .hero-links a:hover {
+  /* λ selection cursor — the HL lambda, in the gutter on the spine, shown only
+     on hover/focus. Absolutely positioned so it never shifts the text. */
+  .hero-links a::before,
+  .hero-social a::before {
+    content: '';
+    position: absolute;
+    left: -1.55rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0.8rem;
+    height: 0.8rem;
+    background-color: var(--color-accent);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 177 185'%3E%3Cpath d='M47.243238 12.929372v25.907582h21.335657l8.762858 27.050564-65.14995 100.963372h32.003485l46.48125-68.578894 30.479512 76.960764 48.00522-15.23976-7.61987-23.62162-22.09765 6.85789L87.628587 12.929372H47.243238z'/%3E%3C/svg%3E")
+      no-repeat center / contain;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 177 185'%3E%3Cpath d='M47.243238 12.929372v25.907582h21.335657l8.762858 27.050564-65.14995 100.963372h32.003485l46.48125-68.578894 30.479512 76.960764 48.00522-15.23976-7.61987-23.62162-22.09765 6.85789L87.628587 12.929372H47.243238z'/%3E%3C/svg%3E")
+      no-repeat center / contain;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+  }
+
+  .hero-links a:hover,
+  .hero-links a:focus-visible,
+  .hero-social a:hover,
+  .hero-social a:focus-visible {
     color: var(--color-accent);
   }
 
-  .hero-links a:hover .prompt {
-    color: var(--color-accent);
-  }
-
-  .prompt {
-    color: var(--color-accent);
-    margin-right: 0.4em;
+  .hero-links a:hover::before,
+  .hero-links a:focus-visible::before,
+  .hero-social a:hover::before,
+  .hero-social a:focus-visible::before {
+    opacity: 1;
   }
 
   .nav-divider {
     width: 24px;
     height: 1px;
     background: var(--color-border);
-    margin: 0.3rem 0;
+    margin: var(--space-sm) 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cmdline-cursor {
+      animation: none;
+    }
   }
 
   @media (max-width: 600px) {
-    .hero {
-      padding: var(--space-md) var(--space-sm);
+    .hero-inner {
+      --pad-l: 1.75rem;
+      padding-right: var(--space-md);
     }
-
-    .hero h1 {
-      font-size: 2rem;
-    }
-
-    .hero-links a {
-      font-size: 0.9rem;
-    }
-
-    .cmdline {
-      font-size: 0.75rem;
-    }
-
   }
 </style>
