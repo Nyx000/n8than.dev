@@ -14,7 +14,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       I'm a developer based in San Diego. CS degree from San Diego State (2020), then a pivot to
       hospital food service at Scripps Mercy during COVID. I ran the overnight cafeteria solo,
       cooking for 50+ staff at a full inner-city hospital. The more care I put into it, the more
-      people showed up. Wait times and volume became a real problem I could actually solve.
+      people showed up. The night shift left a wall of
+      <a href="/recognition">thank-you notes</a>, and the work earned Scripps Health's 2025 Values
+      in Action Award. Wait times and volume became a real problem I could actually solve.
     </p>
     <p>
       In 2025 I built CafeNightClub, a food ordering system for 80+ hospital staff, and shipped it
@@ -39,11 +41,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <dt>Backend</dt>
         <dd>
           Node.js, Bun, PostgreSQL, SQLite, Drizzle ORM, Supabase, better-auth, RESTful APIs, SSE,
-          Docker, Linux, Caddy, PM2
+          Docker, Linux (Ubuntu), Caddy, PM2
         </dd>
         <dt>Tools &amp; Practices</dt>
         <dd>
-          Git, GitHub, CI/CD, Vitest, AI-augmented development, State Management, Database Design
+          Git, GitHub, CI/CD (GitHub Actions), Vitest, AI-augmented development (Claude), State
+          Management, Database Design
         </dd>
       </dl>
     </section>
@@ -74,6 +77,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           >
         </li>
         <li><a href="mailto:husenathan@gmail.com">Email</a></li>
+        <li>
+          <a href="/resume.pdf" target="_blank" rel="noopener noreferrer">Résumé</a>
+        </li>
       </ul>
     </section>
   </section>
@@ -161,7 +167,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     margin-top: var(--space-xl);
   }
 
-
   .skills dl {
     margin: 0;
     padding: 0;
@@ -190,7 +195,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   .education {
     margin-top: var(--space-xl);
   }
-
 
   .degree {
     margin-bottom: var(--space-md);
