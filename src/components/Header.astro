@@ -64,7 +64,7 @@ function isActive(href: string): boolean {
     text-decoration: none;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    font-size: 0.8rem;
+    font-size: 0.92rem;
     font-weight: 500;
     transition: color 0.2s ease;
   }
@@ -81,13 +81,13 @@ function isActive(href: string): boolean {
   @media (max-width: 600px) {
     .site-header {
       grid-template-columns: 1fr;
-      justify-items: center;
+      justify-items: start;
       gap: var(--space-sm);
       padding: var(--space-sm) var(--space-md);
     }
 
     nav {
-      justify-content: center;
+      justify-content: flex-start;
       gap: var(--space-sm);
     }
   }
