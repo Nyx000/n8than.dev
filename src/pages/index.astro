@@ -130,30 +130,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
      edge sits directly under the brand and margins stay balanced on wide screens */
   .hero-inner {
     --pad-l: var(--space-lg);
-    position: relative;
     width: 100%;
     max-width: 64rem;
     margin: 0 auto;
     padding-left: var(--pad-l);
     padding-right: var(--space-lg);
-  }
-
-  /* The spine: faint orange rail down the left gutter, fading at both ends */
-  .hero-inner::before {
-    content: '';
-    position: absolute;
-    left: calc(var(--pad-l) - 1.15rem);
-    top: 0.25rem;
-    bottom: 0.25rem;
-    width: 1px;
-    background: linear-gradient(
-      180deg,
-      transparent,
-      rgba(255, 102, 0, 0.16) 12%,
-      rgba(255, 102, 0, 0.16) 88%,
-      transparent
-    );
-    pointer-events: none;
   }
 
   .hero-name {
@@ -228,17 +209,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     color: var(--color-muted);
   }
 
-  /* λ selection cursor: the HL lambda, in the gutter on the spine, shown only
-     on hover/focus. Absolutely positioned so it never shifts the text. */
+  /* λ selection cursor: the HL lambda, in the gutter, shown only on hover/focus.
+     Absolutely positioned so it never shifts the text. */
   .hero-links a::before,
   .hero-social a::before {
     content: '';
     position: absolute;
-    left: -1.55rem;
+    left: -1.3rem;
     top: 50%;
     transform: translateY(-50%);
-    width: 0.8rem;
-    height: 0.8rem;
+    width: 0.75rem;
+    height: 0.75rem;
     background-color: var(--color-accent);
     -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 177 185'%3E%3Cpath d='M47.243238 12.929372v25.907582h21.335657l8.762858 27.050564-65.14995 100.963372h32.003485l46.48125-68.578894 30.479512 76.960764 48.00522-15.23976-7.61987-23.62162-22.09765 6.85789L87.628587 12.929372H47.243238z'/%3E%3C/svg%3E")
       no-repeat center / contain;
