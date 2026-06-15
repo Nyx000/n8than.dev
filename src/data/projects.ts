@@ -27,15 +27,15 @@ export const projects: Project[] = [
   {
     title: 'Sage8',
     description:
-      'Eight philosophical perspectives analyzed in parallel through dedicated AI agents. Full council, single philosopher, and structured debate modes — each voice encoded with its own reasoning method, vocabulary, and blind spots.',
+      'Eight philosophical perspectives analyzed in parallel through dedicated AI agents. Full council, single philosopher, and structured debate modes, each voice encoded with its own reasoning method, vocabulary, and blind spots.',
     tags: ['Claude Code', 'Multi-Agent', 'Philosophy', 'Prompt Engineering'],
     expandable: true,
     details: `
-      <p class="hook">Eight philosophers analyze simultaneously, each with their own encoded reasoning method and voice — not summaries, but distinct intellectual perspectives.</p>
+      <p class="hook">Eight philosophers analyze simultaneously, each with their own encoded reasoning method and voice. Not summaries, but distinct intellectual perspectives.</p>
       <ul class="highlights">
         <li><strong>Voice integrity.</strong> Each philosopher has encoded biography, framework, vocabulary, reasoning method, and blind spots. Nietzsche writes aphorisms, Lao Tzu speaks in paradoxes, Sun Tzu issues strategic imperatives.</li>
         <li><strong>Three modes.</strong> Full council with roundtable synthesis, single philosopher deep-dive, or structured debate where two philosophers respond to each other across rounds.</li>
-        <li><strong>Curated tension.</strong> Recommended pairings exploit genuine philosophical disagreements — Camus vs. Frankl on meaning, Nietzsche vs. Buddha on desire, Sun Tzu vs. Lao Tzu on action.</li>
+        <li><strong>Curated tension.</strong> Recommended pairings exploit genuine philosophical disagreements like Camus vs. Frankl on meaning, Nietzsche vs. Buddha on desire, and Sun Tzu vs. Lao Tzu on action.</li>
       </ul>
       <p class="stats">~610 lines · 8 philosophers · 3 execution modes</p>`,
   },
