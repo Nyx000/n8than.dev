@@ -25,21 +25,6 @@ export const projects: Project[] = [
       <p class="stats">v0.1.0 · MIT licensed · Active development</p>`,
   },
   {
-    title: 'DevPipe',
-    description:
-      'Feature development pipeline for Claude Code. Takes a goal from brainstorming through parallel research, structured planning, concurrent execution, and two-stage code review. Coordinates research and review sub-skills across a 7-phase pipeline.',
-    tags: ['Claude Code', 'Agent Orchestration', 'Prompt Engineering'],
-    expandable: true,
-    details: `
-      <p class="hook">The /dev skill turns Claude Code into a disciplined engineering pipeline: Intent, Brainstorm, Research, Plan, Execute, Review, and Verify. Every phase has structured outputs that feed the next.</p>
-      <ul class="highlights">
-        <li><strong>Two-session architecture.</strong> Research and planning consume context, then get saved to disk and wiped. Execution starts fresh with just the plan file. If context runs out mid-build, you resume from where you left off.</li>
-        <li><strong>Evidence-driven verification.</strong> The system never trusts agent self-reports. Every research finding needs a file:line citation. Every review verdict references actual code. Every debug hypothesis gets a specific test.</li>
-        <li><strong>Parallel execution with file ownership.</strong> Independent tasks run concurrently (up to 4), but each file is owned by exactly one task. Shared files get special handling after each batch. Zero merge conflicts by design.</li>
-      </ul>
-      <p class="stats">3 skills · ~1,000 lines</p>`,
-  },
-  {
     title: 'Sage8',
     description:
       'Eight philosophical perspectives analyzed in parallel through dedicated AI agents. Full council, single philosopher, and structured debate modes — each voice encoded with its own reasoning method, vocabulary, and blind spots.',
