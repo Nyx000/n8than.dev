@@ -126,7 +126,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     padding: var(--space-lg) 0;
   }
 
-  /* Centered, capped column — matches Header's max-width so the menu's left
+  /* Centered, capped column: matches Header's max-width so the menu's left
      edge sits directly under the brand and margins stay balanced on wide screens */
   .hero-inner {
     --pad-l: var(--space-lg);
@@ -138,7 +138,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     padding-right: var(--space-lg);
   }
 
-  /* The spine — faint orange rail down the left gutter, fading at both ends */
+  /* The spine: faint orange rail down the left gutter, fading at both ends */
   .hero-inner::before {
     content: '';
     position: absolute;
@@ -201,7 +201,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     }
   }
 
-  /* Menu — all text on one left line; selection is colour + cursor only */
+  /* Menu: all text on one left line; selection is colour + cursor only */
   .hero-links,
   .hero-social {
     display: flex;
@@ -228,7 +228,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     color: var(--color-muted);
   }
 
-  /* λ selection cursor — the HL lambda, in the gutter on the spine, shown only
+  /* λ selection cursor: the HL lambda, in the gutter on the spine, shown only
      on hover/focus. Absolutely positioned so it never shifts the text. */
   .hero-links a::before,
   .hero-social a::before {
