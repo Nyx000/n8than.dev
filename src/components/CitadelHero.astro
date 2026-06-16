@@ -1,0 +1,187 @@
+---
+// Amber-CRT dithered Citadel sunset — decorative landing hero scene.
+// Renderer ported verbatim from the approved brainstorm prototype; wrapped here
+// with the site's astro:page-load lifecycle, an IntersectionObserver to pause
+// off-screen, and a prefers-reduced-motion static-frame path.
+---
+
+<div class="scene-wrap">
+  <div class="band">
+    <canvas id="hero-sky" aria-hidden="true"></canvas>
+    <div class="melt" aria-hidden="true"></div>
+  </div>
+</div>
+
+<style>
+  /* Lives in the same 64rem column as the header rule + footer bar. */
+  .scene-wrap {
+    width: 100%;
+    max-width: 64rem;
+    margin: 1.5rem auto 0;
+    padding: 0;
+  }
+
+  /* aspect-ratio matches the canvas internal res (340/92), so scaling is
+     uniform and pixels stay square. */
+  .band {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 340 / 92;
+    overflow: hidden;
+  }
+
+  .band canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+  }
+
+  /* Dither the band's bottom edge into the page background. */
+  .band .melt {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 24%;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(10, 10, 10, 0), var(--color-bg));
+  }
+
+  /* Mobile: a 3.7:1 band is a sliver — give it real height and crop the wide
+     sides so the Citadel + sun stay visible. */
+  @media (max-width: 600px) {
+    .band {
+      aspect-ratio: auto;
+      height: 180px;
+    }
+    .band canvas {
+      object-fit: cover;
+      object-position: center;
+    }
+  }
+</style>
+
+<script>
+  declare global {
+    interface Window {
+      __citadelCleanup?: () => void;
+    }
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    const cv = document.getElementById('hero-sky') as HTMLCanvasElement | null;
+    if (!cv) return;
+    const ctx = cv.getContext('2d');
+    if (!ctx) return;
+    if (window.__citadelCleanup) window.__citadelCleanup();
+
+    // ===== renderer (verbatim from prototype citadel-C-hero-v2.html) =====
+    var LW = 340, LH = 92; cv.width = LW; cv.height = LH;
+    var img = ctx.createImageData(LW, LH); var buf = img.data;
+    var RAMP = [[10,6,2],[26,14,4],[52,28,8],[90,48,12],[140,74,18],[196,108,28],[240,150,50],[255,198,120]];
+    var RED=[235,40,24], RED_DIM=[120,18,12], BG=[10,10,10];
+    var BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+    function bayer(x,y){ return (BAYER[(y&3)*4+(x&3)]+0.5)/16; }
+    function rampDither(level,x,y){ if(level<0)level=0; if(level>7)level=7; var lo=Math.floor(level); var frac=level-lo; var hi=lo<7?lo+1:7; return (frac>bayer(x,y))?RAMP[hi]:RAMP[lo]; }
+    var _s=1337>>>0; function rnd(){ _s=(_s*1664525+1013904223)>>>0; return _s/4294967296; }
+    function rint(a,b){ return a+Math.floor(rnd()*(b-a+1)); }
+    function px(x,y,c){ if(x<0||x>=LW||y<0||y>=LH) return; var i=(y*LW+x)*4; buf[i]=c[0];buf[i+1]=c[1];buf[i+2]=c[2];buf[i+3]=255; }
+    function pxBlend(x,y,c,a){ if(x<0||x>=LW||y<0||y>=LH) return; var i=(y*LW+x)*4; buf[i]=buf[i]+(c[0]-buf[i])*a; buf[i+1]=buf[i+1]+(c[1]-buf[i+1])*a; buf[i+2]=buf[i+2]+(c[2]-buf[i+2])*a; buf[i+3]=255; }
+    function vrect(x,y,w,h,c){ for(var yy=y;yy<y+h;yy++) for(var xx=x;xx<x+w;xx++) px(xx,yy,c); }
+    var HORIZON=76, DISSOLVE_TOP=82, SUN_CX=246, SUN_CY=75, SUN_R=16;
+
+    var farB=[], nearB=[];
+    function buildRow(arr,baseY,minH,maxH,darkLevel,gap,lit){ var x=-2; while(x<LW+4){ var w=rint(3,8); var h=rint(minH,maxH); var type=rint(0,6); arr.push({x:x,w:w,h:h,type:type,lvl:darkLevel,baseY:baseY,lit:lit}); x+=w+rint(gap[0],gap[1]); } }
+    buildRow(farB,HORIZON+2,2,6,2,[0,2],false);
+    buildRow(nearB,HORIZON+4,3,11,1,[1,2],true);
+    function seedWindows(b){ b.win=[]; if(!b.lit) return; var topY=b.baseY-b.h; var n=rint(0,3); for(var k=0;k<n;k++){ var wx=b.x+rint(1,Math.max(1,b.w-2)); var wy=topY+rint(2,Math.max(2,b.h-3)); b.win.push([wx,wy,rnd()<0.5?6:7]); } }
+    nearB.forEach(seedWindows);
+    function drawBuilding(b){ var topY=b.baseY-b.h; var lvl=b.lvl; for(var yy=topY;yy<b.baseY;yy++){ if(yy>=LH) break; for(var xx=b.x;xx<b.x+b.w;xx++){ if(xx<0||xx>=LW) continue; var edge=(xx===b.x||xx===b.x+b.w-1)?0.4:0; px(xx,yy,rampDither(lvl+edge,xx,yy)); } } var cx=b.x+(b.w>>1);
+      switch(b.type){ case 1: vrect(b.x+2,topY-3,Math.max(2,b.w-4),3,rampDither(lvl,b.x+2,topY-3)); vrect(b.x+4,topY-6,Math.max(2,b.w-8),3,rampDither(lvl,b.x+4,topY-6)); break; case 2: for(var ay=topY-6;ay<topY;ay++) px(cx,ay,rampDither(lvl+1,cx,ay)); break; case 3: vrect(b.x+1,topY-4,b.w-2,4,rampDither(lvl+0.5,b.x+1,topY-4)); break; case 4: vrect(b.x,topY-5,b.w,1,rampDither(lvl,b.x,topY-5)); vrect(b.x,topY-5,1,5,rampDither(lvl,b.x,topY-5)); vrect(b.x+b.w-1,topY-5,1,5,rampDither(lvl,b.x,topY-5)); if(b.lit) vrect(b.x+2,topY-4,Math.max(1,b.w-4),2,rampDither(5,b.x+2,topY-4)); break; case 5: var ph=Math.min(4,b.w>>1); for(var r=0;r<ph;r++){ vrect(b.x+r,topY-1-r,b.w-2*r,1,rampDither(lvl,b.x+r,topY-1-r)); } break; case 6: var dr=Math.min(3,b.w>>1); for(var dy=-dr;dy<=0;dy++){ var ww=Math.round(Math.sqrt(dr*dr-dy*dy)); vrect(cx-ww,topY+dy-dr+1,ww*2+1,1,rampDither(lvl+0.3,cx-ww,topY+dy)); } break; default: px(b.x,topY-1,rampDither(lvl,b.x,topY-1)); px(b.x+b.w-1,topY-1,rampDither(lvl,b.x+b.w-1,topY-1)); break; }
+      if(b.type===3&&b.h>8){ var legTop=b.baseY-Math.min(5,b.h>>1); for(var ly=legTop;ly<b.baseY;ly++){ for(var lx=b.x+1;lx<b.x+b.w-1;lx++){ if(((lx-b.x)%3)!==0) px(lx,ly,RAMP[0]); } } } }
+
+    // ---------- CITADEL (refs-matched, towering over the city) ----------
+    var EDGE=58, CTOP=5, CBASE=78;
+    function drawCitadel(t){
+      for(var y=CTOP;y<CBASE;y++){
+        var prog=(y-CTOP)/(CBASE-CTOP);
+        var litW=5+Math.round(prog*2), shaW=4+Math.round(prog*1.5);
+        var xL=EDGE-litW, xR=EDGE+shaW;
+        if(y>=CTOP+20&&y<=CTOP+33) xR=EDGE+1;                 // asymmetric notch (upper third)
+        if(y>CTOP+33&&y<=CTOP+40) xR=EDGE+7;                  // jut below notch
+        if(y<CTOP+5){ xL=EDGE-3-((CTOP+5)-y); xR=EDGE+1; }    // angled, narrow crown
+        var fade=(y<CTOP+11)?(1-(y-CTOP)/11):0;               // top dissolves into haze
+        for(var x=xL;x<EDGE;x++){ if(fade>0&&bayer(x,y)<fade*0.85) continue; var lvl=2.7+((x-xL)/Math.max(1,litW))*0.9; px(x,y,rampDither(lvl,x,y)); }
+        if(!(fade>0&&bayer(EDGE,y)<fade*0.85)) px(EDGE,y,rampDither(4.8-prog*1.2,EDGE,y));
+        for(var x2=EDGE+1;x2<=xR;x2++){ if(fade>0&&bayer(x2,y)<fade*0.85) continue; px(x2,y,rampDither(1.0,x2,y)); }
+      }
+      var chX=EDGE-5;
+      for(var cy=CTOP+44;cy<CBASE-4;cy++){ px(chX,cy,RAMP[1]); px(chX+1,cy,RAMP[2]); }
+      for(var vy=CTOP+46;vy<CBASE-5;vy+=3){ var fl=0.5+0.5*Math.sin(t*4.0+vy*1.2); var lv=5.4+fl*1.4; vrect(chX,vy,2,1,rampDither(lv,chX,vy)); pxBlend(chX-1,vy,RAMP[5],0.4*fl); }
+      vrect(EDGE-11,CBASE-3,20,3,rampDither(1.3,EDGE-11,CBASE-3));
+      px(EDGE-7,CBASE-6,RAMP[2]); px(EDGE-3,CBASE-7,RAMP[2]); px(EDGE+3,CBASE-6,RAMP[2]); px(EDGE+5,CBASE-5,RAMP[2]);
+      var masts=[[EDGE-1,CTOP-5],[EDGE+1,CTOP-3],[EDGE-2,CTOP-2]];
+      for(var m=0;m<masts.length;m++){ var mx=masts[m][0],mt=masts[m][1]; for(var my=mt;my<CTOP;my++) px(mx,my,rampDither(3.0,mx,my)); }
+      var blink=0.5+0.5*Math.sin(t*1.15), on=blink*blink;
+      var bX=masts[0][0], bY=masts[0][1];
+      var bc=[RED_DIM[0]+(RED[0]-RED_DIM[0])*on,RED_DIM[1]+(RED[1]-RED_DIM[1])*on,RED_DIM[2]+(RED[2]-RED_DIM[2])*on];
+      px(bX,bY,bc); pxBlend(bX-1,bY,RED,0.5*on); pxBlend(bX+1,bY,RED,0.5*on);
+    }
+
+    function steppedSeg(x0,y0,x1,y1){ var n=Math.max(1,Math.round(Math.hypot(x1-x0,y1-y0))); for(var s=0;s<=n;s++){ var f=s/n; var x=Math.round(x0+(x1-x0)*f); var y=Math.round(y0+(y1-y0)*f); px(x,y,RAMP[3]); px(x,y+1,RAMP[2]); } }
+    function cable(x0,y0,x1,y1,sag){ var mx=(x0+x1)/2,my=(y0+y1)/2+sag; steppedSeg(x0,y0,mx,my); steppedSeg(mx,my,x1,y1); }
+
+    function drawSun(t){ var breathe=1+0.05*Math.sin(t*0.8); var pulse=0.5+0.5*Math.sin(t*1.6); var r=SUN_R*breathe;
+      // luminous halo ring around the disc (dithered, bright amber feathering into the sky)
+      var R2=r*2.5;
+      for(var hy=SUN_CY-Math.ceil(R2);hy<=SUN_CY+2;hy++){ if(hy<0||hy>=LH) continue; for(var hx=SUN_CX-Math.ceil(R2);hx<=SUN_CX+Math.ceil(R2);hx++){ if(hx<0||hx>=LW) continue; var hdx=hx-SUN_CX,hdy=hy-SUN_CY,hd=Math.sqrt(hdx*hdx+hdy*hdy); if(hd>=r&&hd<R2){ var a=1-(hd-r)/(R2-r); a=a*a*(0.72+0.28*pulse); if(bayer(hx,hy)<a) px(hx,hy, a>0.55?RAMP[7]:RAMP[6]); } } }
+      // disc: bright hot core, banded body
+      var r2=r*r;
+      for(var yy=SUN_CY-Math.ceil(r);yy<=SUN_CY+2;yy++){ if(yy<0||yy>=LH) continue; for(var xx=SUN_CX-Math.ceil(r);xx<=SUN_CX+Math.ceil(r);xx++){ if(xx<0||xx>=LW) continue; var ddx=xx-SUN_CX,ddy=yy-SUN_CY; var d2=ddx*ddx+ddy*ddy; if(d2>r2) continue; var d=Math.sqrt(d2)/r; var lvl=7.7-d*2.7+pulse*0.4; if(((yy%4)===0)&&d>0.3) lvl-=1.1; px(xx,yy,rampDither(lvl,xx,yy)); } } }
+    function drawSky(t){ var pulse=0.5+0.5*Math.sin(t*1.6); for(var yy=0;yy<LH;yy++){ var f=yy/HORIZON; if(f>1)f=1; var lvl=0.5+f*2.7; var horizonGlow=Math.max(0,1-Math.abs(yy-HORIZON)/14)*0.85; for(var xx=0;xx<LW;xx++){ var sunBias=Math.max(0,1-Math.abs(xx-SUN_CX)/(LW*0.5))*horizonGlow; var dxs=xx-SUN_CX, dys=yy-SUN_CY, dsun=Math.sqrt(dxs*dxs+dys*dys); var bloom=Math.max(0,1-dsun/(SUN_R*3.1)); bloom=bloom*bloom*(1.5+0.3*pulse); px(xx,yy,rampDither(lvl+sunBias+bloom,xx,yy)); } } }
+    function applyDissolve(){ for(var yy=DISSOLVE_TOP;yy<LH;yy++){ var f=(yy-DISSOLVE_TOP)/(LH-DISSOLVE_TOP); for(var xx=0;xx<LW;xx++){ var a=f; if(bayer(xx,yy)<a) px(xx,yy,BG); else pxBlend(xx,yy,BG,a*0.5); } } }
+    function applyScanlines(){ for(var yy=1;yy<LH;yy+=2){ var i0=yy*LW*4; for(var xx=0;xx<LW;xx++){ var i=i0+xx*4; buf[i]*=0.84; buf[i+1]*=0.84; buf[i+2]*=0.84; } } }
+
+    function render(t){
+      drawSky(t); drawSun(t);
+      for(var i=0;i<farB.length;i++) drawBuilding(farB[i]);
+      for(var j=0;j<nearB.length;j++) drawBuilding(nearB[j]);
+      for(var k=0;k<nearB.length;k++){ var b=nearB[k]; if(b.win) for(var w=0;w<b.win.length;w++){ var wn=b.win[w]; px(wn[0],wn[1],RAMP[wn[2]]); } }
+      var ax=EDGE, ay=CTOP+16;
+      cable(ax,ay, EDGE-34, HORIZON+1, 12);
+      cable(ax,ay+7, EDGE-15, HORIZON+4, 8);
+      cable(ax,ay+4, SUN_CX-44, HORIZON-1, 14);
+      cable(ax,ay+16, LW-8, HORIZON+3, 20);
+      drawCitadel(t);
+      applyDissolve(); applyScanlines();
+      ctx.putImageData(img,0,0);
+    }
+    // ===== end renderer =====
+
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let rafId: number | null = null;
+    let last = 0;
+    const FRAME = 1000 / 20;
+    function loop(now: number) {
+      rafId = requestAnimationFrame(loop);
+      if (now - last < FRAME) return;
+      last = now;
+      render(performance.now() / 1000);
+    }
+    function start() { if (rafId == null) { last = 0; rafId = requestAnimationFrame(loop); } }
+    function stop() { if (rafId != null) { cancelAnimationFrame(rafId); rafId = null; } }
+
+    let observer: IntersectionObserver | null = null;
+    if (reduce) {
+      render(0);
+    } else {
+      observer = new IntersectionObserver(
+        (entries) => { if (entries[0].isIntersecting) start(); else stop(); },
+        { threshold: 0 }
+      );
+      observer.observe(cv);
+    }
+    window.__citadelCleanup = () => { stop(); if (observer) observer.disconnect(); };
+  });
+</script>
