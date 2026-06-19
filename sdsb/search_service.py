@@ -10,7 +10,7 @@ Endpoints (served at service root; Caddy mounts these under /seedsearch/):
     GET  /              -> demo HTML page
     GET  /health        -> {"ok": true, ...}
     GET  /search        -> ?q=&k=&in_stock=&category=&rerank=
-    GET  /product/{id}  -> full product record
+    GET  /product/{source}/{source_id}  -> full product record
     GET  /categories    -> [{category, product_count}]
 
 Run:  uvicorn search_service:app --host 127.0.0.1 --port 3002
@@ -130,7 +130,7 @@ def search(
     params.append(RECALL if rerank else k)
 
     sql = f"""
-        SELECT id, name, primary_category, categories, price, regular_price,
+        SELECT source, source_id, name, primary_category, categories, price, regular_price,
                sale_price, on_sale, is_in_stock, permalink, image, short_description,
                1 - (embedding <=> %s::vector) AS vec_score
         FROM sdseed_products
@@ -166,11 +166,12 @@ def search(
     return {"query": q, "count": len(rows), "reranked": rerank, "results": rows}
 
 
-@app.get("/product/{pid}")
-def product(pid: int):
+@app.get("/product/{source}/{source_id}")
+def product(source: str, source_id: int):
     conn = _get_conn()
     with conn.cursor() as cur:
-        cur.execute("SELECT * FROM sdseed_products WHERE id=%s;", (pid,))
+        cur.execute("SELECT * FROM sdseed_products WHERE source=%s AND source_id=%s;",
+                    (source, source_id))
         row = cur.fetchone()
         if not row:
             raise HTTPException(404, "Product not found")

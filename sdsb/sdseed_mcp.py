@@ -124,7 +124,7 @@ def search_products(
     params.append(k)
 
     sql = f"""
-        SELECT id, name, primary_category, categories, price, sale_price, on_sale,
+        SELECT source, source_id, name, primary_category, categories, price, sale_price, on_sale,
                is_in_stock, permalink, short_description,
                1 - (embedding <=> %s::vector) AS similarity
         FROM sdseed_products
@@ -163,7 +163,7 @@ def keyword_search(text: str, k: int = 10) -> str:
     conn = _get_conn()
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT id, name, primary_category, price, is_in_stock, permalink
+            SELECT source, source_id, name, primary_category, price, is_in_stock, permalink
             FROM sdseed_products
             WHERE lower(name) LIKE %s OR lower(coalesce(sku,'')) LIKE %s
             ORDER BY name
@@ -177,18 +177,21 @@ def keyword_search(text: str, k: int = 10) -> str:
 
 
 @mcp.tool()
-def get_product(id: int | None = None, name: str | None = None) -> str:
+def get_product(source: str | None = None, source_id: int | None = None,
+                name: str | None = None) -> str:
     """
     Get full details for a single product, including the complete description.
 
-    Provide either `id` (exact) or `name` (best case-insensitive match).
+    Provide either (`source` AND `source_id`) for an exact lookup, or `name`
+    for a best case-insensitive match.
 
     Returns: JSON object with all catalog fields, or an error message if not found.
     """
     conn = _get_conn()
     with conn.cursor() as cur:
-        if id is not None:
-            cur.execute("SELECT * FROM sdseed_products WHERE id = %s;", (id,))
+        if source is not None and source_id is not None:
+            cur.execute("SELECT * FROM sdseed_products WHERE source=%s AND source_id=%s;",
+                        (source, source_id))
         elif name:
             cur.execute(
                 "SELECT * FROM sdseed_products "
@@ -197,14 +200,13 @@ def get_product(id: int | None = None, name: str | None = None) -> str:
                 (name, f"%{name}%"),
             )
         else:
-            return json.dumps({"error": "Provide either id or name."})
+            return json.dumps({"error": "Provide either (source and source_id) or name."})
         row = cur.fetchone()
         if not row:
             return json.dumps({"error": "Product not found."})
         cols = [d.name for d in cur.description]
         rec = _row_to_dict(row, cols)
 
-    # tidy types for JSON
     for key in ("price", "regular_price", "sale_price"):
         rec[key] = _format_money(rec.get(key))
     rec.pop("embedding", None)  # don't dump the raw vector
