@@ -59,3 +59,15 @@ def test_partition_items_change_detection():
     assert partition_items([r], {}) == ([r], [])
     # force -> embed even if unchanged
     assert partition_items([r], {999: (h, True)}, force=True) == ([r], [])
+
+
+def test_loadable_records_keeps_only_named_int_ids():
+    from load_pgvector import loadable_records
+    recs = [
+        {"name": "A", "source_id": 1},
+        {"name": "B", "source_id": "sku-or-url"},   # woo fallback string id
+        {"name": "C", "source_id": None},
+        {"name": "", "source_id": 2},               # missing name
+        {"name": "D", "source_id": 999},
+    ]
+    assert [r["source_id"] for r in loadable_records(recs)] == [1, 999]

@@ -113,6 +113,7 @@ def primary_category(item: dict) -> str | None:
 
 
 def upsert_params(item: dict, vec: list[float]) -> dict:
+    # NOTE: currency_symbol is intentionally not persisted — the catalog is USD-only.
     return {
         "source": item["source"],
         "source_id": item["source_id"],
@@ -136,6 +137,17 @@ def upsert_params(item: dict, vec: list[float]) -> dict:
         "embedding": vec_literal(vec),
         "content_hash": item["content_hash"],
     }
+
+
+def loadable_records(records: list[dict]) -> list[dict]:
+    """Records safe to upsert: a non-empty name and an integer source_id.
+
+    The WooCommerce sitemap/JSON-LD fallback (only used if the Store API is down)
+    can emit a string id (SKU or URL); those would violate `source_id bigint` and
+    abort the load, so they are skipped here rather than crashing.
+    """
+    return [r for r in records
+            if r.get("name") and isinstance(r.get("source_id"), int)]
 
 
 def partition_items(items: list[dict], existing: dict, force: bool = False):
@@ -168,8 +180,12 @@ def main() -> int:
     with open(args.json, encoding="utf-8") as f:
         raw = json.load(f)
     source = raw["source"]
-    items = [it for it in raw["records"]
-             if it.get("name") and it.get("source_id") is not None]
+    all_records = raw["records"]
+    items = loadable_records(all_records)
+    skipped = len(all_records) - len(items)
+    if skipped:
+        print(f"  ! [{source}] skipped {skipped} record(s) lacking a name or an "
+              f"integer source_id (e.g. WooCommerce sitemap fallback)", file=sys.stderr)
     for it in items:
         it["embed_text"] = build_embed_text(it)
         it["content_hash"] = content_hash(it)
@@ -216,15 +232,20 @@ def main() -> int:
         # Discontinued handling — scoped to THIS source only.
         if args.mark_discontinued:
             current_ids = [it["source_id"] for it in items]
-            with conn.cursor() as cur:
-                cur.execute(
-                    "UPDATE sdseed_products SET status='discontinued', updated_at=now() "
-                    "WHERE source=%s AND source_id <> ALL(%s) AND status <> 'discontinued';",
-                    (source, current_ids),
-                )
-                gone = cur.rowcount
-            conn.commit()
-            print(f"  [{source}] marked {gone} products discontinued")
+            if not current_ids:
+                print(f"  ! [{source}] 0 loadable records — skipping discontinued "
+                      f"marking (refusing to mass-retire the catalog on an empty scrape)",
+                      file=sys.stderr)
+            else:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "UPDATE sdseed_products SET status='discontinued', updated_at=now() "
+                        "WHERE source=%s AND source_id <> ALL(%s) AND status <> 'discontinued';",
+                        (source, current_ids),
+                    )
+                    gone = cur.rowcount
+                conn.commit()
+                print(f"  [{source}] marked {gone} products discontinued")
 
         with conn.cursor() as cur:
             cur.execute(
