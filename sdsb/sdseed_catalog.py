@@ -50,9 +50,9 @@ def fmt_money(value: float | None, symbol: str = "$") -> str:
 # --------------------------------------------------------------------------- #
 # Store API fetchers
 # --------------------------------------------------------------------------- #
-def probe() -> bool:
+def probe(products_url: str = PRODUCTS_URL) -> bool:
     """Return True if the Store API is live and serving JSON."""
-    resp = fetch(PRODUCTS_URL, {"per_page": 1})
+    resp = fetch(products_url, {"per_page": 1})
     ctype = resp.headers.get("Content-Type", "")
     ok = resp.status_code == 200 and "json" in ctype.lower()
     print(
@@ -62,9 +62,9 @@ def probe() -> bool:
     return ok
 
 
-def fetch_all_products() -> list[dict]:
+def fetch_all_products(products_url: str = PRODUCTS_URL) -> list[dict]:
     """Page through every published product via X-WP-TotalPages."""
-    first = fetch(PRODUCTS_URL, {"per_page": PER_PAGE, "page": 1})
+    first = fetch(products_url, {"per_page": PER_PAGE, "page": 1})
     first.raise_for_status()
     total_pages = int(first.headers.get("X-WP-TotalPages", "1"))
     total_items = int(first.headers.get("X-WP-Total", "0"))
@@ -73,7 +73,7 @@ def fetch_all_products() -> list[dict]:
     products = list(first.json())
     for page in range(2, total_pages + 1):
         time.sleep(SLEEP_BETWEEN)
-        resp = fetch(PRODUCTS_URL, {"per_page": PER_PAGE, "page": page})
+        resp = fetch(products_url, {"per_page": PER_PAGE, "page": page})
         resp.raise_for_status()
         batch = resp.json()
         products.extend(batch)
@@ -81,12 +81,12 @@ def fetch_all_products() -> list[dict]:
     return products
 
 
-def fetch_all_categories() -> list[dict]:
+def fetch_all_categories(categories_url: str = CATEGORIES_URL) -> list[dict]:
     """Fetch all product categories (paginated, though usually one page)."""
     cats: list[dict] = []
     page = 1
     while True:
-        resp = fetch(CATEGORIES_URL, {"per_page": PER_PAGE, "page": page})
+        resp = fetch(categories_url, {"per_page": PER_PAGE, "page": page})
         resp.raise_for_status()
         batch = resp.json()
         if not batch:
@@ -104,10 +104,10 @@ def fetch_all_categories() -> list[dict]:
 # --------------------------------------------------------------------------- #
 # Fallback: sitemap + JSON-LD
 # --------------------------------------------------------------------------- #
-def fetch_via_sitemap() -> list[dict]:
+def fetch_via_sitemap(sitemap_url: str = SITEMAP_URL) -> list[dict]:
     """Fallback path: collect /product/ URLs from the sitemap, parse JSON-LD."""
     print("Falling back to sitemap + schema.org JSON-LD scraping...", file=sys.stderr)
-    product_urls = _collect_product_urls(SITEMAP_URL)
+    product_urls = _collect_product_urls(sitemap_url)
     print(f"Sitemap: {len(product_urls)} product URLs", file=sys.stderr)
 
     products: list[dict] = []
@@ -208,7 +208,7 @@ def _iter_jsonld_nodes(data):
 # --------------------------------------------------------------------------- #
 # Normalization
 # --------------------------------------------------------------------------- #
-def normalize(product: dict) -> dict:
+def normalize(product: dict, source_slug: str = "sandiegoseed") -> dict:
     prices = product.get("prices") or {}
     exp = prices.get("currency_minor_unit", 2)
     symbol = prices.get("currency_symbol", "$")
@@ -237,7 +237,8 @@ def normalize(product: dict) -> dict:
         variations.append("; ".join(attr_pairs) or str(v.get("id", "")))
 
     return {
-        "id": product.get("id"),
+        "source": source_slug,
+        "source_id": product.get("id"),
         "name": html.unescape((product.get("name") or "").strip()),
         "sku": product.get("sku") or "",
         "type": product.get("type", ""),
@@ -255,6 +256,19 @@ def normalize(product: dict) -> dict:
         "short_description": html_to_text(product.get("short_description")),
         "description": html_to_text(product.get("description")),
     }
+
+
+def scrape_woocommerce(source: dict) -> list[dict]:
+    """Scrape a WooCommerce store's full catalog into normalized records."""
+    base = source["base"].rstrip("/")
+    products_url = f"{base}/wp-json/wc/store/v1/products"
+    sitemap_url = f"{base}/sitemap_index.xml"
+    if probe(products_url):
+        raw = fetch_all_products(products_url)
+    else:
+        raw = fetch_via_sitemap(sitemap_url)
+    records = [normalize(p, source["slug"]) for p in raw]
+    return [r for r in records if r["name"]]
 
 
 # --------------------------------------------------------------------------- #
