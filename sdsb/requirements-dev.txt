@@ -1,0 +1,6 @@
+# Dev/test-only deps. Runtime deps live in requirements.txt (installed on the
+# server by deploy/sync.sh). The local test venv needs only these two: the
+# pure-transform unit tests import `requests` (pulled in by the scraper modules)
+# and run under pytest. fastapi/mcp/psycopg/voyageai are NOT needed locally.
+requests>=2.31
+pytest>=8
