@@ -1,8 +1,8 @@
 # SD Seed — Semantic Catalog Search
 
-Natural-language search over the full San Diego Seed Company catalog, served at
-[n8than.dev/sdsb](https://n8than.dev/sdsb). Part of the n8than.dev monorepo so it
-versions and deploys alongside the site.
+Natural-language search over seed catalogs from four San Diego / SoCal seed
+companies, served at [n8than.dev/sdsb](https://n8than.dev/sdsb). Part of the
+n8than.dev monorepo so it versions and deploys alongside the site.
 
 ```
 sdsb/
