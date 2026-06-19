@@ -10,13 +10,20 @@ n8than.dev {
 		}
 	}
 
-	# San Diego Seed semantic search demo (API + page) -> sdseed-search service
-	handle /sdsb {
-		redir * /sdsb/ permanent
+	# SeedSearch semantic search demo (API + page) -> sdseed-search service
+	handle /seedsearch {
+		redir * /seedsearch/ permanent
 	}
-	handle_path /sdsb/* {
+	handle_path /seedsearch/* {
 		reverse_proxy 127.0.0.1:3002
 		header -Server
+	}
+	# Back-compat: the demo used to live at /sdsb — redirect old links.
+	handle /sdsb {
+		redir * /seedsearch/ permanent
+	}
+	handle /sdsb/* {
+		redir * /seedsearch/ permanent
 	}
 
 	handle {
