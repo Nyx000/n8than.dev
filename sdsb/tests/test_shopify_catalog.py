@@ -126,16 +126,8 @@ def test_non_title_option_with_default_title_value_is_kept():
 def test_scrape_shopify_reads_products_key(monkeypatch):
     import shopify_catalog as m
 
-    class FakeResp:
-        def __init__(self, data):
-            self._d = data
-        def raise_for_status(self):
-            pass
-        def json(self):
-            return self._d
-
     def fake_fetch(url, params=None, **kw):
-        return FakeResp({"products": [PRODUCT]}) if params["page"] == 1 else FakeResp({"products": []})
+        return _FakeResp({"products": [PRODUCT]}) if params["page"] == 1 else _FakeResp({"products": []})
 
     monkeypatch.setattr(m, "fetch", fake_fetch)
     monkeypatch.setattr(m, "SLEEP_BETWEEN", 0)
