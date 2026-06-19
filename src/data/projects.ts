@@ -12,7 +12,7 @@ export const projects: Project[] = [
   {
     title: 'SeedSearch — Semantic Catalog Search',
     description:
-      'Natural-language search across catalogs from three San Diego & SoCal seed growers. Describe a garden in plain English — "low-water flowers for pollinators" — and the right seeds surface from ~1,000 varieties, ranked by meaning. Built on pgvector + Voyage AI, with an MCP server and a self-maintaining ingest pipeline.',
+      'Natural-language search across catalogs from three San Diego & SoCal seed growers. Describe a garden in plain English — "low-water flowers for pollinators" — and the right seeds surface from 1,200+ varieties, ranked by meaning. Built on pgvector + Voyage AI, with an MCP server and a self-maintaining ingest pipeline.',
     url: '/seedsearch',
     tags: ['Python', 'FastAPI', 'PostgreSQL', 'pgvector', 'Voyage AI', 'MCP', 'Caddy'],
     expandable: true,
@@ -23,7 +23,7 @@ export const projects: Project[] = [
         <li><strong>Self-maintaining catalog.</strong> A polite scraper pulls live WooCommerce and Shopify product feeds across three SoCal seed growers, a content-hash diff re-embeds only what actually changed, vanished products are retired, and a weekly systemd timer keeps it current — at near-zero embedding cost.</li>
         <li><strong>Two front doors, one engine.</strong> The same vector store powers a public search UI and an MCP server that exposes the catalog as tools (search, lookup, categories) to any AI assistant.</li>
       </ul>
-      <p class="stats">~1,000 varieties · 3 SoCal seed growers · voyage-3.5 + rerank-2.5 · live at /seedsearch</p>`,
+      <p class="stats">1,200+ varieties · 3 SoCal seed growers · voyage-3.5 + rerank-2.5 · live at /seedsearch</p>`,
   },
   {
     title: 'Grow Tent Telemetry',
