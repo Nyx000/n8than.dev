@@ -1,8 +1,8 @@
-# SD Seed — Semantic Catalog Search
+# SeedSearch — Semantic Catalog Search
 
-Natural-language search over seed catalogs from four San Diego / SoCal seed
-companies, served at [n8than.dev/sdsb](https://n8than.dev/sdsb). Part of the
-n8than.dev monorepo so it versions and deploys alongside the site.
+Natural-language search over seed catalogs from three San Diego & SoCal seed
+growers, served at [n8than.dev/seedsearch](https://n8than.dev/seedsearch). Part
+of the n8than.dev monorepo so it versions and deploys alongside the site.
 
 ```
 sdsb/
@@ -28,7 +28,7 @@ sdsb/
       0001_multi_source.sql   one-time: single-source -> composite (source, source_id) key
 ```
 
-The Caddy route lives in the site's `deploy/Caddyfile` (`/sdsb` -> `127.0.0.1:3002`).
+The Caddy route lives in the site's `deploy/Caddyfile` (`/seedsearch` -> `127.0.0.1:3002`).
 
 ## Architecture
 
@@ -93,14 +93,17 @@ product id. An existing single-source DB is migrated in place (no data loss) wit
 
 ### Sources
 
-| slug | platform | store |
-|---|---|---|
-| `sandiegoseed`  | woocommerce | San Diego Seed Company |
-| `marysheirloom` | shopify     | Mary's Heirloom Seeds |
-| `seedsnow`      | shopify     | SeedsNow |
-| `plantgoodseed` | shopify     | The Plant Good Seed Company |
+Curated to San Diego / SoCal seed growers:
+
+| slug | platform | store | scope |
+|---|---|---|---|
+| `sandiegoseed`  | woocommerce | San Diego Seed Company      | full store |
+| `plantgoodseed` | shopify     | The Plant Good Seed Company | full store |
+| `theodorepayne` | shopify     | Theodore Payne Foundation   | `seeds-1` collection |
 
 Add a store by appending one entry to `sources.py` (`shopify` or `woocommerce`).
+A Shopify source may set an optional `collection` handle to index only that
+collection's products instead of the whole store.
 
 ## MCP server
 

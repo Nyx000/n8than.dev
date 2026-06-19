@@ -10,20 +10,20 @@ export interface Project {
 
 export const projects: Project[] = [
   {
-    title: 'SD Seed — Semantic Catalog Search',
+    title: 'SeedSearch — Semantic Catalog Search',
     description:
-      'Natural-language search across catalogs from four San Diego / SoCal seed companies. Describe a garden in plain English — "low-water flowers for pollinators" — and the right seeds surface from 3,000+ varieties, ranked by meaning. Built on pgvector + Voyage AI, with an MCP server and a self-maintaining ingest pipeline.',
-    url: '/sdsb',
+      'Natural-language search across catalogs from three San Diego & SoCal seed growers. Describe a garden in plain English — "low-water flowers for pollinators" — and the right seeds surface from ~1,000 varieties, ranked by meaning. Built on pgvector + Voyage AI, with an MCP server and a self-maintaining ingest pipeline.',
+    url: '/seedsearch',
     tags: ['Python', 'FastAPI', 'PostgreSQL', 'pgvector', 'Voyage AI', 'MCP', 'Caddy'],
     expandable: true,
     details: `
-      <p class="hook">Keyword search makes you know the variety name. This doesn't: it reads what you mean and finds the seeds that fit. <a href="/sdsb">Try it live →</a></p>
+      <p class="hook">Keyword search makes you know the variety name. This doesn't: it reads what you mean and finds the seeds that fit. <a href="/seedsearch">Try it live →</a></p>
       <ul class="highlights">
         <li><strong>Two-stage retrieval.</strong> pgvector runs an approximate-nearest-neighbor recall over Voyage embeddings, then rerank-2.5 re-reads your full request against the finalists for precision. A live toggle lets you feel the reranker reorder results.</li>
-        <li><strong>Self-maintaining catalog.</strong> A polite scraper pulls live WooCommerce and Shopify product feeds across four SoCal seed retailers, a content-hash diff re-embeds only what actually changed, vanished products are retired, and a weekly systemd timer keeps it current — at near-zero embedding cost.</li>
+        <li><strong>Self-maintaining catalog.</strong> A polite scraper pulls live WooCommerce and Shopify product feeds across three SoCal seed growers, a content-hash diff re-embeds only what actually changed, vanished products are retired, and a weekly systemd timer keeps it current — at near-zero embedding cost.</li>
         <li><strong>Two front doors, one engine.</strong> The same vector store powers a public search UI and an MCP server that exposes the catalog as tools (search, lookup, categories) to any AI assistant.</li>
       </ul>
-      <p class="stats">3,000+ varieties · 4 SoCal seed companies · voyage-3.5 + rerank-2.5 · live at /sdsb</p>`,
+      <p class="stats">~1,000 varieties · 3 SoCal seed growers · voyage-3.5 + rerank-2.5 · live at /seedsearch</p>`,
   },
   {
     title: 'Grow Tent Telemetry',
