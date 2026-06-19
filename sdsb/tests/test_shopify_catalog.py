@@ -1,5 +1,15 @@
 from shopify_catalog import normalize_shopify_product, paginate_shopify, _first_paragraph
 
+
+class _FakeResp:
+    def __init__(self, data):
+        self._d = data
+    def raise_for_status(self):
+        pass
+    def json(self):
+        return self._d
+
+
 SRC = {"slug": "marysheirloom", "name": "Mary's Heirloom Seeds",
        "type": "shopify", "base": "https://www.marysheirloomseeds.com"}
 
@@ -131,3 +141,36 @@ def test_scrape_shopify_reads_products_key(monkeypatch):
     monkeypatch.setattr(m, "SLEEP_BETWEEN", 0)
     recs = m.scrape_shopify(SRC)
     assert len(recs) == 1 and recs[0]["source_id"] == 123456789
+
+
+def test_scrape_shopify_uses_collection_when_present(monkeypatch):
+    import shopify_catalog as m
+    seen = {}
+
+    def fake_fetch(url, params=None, **kw):
+        seen["url"] = url
+        return _FakeResp({"products": []})
+
+    monkeypatch.setattr(m, "fetch", fake_fetch)
+    monkeypatch.setattr(m, "SLEEP_BETWEEN", 0)
+    src = {"slug": "theodorepayne", "name": "Theodore Payne Foundation",
+           "type": "shopify", "base": "https://store.theodorepayne.org",
+           "collection": "seeds-1"}
+    m.scrape_shopify(src)
+    assert seen["url"] == "https://store.theodorepayne.org/collections/seeds-1/products.json"
+
+
+def test_scrape_shopify_uses_products_json_without_collection(monkeypatch):
+    import shopify_catalog as m
+    seen = {}
+
+    def fake_fetch(url, params=None, **kw):
+        seen["url"] = url
+        return _FakeResp({"products": []})
+
+    monkeypatch.setattr(m, "fetch", fake_fetch)
+    monkeypatch.setattr(m, "SLEEP_BETWEEN", 0)
+    src = {"slug": "plantgoodseed", "name": "The Plant Good Seed Company",
+           "type": "shopify", "base": "https://www.plantgoodseed.com"}
+    m.scrape_shopify(src)
+    assert seen["url"] == "https://www.plantgoodseed.com/products.json"

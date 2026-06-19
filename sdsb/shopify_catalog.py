@@ -122,13 +122,21 @@ def paginate_shopify(fetch_page, limit: int = SHOPIFY_LIMIT, max_pages: int = MA
 
 
 def scrape_shopify(source: dict) -> list[dict]:
-    """Scrape a Shopify store's full catalog into normalized records."""
+    """Scrape a Shopify store (or one collection) into normalized records.
+
+    If the source declares a `collection` handle, only that collection's feed
+    is read (`/collections/<handle>/products.json`); otherwise the whole store
+    (`/products.json`). Both paginate identically.
+    """
     base = source["base"].rstrip("/")
+    collection = source.get("collection")
+    path = f"/collections/{collection}/products.json" if collection else "/products.json"
+    url = f"{base}{path}"
 
     def fetch_page(page: int) -> list:
         if page > 1:
             time.sleep(SLEEP_BETWEEN)
-        resp = fetch(f"{base}/products.json", params={"limit": SHOPIFY_LIMIT, "page": page})
+        resp = fetch(url, params={"limit": SHOPIFY_LIMIT, "page": page})
         resp.raise_for_status()
         return resp.json().get("products", [])
 
