@@ -30,6 +30,6 @@ Next steps if this was a fresh box:
        PGPASSWORD=...
        SDSEED_NO_TUNNEL=1
   2. Seed the catalog:  sudo -u sdseed /opt/sdseed/.venv/bin/python /opt/sdseed/refresh.py
-  3. Add the /sdsb route to Caddy (already in deploy/Caddyfile of the site repo).
+  3. Add the /seedsearch route to Caddy (already in deploy/Caddyfile of the site repo).
   4. Re-run: sudo bash sdsb/deploy/sync.sh
 NOTE
