@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-load_pgvector.py — Embed the San Diego Seed catalog and load it into Postgres/pgvector.
+load_pgvector.py — Embed a pre-normalized per-source catalog and load it into Postgres/pgvector.
 
-Reads sdseed_catalog.json (produced by sdseed_catalog.py), builds a rich text blob
-per product, embeds it with Voyage AI (voyage-3.5, 1024-dim), and upserts into the
-`sdseed_products` table on the Hetzner Postgres (reached via SSH tunnel).
+Reads a per-source catalog file (format: {"source", "fetched_utc", "records"}),
+builds a rich text blob per record, embeds it with Voyage AI (voyage-3.5, 1024-dim),
+and upserts into the `sdseed_products` table on the Hetzner Postgres (via SSH tunnel).
 
-Idempotent: re-running re-embeds and upserts by product id (ON CONFLICT UPDATE).
-Use --only-missing to embed just rows that don't have an embedding yet.
+Idempotent: keyed by (source, source_id) composite key (ON CONFLICT UPDATE).
+Change-detection is scoped per source — only re-embeds changed/new/embedding-missing rows.
 
-Run:  python load_pgvector.py
+Run:  python load_pgvector.py --json catalog_sandiegoseed.json
 """
 
 from __future__ import annotations
@@ -20,9 +20,8 @@ import json
 import sys
 
 import sdseed_common as c
-from sdseed_catalog import normalize
 
-JSON_PATH = "sdseed_catalog.json"
+JSON_PATH = "catalog_sandiegoseed.json"
 BATCH_SIZE = 100              # texts per Voyage request
 BATCH_CHAR_CAP = 380_000     # ~rough token guard per request
 
@@ -70,19 +69,19 @@ def batched(items: list, size: int, char_cap: int):
 
 UPSERT_SQL = """
 INSERT INTO sdseed_products (
-    id, name, sku, type, categories, primary_category,
+    source, source_id, name, sku, type, categories, primary_category,
     price, regular_price, sale_price, on_sale, is_in_stock,
     permalink, image, attributes, variations,
     short_description, description, embed_text, embedding,
     content_hash, status, updated_at
 ) VALUES (
-    %(id)s, %(name)s, %(sku)s, %(type)s, %(categories)s, %(primary_category)s,
+    %(source)s, %(source_id)s, %(name)s, %(sku)s, %(type)s, %(categories)s, %(primary_category)s,
     %(price)s, %(regular_price)s, %(sale_price)s, %(on_sale)s, %(is_in_stock)s,
     %(permalink)s, %(image)s, %(attributes)s, %(variations)s,
     %(short_description)s, %(description)s, %(embed_text)s, %(embedding)s::vector,
     %(content_hash)s, 'active', now()
 )
-ON CONFLICT (id) DO UPDATE SET
+ON CONFLICT (source, source_id) DO UPDATE SET
     name=EXCLUDED.name, sku=EXCLUDED.sku, type=EXCLUDED.type,
     categories=EXCLUDED.categories, primary_category=EXCLUDED.primary_category,
     price=EXCLUDED.price, regular_price=EXCLUDED.regular_price,
@@ -105,7 +104,7 @@ UPDATE sdseed_products SET
     on_sale=%(on_sale)s, is_in_stock=%(is_in_stock)s, permalink=%(permalink)s,
     image=%(image)s, attributes=%(attributes)s, variations=%(variations)s,
     short_description=%(short_description)s, status='active', updated_at=now()
-WHERE id=%(id)s;
+WHERE source=%(source)s AND source_id=%(source_id)s;
 """
 
 
@@ -115,7 +114,8 @@ def primary_category(item: dict) -> str | None:
 
 def upsert_params(item: dict, vec: list[float]) -> dict:
     return {
-        "id": item["id"],
+        "source": item["source"],
+        "source_id": item["source_id"],
         "name": item["name"],
         "sku": item["sku"],
         "type": item["type"],
@@ -138,6 +138,22 @@ def upsert_params(item: dict, vec: list[float]) -> dict:
     }
 
 
+def partition_items(items: list[dict], existing: dict, force: bool = False):
+    """Split items into (to_embed, to_refresh) by content-hash change detection.
+
+    `existing` maps source_id -> (content_hash, has_embedding) for this source.
+    Re-embed new / changed / embedding-missing rows; metadata-only refresh the rest.
+    """
+    to_embed, to_refresh = [], []
+    for it in items:
+        prev = existing.get(it["source_id"])
+        if force or prev is None or prev[0] != it["content_hash"] or not prev[1]:
+            to_embed.append(it)
+        else:
+            to_refresh.append(it)
+    return to_embed, to_refresh
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", default=JSON_PATH)
@@ -151,39 +167,32 @@ def main() -> int:
     c.load_env()
     with open(args.json, encoding="utf-8") as f:
         raw = json.load(f)
-    products = raw["products"]
-    items = [normalize(p) for p in products]
-    items = [it for it in items if it["name"] and it["id"] is not None]
+    source = raw["source"]
+    items = [it for it in raw["records"]
+             if it.get("name") and it.get("source_id") is not None]
     for it in items:
         it["embed_text"] = build_embed_text(it)
         it["content_hash"] = content_hash(it)
     if args.limit:
         items = items[: args.limit]
-    print(f"Loaded {len(items)} products from {args.json}")
+    print(f"Loaded {len(items)} records for source '{source}' from {args.json}")
 
     with c.ssh_tunnel() as port:
         conn = c.connect(port)
         conn.autocommit = False
 
-        # Existing state: id -> (content_hash, has_embedding)
+        # Existing state for THIS source: source_id -> (content_hash, has_embedding)
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, content_hash, embedding IS NOT NULL FROM sdseed_products;"
+                "SELECT source_id, content_hash, embedding IS NOT NULL "
+                "FROM sdseed_products WHERE source=%s;",
+                (source,),
             )
             existing = {r[0]: (r[1], r[2]) for r in cur.fetchall()}
 
-        # Partition: re-embed new/changed/embedding-missing; else metadata-only refresh.
-        to_embed, to_refresh = [], []
-        for it in items:
-            prev = existing.get(it["id"])
-            if (args.force or prev is None
-                    or prev[0] != it["content_hash"] or not prev[1]):
-                to_embed.append(it)
-            else:
-                to_refresh.append(it)
-        print(f"Change-detection: {len(to_embed)} to (re)embed, "
-              f"{len(to_refresh)} metadata-only, "
-              f"{len(existing)} already in DB")
+        to_embed, to_refresh = partition_items(items, existing, force=args.force)
+        print(f"Change-detection [{source}]: {len(to_embed)} to (re)embed, "
+              f"{len(to_refresh)} metadata-only, {len(existing)} already in DB")
 
         # Cheap metadata refresh (no Voyage calls).
         if to_refresh:
@@ -204,18 +213,18 @@ def main() -> int:
             done += len(batch)
             print(f"  embedded + upserted {done}/{total}")
 
-        # Discontinued handling.
+        # Discontinued handling — scoped to THIS source only.
         if args.mark_discontinued:
-            current_ids = [it["id"] for it in items]
+            current_ids = [it["source_id"] for it in items]
             with conn.cursor() as cur:
                 cur.execute(
                     "UPDATE sdseed_products SET status='discontinued', updated_at=now() "
-                    "WHERE id <> ALL(%s) AND status <> 'discontinued';",
-                    (current_ids,),
+                    "WHERE source=%s AND source_id <> ALL(%s) AND status <> 'discontinued';",
+                    (source, current_ids),
                 )
                 gone = cur.rowcount
             conn.commit()
-            print(f"  marked {gone} products discontinued")
+            print(f"  [{source}] marked {gone} products discontinued")
 
         with conn.cursor() as cur:
             cur.execute(
