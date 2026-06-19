@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-sdseed_mcp.py — MCP server for the San Diego Seed Company catalog.
+sdseed_mcp.py — MCP server for the SeedSearch catalog (San Diego & SoCal seed growers).
 
 Exposes the pgvector-backed catalog as MCP tools any client (Claude Desktop,
 Claude Code, etc.) can call:
@@ -24,9 +24,10 @@ import json
 import sdseed_common as c
 from load_pgvector import vec_literal
 from mcp.server.fastmcp import FastMCP
+from sources import source_name
 
 c.load_env()
-mcp = FastMCP("sandiego-seed-company")
+mcp = FastMCP("seedsearch")
 
 # --- persistent SSH tunnel + connection -------------------------------------- #
 _tunnel_cm = None
@@ -94,7 +95,7 @@ def search_products(
     category: str | None = None,
 ) -> str:
     """
-    Semantic search over the San Diego Seed Company catalog.
+    Semantic search over the SeedSearch catalog (San Diego & SoCal seed growers).
 
     Finds products whose descriptions are most semantically similar to `query`
     (meaning-based, not keyword). Good for natural-language requests like
@@ -142,6 +143,7 @@ def search_products(
         r["price"] = _format_money(r["price"])
         r["sale_price"] = _format_money(r["sale_price"])
         r["similarity"] = round(float(r["similarity"]), 4)
+        r["source_name"] = source_name(r["source"])
         sd = r.get("short_description") or ""
         r["short_description"] = (sd[:300] + "…") if len(sd) > 300 else sd
     return json.dumps(rows, ensure_ascii=False, indent=2)
