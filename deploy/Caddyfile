@@ -10,6 +10,15 @@ n8than.dev {
 		}
 	}
 
+	# San Diego Seed semantic search demo (API + page) -> sdseed-search service
+	handle /sdsb {
+		redir * /sdsb/ permanent
+	}
+	handle_path /sdsb/* {
+		reverse_proxy 127.0.0.1:3002
+		header -Server
+	}
+
 	handle {
 		root * /var/www/n8than.dev/dist
 		file_server
