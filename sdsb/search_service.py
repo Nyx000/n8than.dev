@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-search_service.py — HTTP search API for the San Diego Seed catalog demo.
+search_service.py — HTTP search API for the SeedSearch demo (San Diego & SoCal seed catalogs).
 
 Two-stage retrieval: pgvector ANN recall -> Voyage rerank-2.5 precision.
 Co-located with Postgres on the Hetzner box (set SDSEED_NO_TUNNEL=1 there);
@@ -29,9 +29,10 @@ from fastapi.responses import HTMLResponse, JSONResponse
 
 import sdseed_common as c
 from load_pgvector import vec_literal
+from sources import source_name
 
 c.load_env()
-app = FastAPI(title="San Diego Seed — Semantic Catalog Search")
+app = FastAPI(title="SeedSearch — Semantic Catalog Search")
 
 RECALL = 50  # vector candidates pulled before reranking
 _conn = None
@@ -160,6 +161,7 @@ def search(
         r["regular_price"] = _money(r["regular_price"])
         r["sale_price"] = _money(r["sale_price"])
         r["vec_score"] = round(float(r["vec_score"]), 4)
+        r["source_name"] = source_name(r["source"])
         sd = r.get("short_description") or ""
         r["short_description"] = (sd[:280] + "…") if len(sd) > 280 else sd
 
@@ -201,4 +203,4 @@ def index():
     page = Path(__file__).resolve().parent / "demo_page.html"
     if page.exists():
         return page.read_text(encoding="utf-8")
-    return "<h1>San Diego Seed — Semantic Search</h1><p>Demo page not found.</p>"
+    return "<h1>SeedSearch — Semantic Search</h1><p>Demo page not found.</p>"
