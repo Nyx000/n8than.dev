@@ -1,0 +1,12 @@
+[Unit]
+Description=Refresh San Diego Seed catalog (scrape + smart re-embed)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=sdseed
+Group=sdseed
+WorkingDirectory=/opt/sdseed
+EnvironmentFile=/opt/sdseed/.env
+ExecStart=/opt/sdseed/.venv/bin/python refresh.py

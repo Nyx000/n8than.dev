@@ -1,0 +1,7 @@
+.env
+*.env
+.venv/
+__pycache__/
+*.pyc
+sdseed_catalog.json
+sdseed_catalog.md

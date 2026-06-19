@@ -1,0 +1,22 @@
+[Unit]
+Description=San Diego Seed semantic search API
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=sdseed
+Group=sdseed
+WorkingDirectory=/opt/sdseed
+EnvironmentFile=/opt/sdseed/.env
+ExecStart=/opt/sdseed/.venv/bin/uvicorn search_service:app --host 127.0.0.1 --port 3002
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/sdseed
+
+[Install]
+WantedBy=multi-user.target

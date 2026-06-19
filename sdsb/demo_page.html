@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>San Diego Seed Co — Search by meaning</title>
+<meta name="description" content="Natural-language search across the full San Diego Seed Company catalog. Describe your garden; get the right seeds.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#E7E9DE; --ink:#1C2A1F; --loam:#2A2A20;
+    --kraft:#ECE5D4; --kraft-edge:#D6CDB6; --muted:#5C6357;
+    --sprout:#3C6B2E; --sprout-deep:#2C5121;
+    --tomato:#C0492F; --leaf:#4E7A37; --gold:#C98A2B; --beet:#8C3A63; --cool:#3E6B86;
+    --display:'Fraunces',Georgia,serif; --ui:'Hanken Grotesk',system-ui,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+    --shadow:0 1px 0 var(--kraft-edge),0 18px 36px -28px rgba(28,42,31,.5);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;overflow-x:clip}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);font-family:var(--ui);
+    line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:clip;
+    background-image:radial-gradient(circle at 50% -10%, #EEF0E7 0%, var(--paper) 46%);
+  }
+  .hero h1,.lede,.pname,.snip,.chip{overflow-wrap:anywhere}
+  ::selection{background:var(--sprout);color:#fff}
+  a{color:inherit}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+  /* ---------- header ---------- */
+  header.top{padding:26px 0 8px}
+  .brandrow{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--muted)}
+  .seed-mark{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .seed-mark b{width:9px;height:9px;border-radius:50% 50% 50% 0;background:var(--sprout);
+    transform:rotate(45deg);display:inline-block}
+
+  /* ---------- hero ---------- */
+  .hero{padding:40px 0 14px}
+  .hero h1{font-family:var(--display);font-weight:500;font-size:clamp(38px,7vw,76px);
+    line-height:.98;letter-spacing:-.015em;margin:.1em 0 .28em;max-width:14ch}
+  .hero h1 em{font-style:italic;color:var(--sprout-deep)}
+  .lede{font-size:clamp(16px,2vw,19px);max-width:54ch;color:#36402F}
+  .lede b{font-weight:600}
+
+  /* ---------- search instrument ---------- */
+  .instrument{margin:26px 0 8px}
+  .searchbox{display:flex;align-items:center;gap:12px;background:#FBFAF4;
+    border:1.5px solid var(--ink);border-radius:2px;padding:6px 6px 6px 18px;
+    box-shadow:var(--shadow);transition:border-color .15s,box-shadow .15s}
+  .searchbox:focus-within{border-color:var(--sprout);
+    box-shadow:0 0 0 3px rgba(60,107,46,.18),0 18px 36px -28px rgba(28,42,31,.5)}
+  .searchbox svg{flex:none;color:var(--muted)}
+  #q{flex:1;border:0;background:transparent;font-family:var(--ui);font-size:clamp(16px,2.4vw,21px);
+    color:var(--ink);padding:12px 0;outline:none;min-width:0}
+  #q::placeholder{color:#9AA08F}
+  .go{flex:none;border:0;background:var(--sprout);color:#fff;font-family:var(--ui);
+    font-weight:600;font-size:16px;padding:14px 22px;border-radius:2px;cursor:pointer;
+    transition:background .15s}
+  .go:hover{background:var(--sprout-deep)}
+  .go:disabled{opacity:.5;cursor:wait}
+
+  .controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-top:14px}
+  .controls > *{min-width:0}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{font-family:var(--mono);font-size:12.5px;letter-spacing:.01em;color:var(--ink);
+    background:var(--kraft);border:1px solid var(--kraft-edge);border-radius:100px;
+    padding:7px 13px;cursor:pointer;transition:transform .12s,background .12s,border-color .12s}
+  .chip:hover{background:#F2ECDC;border-color:var(--sprout);transform:translateY(-1px)}
+  .chip::before{content:"“";color:var(--muted)}
+  .chip::after{content:"”";color:var(--muted)}
+  .toggles{display:flex;gap:18px;margin-left:auto}
+  .toggle{display:inline-flex;align-items:center;gap:9px;cursor:pointer;
+    font-size:14px;color:#3A4433;user-select:none}
+  .toggle input{position:absolute;opacity:0;pointer-events:none}
+  .track{width:38px;height:22px;border-radius:100px;background:#C9C8B8;
+    border:1px solid var(--kraft-edge);position:relative;transition:background .18s;flex:none}
+  .track::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;
+    border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .18s}
+  .toggle input:checked + .track{background:var(--sprout)}
+  .toggle input:checked + .track::after{transform:translateX(16px)}
+  .toggle input:focus-visible + .track{outline:3px solid rgba(60,107,46,.4);outline-offset:2px}
+  .toggle .hint{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+  /* ---------- results meta ---------- */
+  .resultmeta{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    margin:30px 0 14px;padding-bottom:10px;border-bottom:1px solid var(--kraft-edge);
+    font-family:var(--mono);font-size:12.5px;letter-spacing:.04em;color:var(--muted);
+    text-transform:uppercase;min-height:20px}
+  .resultmeta b{color:var(--ink);font-weight:500}
+
+  /* ---------- grid + cards ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+  .packet{position:relative;background:var(--kraft);border:1px solid var(--kraft-edge);
+    border-radius:3px;overflow:hidden;display:flex;flex-direction:column;
+    box-shadow:var(--shadow);transition:transform .16s,box-shadow .16s}
+  .packet:hover{transform:translateY(-3px);box-shadow:0 1px 0 var(--kraft-edge),0 26px 44px -26px rgba(28,42,31,.55)}
+  .packet .band{height:5px;background:var(--leaf)}
+  .photo{aspect-ratio:16/11;background:#DfD8C6 center/cover no-repeat;position:relative}
+  .photo .cat{position:absolute;left:10px;top:10px;font-family:var(--mono);font-size:10.5px;
+    letter-spacing:.08em;text-transform:uppercase;color:#fff;background:rgba(28,42,31,.74);
+    padding:4px 8px;border-radius:2px;backdrop-filter:saturate(1.2) blur(2px)}
+  .photo .stock{position:absolute;right:10px;top:10px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.06em;text-transform:uppercase;padding:4px 7px;border-radius:2px;color:#fff}
+  .stock.in{background:rgba(60,107,46,.92)} .stock.out{background:rgba(120,70,40,.9)}
+  .pbody{padding:15px 16px 17px;display:flex;flex-direction:column;gap:10px;flex:1}
+  .pname{font-family:var(--display);font-weight:500;font-size:20px;line-height:1.12;
+    letter-spacing:-.01em}
+  .pname a{text-decoration:none}
+  .pname a:hover{text-decoration:underline;text-decoration-color:var(--sprout);text-underline-offset:3px}
+  .snip{font-size:13.5px;color:#4A5243;margin:0;flex:1}
+  .meterrow{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;
+    color:var(--muted)}
+  .meter{flex:1;height:6px;background:#DAD2BE;border-radius:100px;overflow:hidden}
+  .meter i{display:block;height:100%;background:linear-gradient(90deg,var(--leaf),var(--sprout));
+    border-radius:100px;width:0;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+  .prow{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    border-top:1px dashed var(--kraft-edge);padding-top:12px}
+  .price{font-family:var(--mono);font-weight:500;font-size:16px}
+  .price s{color:var(--muted);font-weight:400;margin-right:6px}
+  .price .sale{color:var(--tomato)}
+  .view{font-family:var(--mono);font-size:12px;letter-spacing:.03em;color:var(--sprout-deep);
+    text-decoration:none;border-bottom:1px solid transparent;transition:border-color .12s}
+  .view:hover{border-color:var(--sprout-deep)}
+
+  /* ---------- states ---------- */
+  .note{font-size:15px;color:var(--muted);padding:30px 0;max-width:56ch}
+  .note b{color:var(--ink)}
+  .skel{height:300px;border-radius:3px;background:linear-gradient(100deg,#E4DDCB 30%,#EEE8D8 50%,#E4DDCB 70%);
+    background-size:200% 100%;animation:sh 1.1s linear infinite}
+  @keyframes sh{to{background-position:-200% 0}}
+
+  /* ---------- how it works ---------- */
+  .how{margin:64px 0 0;border-top:1px solid var(--kraft-edge);padding:34px 0 70px}
+  .how h2{font-family:var(--display);font-weight:500;font-size:26px;margin:0 0 22px}
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:22px}
+  .step .k{font-family:var(--mono);font-size:12px;color:var(--sprout-deep);letter-spacing:.06em}
+  .step h3{font-family:var(--ui);font-weight:600;font-size:16px;margin:8px 0 6px}
+  .step p{font-size:14px;color:#4A5243;margin:0}
+  footer.foot{font-family:var(--mono);font-size:12px;color:var(--muted);
+    padding:0 0 50px;display:flex;flex-wrap:wrap;gap:6px 18px}
+
+  .reveal{opacity:0;transform:translateY(10px)}
+  .in{opacity:1;transform:none;transition:opacity .5s ease,transform .5s ease}
+  @media (max-width:560px){
+    .wrap{padding:0 18px}
+    .toggles{margin-left:0;width:100%;justify-content:space-between;gap:12px}
+    .hero{padding-top:24px}
+    .hero h1{font-size:clamp(32px,8.5vw,76px)}
+    .brandrow .eyebrow{display:none}
+    .go{padding:14px 16px}
+    .grid{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important;animation:none!important}
+    .reveal{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brandrow">
+      <span class="seed-mark"><b></b>San Diego Seed Company</span>
+      <span class="eyebrow">Catalog search · prototype</span>
+    </div>
+  </header>
+
+  <section class="hero">
+    <h1 class="reveal">Tell us what you<br>want to <em>grow.</em></h1>
+    <p class="lede reveal">Search the whole catalog by meaning, not keywords.
+      Describe your garden, your climate, or your plate &mdash; and the right seeds
+      come up. <b id="countline">Hundreds of varieties, one plain-English box.</b></p>
+  </section>
+
+  <section class="instrument">
+    <form id="form" class="searchbox" autocomplete="off">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="q" name="q" placeholder="low-water flowers that feed pollinators…"
+        aria-label="Describe what you want to grow">
+      <button class="go" id="go" type="submit">Search</button>
+    </form>
+
+    <div class="controls">
+      <div class="chips" id="chips" aria-label="Example searches"></div>
+      <div class="toggles">
+        <label class="toggle" title="Reads your whole request and reorders matches for relevance.">
+          <input type="checkbox" id="rerank" checked>
+          <span class="track"></span>
+          <span>Smart ranking <span class="hint">rerank</span></span>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="instock">
+          <span class="track"></span>
+          <span>In stock only</span>
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <div class="resultmeta" id="meta" hidden></div>
+  <section class="grid" id="grid" aria-live="polite"></section>
+  <p class="note" id="note">
+    Try a description &mdash; <b>“fast greens for a fall raised bed,”</b>
+    <b>“spicy peppers for hot sauce,”</b> or <b>“heirloom tomato for canning.”</b>
+    No need to know variety names.
+  </p>
+
+  <section class="how">
+    <h2>How the search works</h2>
+    <div class="steps">
+      <div class="step"><div class="k">01 · Understand</div>
+        <h3>Reads your request</h3>
+        <p>Your words become a meaning fingerprint, so “shade-friendly greens” finds the
+           right lettuces even without the word “lettuce.”</p></div>
+      <div class="step"><div class="k">02 · Recall</div>
+        <h3>Scans every variety</h3>
+        <p>It compares that meaning against every product description in the catalog and
+           pulls the closest candidates in milliseconds.</p></div>
+      <div class="step"><div class="k">03 · Rank</div>
+        <h3>Re-reads the top matches</h3>
+        <p>Smart ranking re-reads your full request against each finalist and orders them
+           by true relevance. Toggle it off to feel the difference.</p></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>Prototype on the live, public catalog.</span>
+    <span>Links go to the real product pages.</span>
+    <span id="modelline"></span>
+  </footer>
+</div>
+
+<script>
+const BASE = location.pathname.endsWith('/') ? location.pathname : location.pathname + '/';
+const $ = s => document.querySelector(s);
+const grid = $('#grid'), note = $('#note'), meta = $('#meta');
+
+const EXAMPLES = [
+  "fall garden for zone 10",
+  "spicy peppers for hot sauce",
+  "low-water flowers for pollinators",
+  "fast greens for a raised bed",
+  "heirloom tomato for canning",
+  "herbs for a sunny windowsill",
+];
+
+// produce spectrum keyed to category vocabulary
+const SPECTRUM = [
+  [/tomato|pepper|chili|chile/i, '#C0492F'],
+  [/herb|basil|cilantro|mint|medicinal/i, '#4E7A37'],
+  [/squash|melon|cucumber|gourd|pumpkin|zucchini/i, '#C98A2B'],
+  [/flower|dahlia|sunflower|bulb|aster|poppy/i, '#8C3A63'],
+  [/cool|lettuce|green|kale|spinach|brassica|broccoli|cabbage|root|beet|carrot/i, '#3E6B86'],
+];
+const bandColor = cats => {
+  const hay = (cats||[]).join(' ');
+  for (const [re,c] of SPECTRUM) if (re.test(hay)) return c;
+  return '#4E7A37';
+};
+const esc = s => (s||'').replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const money = v => v==null ? '' : '$'+v.toFixed(2);
+
+function priceHTML(r){
+  if (r.on_sale && r.sale_price!=null && r.regular_price!=null && r.sale_price < r.regular_price)
+    return `<span class="price"><s>${money(r.regular_price)}</s><span class="sale">${money(r.sale_price)}</span></span>`;
+  return `<span class="price">${money(r.price)}</span>`;
+}
+
+function card(r, i){
+  const score = r.rerank_score ?? r.vec_score ?? 0;
+  const pct = Math.max(6, Math.min(100, Math.round(score*100)));
+  const band = bandColor(r.categories);
+  const photo = r.image ? `background-image:url('${esc(r.image)}')` : '';
+  const stock = r.is_in_stock
+    ? '<span class="stock in">In stock</span>' : '<span class="stock out">Sold out</span>';
+  const el = document.createElement('article');
+  el.className = 'packet reveal';
+  el.style.transitionDelay = (i*45)+'ms';
+  el.innerHTML = `
+    <div class="band" style="background:${band}"></div>
+    <div class="photo" style="${photo}">
+      <span class="cat">${esc(r.primary_category||'Catalog')}</span>${stock}
+    </div>
+    <div class="pbody">
+      <h3 class="pname"><a href="${esc(r.permalink)}" target="_blank" rel="noopener">${esc(r.name)}</a></h3>
+      <p class="snip">${esc(r.short_description||'')}</p>
+      <div class="meterrow"><span>match</span><span class="meter"><i style="width:0"></i></span><span>${pct}%</span></div>
+      <div class="prow">${priceHTML(r)}
+        <a class="view" href="${esc(r.permalink)}" target="_blank" rel="noopener">View on site →</a></div>
+    </div>`;
+  requestAnimationFrame(()=>{ el.classList.add('in');
+    setTimeout(()=>{ const bar = el.querySelector('.meter i'); if(bar) bar.style.width = pct+'%'; }, 120+i*45); });
+  return el;
+}
+
+let inflight = null;
+async function search(q){
+  if (!q.trim()) return;
+  $('#go').disabled = true;
+  note.hidden = true; meta.hidden = false;
+  meta.innerHTML = `Searching <b>${esc(q)}</b>…`;
+  grid.innerHTML = Array.from({length:6}).map(()=>'<div class="skel"></div>').join('');
+  const params = new URLSearchParams({ q, k:'9',
+    rerank: $('#rerank').checked, in_stock: $('#instock').checked });
+  try{
+    history.replaceState(null,'', BASE+'?q='+encodeURIComponent(q));
+    if (inflight) inflight.abort();
+    inflight = new AbortController();
+    const t0 = performance.now();
+    const res = await fetch(BASE+'search?'+params, {signal:inflight.signal});
+    if (!res.ok) throw new Error('search failed');
+    const data = await res.json();
+    const ms = Math.round(performance.now()-t0);
+    grid.innerHTML = '';
+    if (!data.results.length){
+      meta.hidden = true; note.hidden = false;
+      note.innerHTML = `No matches for <b>${esc(q)}</b>. Try describing it differently.`;
+      return;
+    }
+    meta.innerHTML = `<span><b>${data.count}</b> matches for <b>${esc(q)}</b></span>`
+      + `<span>${data.reranked?'smart-ranked':'vector order'} · ${ms} ms</span>`;
+    data.results.forEach((r,i)=> grid.appendChild(card(r,i)));
+  }catch(e){
+    if (e.name==='AbortError') return;
+    meta.hidden = true; note.hidden = false;
+    note.innerHTML = `Something went wrong reaching the catalog. Try again in a moment.`;
+  }finally{ $('#go').disabled = false; }
+}
+
+// wire up
+$('#form').addEventListener('submit', e=>{ e.preventDefault(); search($('#q').value); });
+const chips = $('#chips');
+EXAMPLES.forEach(x=>{
+  const b = document.createElement('button');
+  b.type='button'; b.className='chip'; b.textContent=x;
+  b.onclick = ()=>{ $('#q').value = x; search(x); };
+  chips.appendChild(b);
+});
+$('#rerank').addEventListener('change', ()=>{ if($('#q').value.trim()) search($('#q').value); });
+$('#instock').addEventListener('change', ()=>{ if($('#q').value.trim()) search($('#q').value); });
+
+// reveal hero
+requestAnimationFrame(()=> document.querySelectorAll('.hero .reveal').forEach((el,i)=>{
+  el.style.transitionDelay=(i*90)+'ms'; el.classList.add('in'); }));
+
+// shareable links: run a search if ?q= is present on load
+const urlQ = new URLSearchParams(location.search).get('q');
+if (urlQ){ $('#q').value = urlQ; search(urlQ); }
+
+// live counts in the lede + footer
+fetch(BASE+'health').then(r=>r.json()).then(h=>{
+  if (h.active_products) $('#countline').textContent =
+    `${h.active_products} varieties, one plain-English box.`;
+  $('#modelline').textContent = `Embeddings: ${h.embed_model} · ranking: ${h.rerank_model}.`;
+}).catch(()=>{});
+</script>
+</body>
+</html>

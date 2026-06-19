@@ -1,0 +1,7 @@
+# Runtime deps for the SD Seed search service, loader, scraper and MCP.
+requests>=2.31
+psycopg[binary]>=3.1
+voyageai>=0.3
+fastapi>=0.110
+uvicorn[standard]>=0.29
+mcp>=1.2
