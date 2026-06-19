@@ -21,7 +21,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+import time as _time
+from collections import deque
+
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 import sdseed_common as c
@@ -32,6 +35,46 @@ app = FastAPI(title="San Diego Seed — Semantic Catalog Search")
 
 RECALL = 50  # vector candidates pulled before reranking
 _conn = None
+
+# --- Generous in-memory rate limiting on /search (it calls Voyage = costs money).
+# Single uvicorn worker + async loop => plain dict/deque ops are atomic enough.
+RL_PER_IP_PER_MIN = 40      # per client IP
+RL_GLOBAL_PER_MIN = 600     # safety ceiling across all clients
+_RL_WINDOW = 60.0
+_ip_hits: dict[str, deque] = {}
+_global_hits: deque = deque()
+
+
+def _client_ip(request: Request) -> str:
+    # Service is bound to 127.0.0.1 and only Caddy reaches it, so the
+    # X-Forwarded-For Caddy sets is trustworthy.
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _rate_limit(request: Request) -> None:
+    now = _time.monotonic()
+    while _global_hits and now - _global_hits[0] > _RL_WINDOW:
+        _global_hits.popleft()
+    if len(_global_hits) >= RL_GLOBAL_PER_MIN:
+        raise HTTPException(429, "The demo is busy right now — try again in a minute.",
+                            headers={"Retry-After": "60"})
+    ip = _client_ip(request)
+    dq = _ip_hits.get(ip)
+    if dq is None:
+        dq = _ip_hits[ip] = deque()
+    while dq and now - dq[0] > _RL_WINDOW:
+        dq.popleft()
+    if len(dq) >= RL_PER_IP_PER_MIN:
+        raise HTTPException(429, "Slow down a moment — too many searches. Try again shortly.",
+                            headers={"Retry-After": "30"})
+    dq.append(now)
+    _global_hits.append(now)
+    if len(_ip_hits) > 5000:  # occasional cleanup of idle entries
+        for k in [k for k, v in _ip_hits.items() if not v]:
+            _ip_hits.pop(k, None)
 
 
 def _get_conn():
@@ -65,12 +108,14 @@ def health():
 
 @app.get("/search")
 def search(
+    request: Request,
     q: str = Query(..., min_length=1, description="natural-language query"),
     k: int = Query(8, ge=1, le=25),
     in_stock: bool = Query(False),
     category: str | None = Query(None),
     rerank: bool = Query(True),
 ):
+    _rate_limit(request)
     conn = _get_conn()
     qvec = vec_literal(c.embed_query(q))
 

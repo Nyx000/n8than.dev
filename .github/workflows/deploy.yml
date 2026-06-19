@@ -36,3 +36,9 @@ jobs:
               caddy validate --config /etc/caddy/Caddyfile
               systemctl reload caddy
             fi
+
+            # Sync the SD Seed search service (code, deps, systemd units, restart)
+            if [ -f sdsb/deploy/sync.sh ]; then
+              echo "Syncing sdsb service..."
+              bash sdsb/deploy/sync.sh
+            fi
