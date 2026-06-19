@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>San Diego Seed Co — Search by meaning</title>
-<meta name="description" content="Natural-language search across the full San Diego Seed Company catalog. Describe your garden; get the right seeds.">
+<title>SeedSearch — Search SoCal seed catalogs by meaning</title>
+<meta name="description" content="Natural-language search across San Diego & SoCal seed catalogs. Describe your garden; get the right seeds.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -113,6 +113,8 @@
     letter-spacing:-.01em}
   .pname a{text-decoration:none}
   .pname a:hover{text-decoration:underline;text-decoration-color:var(--sprout);text-underline-offset:3px}
+  .grower{font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;
+    text-transform:uppercase;color:var(--muted)}
   .snip{font-size:13.5px;color:#4A5243;margin:0;flex:1}
   .meterrow{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;
     color:var(--muted)}
@@ -166,14 +168,14 @@
 <div class="wrap">
   <header class="top">
     <div class="brandrow">
-      <span class="seed-mark"><b></b>San Diego Seed Company</span>
-      <span class="eyebrow">Catalog search · prototype</span>
+      <span class="seed-mark"><b></b>SeedSearch</span>
+      <span class="eyebrow">SoCal seed search · prototype</span>
     </div>
   </header>
 
   <section class="hero">
     <h1 class="reveal">Tell us what you<br>want to <em>grow.</em></h1>
-    <p class="lede reveal">Search the whole catalog by meaning, not keywords.
+    <p class="lede reveal">Search San Diego &amp; SoCal seed catalogs by meaning, not keywords.
       Describe your garden, your climate, or your plate &mdash; and the right seeds
       come up. <b id="countline">Hundreds of varieties, one plain-English box.</b></p>
   </section>
@@ -230,7 +232,7 @@
   </section>
 
   <footer class="foot">
-    <span>Prototype on the live, public catalog.</span>
+    <span>Prototype over live, public SoCal seed catalogs.</span>
     <span>Links go to the real product pages.</span>
     <span id="modelline"></span>
   </footer>
@@ -279,6 +281,7 @@ function card(r, i){
   const photo = r.image ? `background-image:url('${esc(r.image)}')` : '';
   const stock = r.is_in_stock
     ? '<span class="stock in">In stock</span>' : '<span class="stock out">Sold out</span>';
+  const grower = r.source_name ? `<div class="grower">${esc(r.source_name)}</div>` : '';
   const el = document.createElement('article');
   el.className = 'packet reveal';
   el.style.transitionDelay = (i*45)+'ms';
@@ -288,6 +291,7 @@ function card(r, i){
       <span class="cat">${esc(r.primary_category||'Catalog')}</span>${stock}
     </div>
     <div class="pbody">
+      ${grower}
       <h3 class="pname"><a href="${esc(r.permalink)}" target="_blank" rel="noopener">${esc(r.name)}</a></h3>
       <p class="snip">${esc(r.short_description||'')}</p>
       <div class="meterrow"><span>match</span><span class="meter"><i style="width:0"></i></span><span>${pct}%</span></div>
