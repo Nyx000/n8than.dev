@@ -5,10 +5,13 @@ set -euo pipefail
 
 REPO_SDSB="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_DIR="/opt/sdseed"
+# NOTE: the first multi-source deploy needs a one-time DB migration that this
+# script does NOT run — see deploy/migrations/0001_multi_source.sql and README.
 
 echo "==> Syncing code from $REPO_SDSB -> $APP_DIR"
 install -d -o sdseed -g sdseed "$APP_DIR"
-for f in sdseed_catalog.py sdseed_common.py load_pgvector.py refresh.py \
+for f in sources.py scrape_common.py sdseed_catalog.py shopify_catalog.py \
+         sdseed_common.py load_pgvector.py refresh.py \
          search_service.py sdseed_mcp.py demo_page.html requirements.txt; do
   install -o sdseed -g sdseed -m 0644 "$REPO_SDSB/$f" "$APP_DIR/$f"
 done

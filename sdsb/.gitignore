@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 sdseed_catalog.json
 sdseed_catalog.md
+catalog_*.json
