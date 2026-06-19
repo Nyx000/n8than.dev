@@ -101,9 +101,16 @@ def test_paginate_stops_on_empty_batch():
     assert len(paginate_shopify(fetch_page, limit=250, max_pages=50)) == 1
 
 
-def test_paginate_respects_cap():
+def test_paginate_respects_cap(capsys):
     fetch_page = lambda page: [{"id": page}, {"id": page}]  # always full
     assert len(paginate_shopify(fetch_page, limit=2, max_pages=3)) == 6
+    assert "3-page cap" in capsys.readouterr().err
+
+
+def test_non_title_option_with_default_title_value_is_kept():
+    p = dict(PRODUCT, options=[{"name": "Finish", "values": ["Default Title"]}])
+    r = normalize_shopify_product(p, SRC)
+    assert r["attributes"] == [{"name": "Finish", "values": ["Default Title"]}]
 
 
 def test_scrape_shopify_reads_products_key(monkeypatch):

@@ -68,7 +68,7 @@ def normalize_shopify_product(product: dict, source: dict) -> dict:
     for opt in product.get("options") or []:
         name = (opt.get("name") or "").strip()
         values = [str(x).strip() for x in (opt.get("values") or []) if str(x).strip()]
-        if name and name.lower() != "title" and values != ["Default Title"]:
+        if name and name.lower() != "title":
             attributes.append({"name": name, "values": values})
 
     variations = [v["title"] for v in variants
