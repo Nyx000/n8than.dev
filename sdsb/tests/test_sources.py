@@ -10,7 +10,7 @@ def test_slugs_are_unique():
 
 def test_every_source_has_required_keys_and_valid_shape():
     for s in SOURCES:
-        assert set(s) >= {"slug", "name", "type", "base"}
+        assert set(s) == {"slug", "name", "type", "base"}
         assert s["type"] in VALID_TYPES
         assert s["base"].startswith("https://")
         assert not s["base"].endswith("/")
