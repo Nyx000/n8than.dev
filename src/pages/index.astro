@@ -17,6 +17,9 @@ import CitadelHero from '../components/CitadelHero.astro';
           aria-hidden="true"></span>
       </div>
       <nav class="hero-links">
+        <a class="resume-link" href="/resume.pdf" target="_blank" rel="noopener noreferrer"
+          >résumé</a
+        >
         <a href="/projects">projects</a>
         <a href="/blog">blog</a>
         <a href="/recognition">recognition</a>
@@ -204,6 +207,18 @@ import CitadelHero from '../components/CitadelHero.astro';
 
   .hero-links a {
     font-size: clamp(1.35rem, 2.4vw, 1.6rem);
+  }
+
+  /* Résumé: pinned first and always lit in the accent so it reads as the
+     primary call-to-action against the otherwise neutral menu; brightens on
+     hover like every other link. */
+  .hero-links a.resume-link {
+    color: var(--color-accent);
+  }
+
+  .hero-links a.resume-link:hover,
+  .hero-links a.resume-link:focus-visible {
+    color: var(--color-accent-hover);
   }
 
   .hero-social a {
