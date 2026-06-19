@@ -4,37 +4,64 @@ import type { Project } from '../data/projects';
 type Props = Project;
 
 const { title, description, url, tags, expandable, details } = Astro.props;
+const isLive = !!url;
+const isExternal = !!url && !url.startsWith('/');
+const visitLabel = isExternal ? 'Visit site' : 'Open live';
 ---
 
-<article class="card">
+<article class:list={['card', { 'card--live': isLive }]}>
   <div class="card-summary">
-    <h3>
+    <div class="card-head">
+      <h3>
+        {
+          url ? (
+            <a
+              href={url}
+              target={isExternal ? '_blank' : undefined}
+              rel={isExternal ? 'noopener noreferrer' : undefined}
+            >
+              {title}
+            </a>
+          ) : (
+            <span class="title-text">{title}</span>
+          )
+        }
+      </h3>
       {
-        url ? (
-          <a
-            href={url}
-            target={url.startsWith('/') ? undefined : '_blank'}
-            rel={url.startsWith('/') ? undefined : 'noopener noreferrer'}
-          >
-            {title}
-          </a>
-        ) : (
-          <span class="title-text">{title}</span>
+        isLive && (
+          <span class="live-badge" title="Live — click to open">
+            <span class="dot" />
+            Live
+          </span>
         )
       }
-    </h3>
+    </div>
     <p class="description">{description}</p>
     <div class="card-footer">
       <ul class="tags">
         {tags.map((tag) => <li>{tag}</li>)}
       </ul>
-      {
-        expandable && details && (
-          <button class="details-btn" aria-expanded="false">
-            Details &#9656;
-          </button>
-        )
-      }
+      <div class="card-actions">
+        {
+          url && (
+            <a
+              class="visit-btn"
+              href={url}
+              target={isExternal ? '_blank' : undefined}
+              rel={isExternal ? 'noopener noreferrer' : undefined}
+            >
+              {visitLabel} &#8594;
+            </a>
+          )
+        }
+        {
+          expandable && details && (
+            <button class="details-btn" aria-expanded="false">
+              Details &#9656;
+            </button>
+          )
+        }
+      </div>
     </div>
   </div>
   {
@@ -78,8 +105,35 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     box-shadow: 0 4px 20px rgba(255, 102, 0, 0.08);
   }
 
-  h3 {
-    margin-top: 0;
+  /* Live projects get an accent edge so it's obvious they're clickable. */
+  .card--live {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card--live::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--color-accent);
+  }
+
+  .card--live:hover {
+    box-shadow: 0 4px 24px rgba(255, 102, 0, 0.14);
+  }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+  }
+
+  .card-head h3 {
+    margin: 0;
   }
 
   h3 a {
@@ -103,6 +157,44 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     color: var(--color-text);
   }
 
+  /* "Live" badge with a pulsing dot */
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    border-radius: 100px;
+    padding: 0.25em 0.7em;
+    white-space: nowrap;
+  }
+
+  .live-badge .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    box-shadow: 0 0 0 0 rgba(255, 102, 0, 0.6);
+    animation: livepulse 2.2s ease-out infinite;
+  }
+
+  @keyframes livepulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(255, 102, 0, 0.55);
+    }
+    70% {
+      box-shadow: 0 0 0 7px rgba(255, 102, 0, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(255, 102, 0, 0);
+    }
+  }
+
   .description {
     color: var(--color-muted);
     margin: var(--space-sm) 0;
@@ -112,6 +204,7 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: var(--space-md);
     margin-top: var(--space-sm);
   }
@@ -132,6 +225,41 @@ const { title, description, url, tags, expandable, details } = Astro.props;
     border-radius: 4px;
     color: var(--color-muted);
     letter-spacing: 0.02em;
+  }
+
+  .card-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-shrink: 0;
+  }
+
+  /* Primary call-to-action: filled accent so live projects read as clickable. */
+  .visit-btn {
+    background: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    color: var(--color-bg);
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    padding: 0.3em 0.9em;
+    border-radius: 3px;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .visit-btn:hover {
+    background: var(--color-accent-hover);
+    border-color: var(--color-accent-hover);
+    text-decoration: none;
+  }
+
+  .visit-btn:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
   }
 
   .details-btn {
@@ -234,6 +362,9 @@ const { title, description, url, tags, expandable, details } = Astro.props;
   @media (prefers-reduced-motion: reduce) {
     .card-expand {
       transition: none;
+    }
+    .live-badge .dot {
+      animation: none;
     }
   }
 </style>
