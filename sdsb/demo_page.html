@@ -87,19 +87,25 @@
   .toggle input:focus-visible + .track{outline:3px solid rgba(60,107,46,.4);outline-offset:2px}
   .toggle .hint{font-family:var(--mono);font-size:11px;color:var(--muted)}
 
-  /* ---------- results meta ---------- */
-  .resultmeta{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
-    margin:30px 0 14px;padding-bottom:10px;border-bottom:1px solid var(--kraft-edge);
-    font-family:var(--mono);font-size:12.5px;letter-spacing:.04em;color:var(--muted);
-    text-transform:uppercase;min-height:20px}
-  .resultmeta b{color:var(--ink);font-weight:500}
+  /* ---------- results head + kind tabs ---------- */
+  .resulthead{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    margin:30px 0 14px;padding-bottom:10px;border-bottom:1px solid var(--kraft-edge);min-height:20px}
+  .kindtabs{display:inline-flex;gap:4px;background:var(--kraft);border:1px solid var(--kraft-edge);
+    border-radius:100px;padding:4px}
+  .kindtab{font-family:var(--mono);font-size:13px;letter-spacing:.02em;color:var(--ink);
+    background:transparent;border:0;border-radius:100px;padding:8px 16px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:8px;transition:background .14s,color .14s}
+  .kindtab:hover{background:#F2ECDC}
+  .kindtab[aria-selected="true"]{background:var(--sprout);color:#fff}
+  .kindtab[aria-selected="true"]:hover{background:var(--sprout-deep)}
+  .kindtab:focus-visible{outline:3px solid rgba(60,107,46,.4);outline-offset:2px}
+  .kindcount{font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted)}
+  .kindtab[aria-selected="true"] .kindcount{color:rgba(255,255,255,.85)}
+  .rankmeta{font-family:var(--mono);font-size:12.5px;letter-spacing:.04em;color:var(--muted);
+    text-transform:uppercase;text-align:right}
 
   /* ---------- grid + cards ---------- */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
-  .section{margin-top:8px}
-  .sectionhead{font-family:var(--display);font-weight:500;font-size:22px;margin:26px 0 14px;
-    display:flex;align-items:baseline;gap:10px}
-  .sectioncount{font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--muted)}
   .packet{position:relative;background:var(--kraft);border:1px solid var(--kraft-edge);
     border-radius:3px;overflow:hidden;display:flex;flex-direction:column;
     box-shadow:var(--shadow);transition:transform .16s,box-shadow .16s}
@@ -210,15 +216,16 @@
     </div>
   </section>
 
-  <div class="resultmeta" id="meta" hidden></div>
-  <section class="section" id="plantsSection" hidden>
-    <h2 class="sectionhead">Live plants <span class="sectioncount" id="plantsCount"></span></h2>
-    <div class="grid" id="plantsGrid" aria-live="polite"></div>
-  </section>
-  <section class="section" id="seedsSection" hidden>
-    <h2 class="sectionhead">Seeds <span class="sectioncount" id="seedsCount"></span></h2>
-    <div class="grid" id="seedsGrid" aria-live="polite"></div>
-  </section>
+  <div class="resulthead" id="resulthead" hidden>
+    <div class="kindtabs" role="tablist" aria-label="Result type">
+      <button class="kindtab" id="tabSeed" type="button" role="tab" data-kind="seed"
+        aria-selected="true" aria-controls="grid">Seeds <span class="kindcount" id="countSeed">—</span></button>
+      <button class="kindtab" id="tabPlant" type="button" role="tab" data-kind="plant"
+        aria-selected="false" aria-controls="grid">Plants <span class="kindcount" id="countPlant">—</span></button>
+    </div>
+    <span class="rankmeta" id="rankmeta"></span>
+  </div>
+  <div class="grid" id="grid" aria-live="polite"></div>
   <p class="note" id="note">
     Try a description &mdash; <b>&ldquo;passion fruit vine,&rdquo;</b>
     <b>&ldquo;drought-tolerant CA natives,&rdquo;</b> or <b>&ldquo;low-light houseplant.&rdquo;</b>
@@ -253,7 +260,7 @@
 <script>
 const BASE = location.pathname.endsWith('/') ? location.pathname : location.pathname + '/';
 const $ = s => document.querySelector(s);
-const note = $('#note'), meta = $('#meta');
+const note = $('#note');
 
 const EXAMPLES = [
   "passion fruit vine",
@@ -316,72 +323,110 @@ function card(r, i){
   return el;
 }
 
-const plantsSection = $('#plantsSection'), seedsSection = $('#seedsSection');
-const plantsGrid = $('#plantsGrid'), seedsGrid = $('#seedsGrid');
+const resulthead = $('#resulthead'), grid = $('#grid'), rankmeta = $('#rankmeta');
+const KINDS = {
+  seed:  { tab: $('#tabSeed'),  count: $('#countSeed'),  label: 'seeds'  },
+  plant: { tab: $('#tabPlant'), count: $('#countPlant'), label: 'plants' },
+};
 
-function renderSection(rows, sectionEl, gridEl, countEl){
-  gridEl.innerHTML = '';
-  if (!rows.length){ sectionEl.hidden = true; return; }
-  countEl.textContent = `${rows.length}`;
-  rows.forEach((r,i)=> gridEl.appendChild(card(r,i)));
-  sectionEl.hidden = false;
+let activeKind = 'seed';                 // sticky across searches this session
+let cacheKey = null;                     // identity of the cached query+filters
+let cache = { seed: null, plant: null }; // rows per kind; null = not loaded
+let inflight = null;
+
+const keyFor   = q => JSON.stringify([q.trim(), $('#rerank').checked, $('#instock').checked]);
+const syncTabs = kind => { for (const k in KINDS) KINDS[k].tab.setAttribute('aria-selected', String(k===kind)); };
+const setCount = (kind, v) => { KINDS[kind].count.textContent = v; };
+const syncURL  = (q, kind) => history.replaceState(null, '', BASE+'?q='+encodeURIComponent(q)+'&kind='+kind);
+
+function showSkeleton(){
+  grid.hidden = false; note.hidden = true; grid.innerHTML = '';
+  for (let i=0;i<8;i++){ const d=document.createElement('div'); d.className='skel'; grid.appendChild(d); }
+}
+function renderGrid(rows, q, kind){
+  grid.innerHTML = '';
+  if (!rows.length){
+    grid.hidden = true; note.hidden = false;
+    const other = kind==='seed' ? 'Plants' : 'Seeds';
+    note.innerHTML = `No ${KINDS[kind].label} match <b>${esc(q)}</b>. `
+      + `Try the <b>${other}</b> tab, or describe it differently.`;
+    return;
+  }
+  grid.hidden = false; note.hidden = true;
+  rows.forEach((r,i)=> grid.appendChild(card(r,i)));
 }
 
-let inflight = null;
-async function search(q){
+async function loadKind(q, kind){
+  if (cache[kind] != null) return cache[kind];          // cache hit — no network
+  if (inflight) inflight.abort();
+  inflight = new AbortController();
+  const params = new URLSearchParams({ q, k:'12', kind,
+    rerank: $('#rerank').checked, in_stock: $('#instock').checked });
+  const res = await fetch(BASE+'search?'+params, {signal:inflight.signal});
+  if (!res.ok) throw new Error('search failed');
+  const data = await res.json();
+  cache[kind] = kind==='plant' ? (data.plants||[]) : (data.seeds||[]);
+  return cache[kind];
+}
+
+async function show(q, kind){
   if (!q.trim()) return;
+  activeKind = kind;
+  syncTabs(kind); syncURL(q, kind);
+  resulthead.hidden = false;
+  if (keyFor(q) !== cacheKey){                 // new query or changed filters
+    cache = { seed:null, plant:null }; cacheKey = keyFor(q);
+    setCount('seed','—'); setCount('plant','—');
+  }
+  const cached = cache[kind] != null;
   try{
     $('#go').disabled = true;
-    note.hidden = true; meta.hidden = false;
-    meta.innerHTML = `Searching <b>${esc(q)}</b>…`;
-    plantsSection.hidden = seedsSection.hidden = true;
-    plantsGrid.innerHTML = seedsGrid.innerHTML = '';
-    const params = new URLSearchParams({ q, k:'9',
-      rerank: $('#rerank').checked, in_stock: $('#instock').checked });
-    history.replaceState(null,'', BASE+'?q='+encodeURIComponent(q));
-    if (inflight) inflight.abort();
-    inflight = new AbortController();
+    if (!cached){ showSkeleton(); rankmeta.textContent = 'Searching…'; }
     const t0 = performance.now();
-    const res = await fetch(BASE+'search?'+params, {signal:inflight.signal});
-    if (!res.ok) throw new Error('search failed');
-    const data = await res.json();
-    const ms = Math.round(performance.now()-t0);
-    const total = (data.plants?.length||0) + (data.seeds?.length||0);
-    if (!total){
-      meta.hidden = true; note.hidden = false;
-      note.innerHTML = `No matches for <b>${esc(q)}</b>. Try describing it differently.`;
-      return;
-    }
-    meta.innerHTML = `<span><b>${total}</b> matches for <b>${esc(q)}</b></span>`
-      + `<span>${data.reranked?'smart-ranked':'vector order'} · ${ms} ms</span>`;
-    renderSection(data.plants||[], plantsSection, plantsGrid, $('#plantsCount'));
-    renderSection(data.seeds||[], seedsSection, seedsGrid, $('#seedsCount'));
+    const rows = await loadKind(q, kind);
+    if (kind !== activeKind) return;            // a newer click/search superseded this one
+    renderGrid(rows, q, kind);
+    setCount(kind, rows.length);
+    rankmeta.textContent = `${$('#rerank').checked ? 'smart-ranked' : 'vector order'} · `
+      + `${cached ? 'cached' : Math.round(performance.now()-t0)+' ms'}`;
   }catch(e){
-    if (e.name==='AbortError') return;
-    meta.hidden = true; note.hidden = false;
+    if (e.name === 'AbortError') return;
+    resulthead.hidden = true; grid.hidden = true; note.hidden = false;
     note.innerHTML = `Something went wrong reaching the catalog. Try again in a moment.`;
   }finally{ $('#go').disabled = false; }
 }
 
 // wire up
-$('#form').addEventListener('submit', e=>{ e.preventDefault(); search($('#q').value); });
+$('#form').addEventListener('submit', e=>{ e.preventDefault(); show($('#q').value, activeKind); });
 const chips = $('#chips');
 EXAMPLES.forEach(x=>{
   const b = document.createElement('button');
   b.type='button'; b.className='chip'; b.textContent=x;
-  b.onclick = ()=>{ $('#q').value = x; search(x); };
+  b.onclick = ()=>{ $('#q').value = x; show(x, activeKind); };
   chips.appendChild(b);
 });
-$('#rerank').addEventListener('change', ()=>{ if($('#q').value.trim()) search($('#q').value); });
-$('#instock').addEventListener('change', ()=>{ if($('#q').value.trim()) search($('#q').value); });
+$('#rerank').addEventListener('change',  ()=>{ if($('#q').value.trim()) show($('#q').value, activeKind); });
+$('#instock').addEventListener('change', ()=>{ if($('#q').value.trim()) show($('#q').value, activeKind); });
+for (const k in KINDS){
+  KINDS[k].tab.addEventListener('click', ()=>{ if($('#q').value.trim()) show($('#q').value, k); });
+}
+$('.kindtabs').addEventListener('keydown', e=>{          // left/right arrows switch tabs
+  if (e.key!=='ArrowLeft' && e.key!=='ArrowRight') return;
+  e.preventDefault();
+  const next = activeKind==='seed' ? 'plant' : 'seed';
+  KINDS[next].tab.focus();
+  if ($('#q').value.trim()) show($('#q').value, next);
+});
 
 // reveal hero
 requestAnimationFrame(()=> document.querySelectorAll('.hero .reveal').forEach((el,i)=>{
   el.style.transitionDelay=(i*90)+'ms'; el.classList.add('in'); }));
 
-// shareable links: run a search if ?q= is present on load
-const urlQ = new URLSearchParams(location.search).get('q');
-if (urlQ){ $('#q').value = urlQ; search(urlQ); }
+// shareable links: run a search if ?q= is present on load (kind sets the sticky tab)
+const sp = new URLSearchParams(location.search);
+const urlQ = sp.get('q'), urlKind = sp.get('kind');
+if (urlKind==='plant' || urlKind==='seed') activeKind = urlKind;
+if (urlQ){ $('#q').value = urlQ; show(urlQ, activeKind); }
 
 // live counts in the lede + footer
 fetch(BASE+'health').then(r=>r.json()).then(h=>{
