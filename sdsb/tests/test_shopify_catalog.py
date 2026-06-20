@@ -166,3 +166,48 @@ def test_scrape_shopify_uses_products_json_without_collection(monkeypatch):
            "type": "shopify", "base": "https://www.plantgoodseed.com"}
     m.scrape_shopify(src)
     assert seen["url"] == "https://www.plantgoodseed.com/products.json"
+
+
+PLANT_SRC = {"slug": "ricardos", "name": "Ricardo's Nursery",
+             "type": "shopify", "base": "https://store.ricardosnursery.com",
+             "kind": "plant"}
+
+
+def test_kind_from_source_defaults_seed():
+    assert normalize_shopify_product(PRODUCT, SRC)["kind"] == "seed"
+
+
+def test_kind_from_source_plant():
+    assert normalize_shopify_product(PRODUCT, PLANT_SRC)["kind"] == "plant"
+
+
+def test_scrape_shopify_filters_merch_for_plant_source(monkeypatch):
+    import shopify_catalog as m
+    gift = {"id": 1, "title": "Gift Card", "handle": "gift-card",
+            "variants": [{"title": "25", "price": "25.00", "available": True}]}
+    plant = {"id": 2, "title": "Passion Fruit Vine", "handle": "passiflora",
+             "product_type": "Vines",
+             "variants": [{"title": "1 gal", "price": "24.00", "available": True}]}
+
+    def fake_fetch(url, params=None, **kw):
+        return _FakeResp({"products": [gift, plant]}) if params["page"] == 1 else _FakeResp({"products": []})
+
+    monkeypatch.setattr(m, "fetch", fake_fetch)
+    monkeypatch.setattr(m, "SLEEP_BETWEEN", 0)
+    recs = m.scrape_shopify(PLANT_SRC)
+    assert [r["source_id"] for r in recs] == [2]   # gift card dropped, plant kept
+    assert recs[0]["kind"] == "plant"
+
+
+def test_scrape_shopify_does_not_filter_seed_source(monkeypatch):
+    import shopify_catalog as m
+    cheap = {"id": 3, "title": "Free Seed Sample", "handle": "free",
+             "variants": [{"title": "x", "price": "0.00", "available": True}]}
+
+    def fake_fetch(url, params=None, **kw):
+        return _FakeResp({"products": [cheap]}) if params["page"] == 1 else _FakeResp({"products": []})
+
+    monkeypatch.setattr(m, "fetch", fake_fetch)
+    monkeypatch.setattr(m, "SLEEP_BETWEEN", 0)
+    recs = m.scrape_shopify(SRC)            # SRC is kind-less -> treated as seed
+    assert [r["source_id"] for r in recs] == [3]   # NOT filtered

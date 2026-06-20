@@ -11,7 +11,7 @@ from __future__ import annotations
 import sys
 import time
 
-from scrape_common import SLEEP_BETWEEN, fetch, html_to_text
+from scrape_common import SLEEP_BETWEEN, fetch, html_to_text, is_listable_plant
 
 SHOPIFY_LIMIT = 250   # max page size Shopify allows for products.json
 MAX_PAGES = 50        # infinite-loop backstop (50 * 250 = 12,500 products)
@@ -99,6 +99,7 @@ def normalize_shopify_product(product: dict, source: dict) -> dict:
         "image": image,
         "short_description": _first_paragraph(description),
         "description": description,
+        "kind": source.get("kind", "seed"),
     }
 
 
@@ -142,4 +143,7 @@ def scrape_shopify(source: dict) -> list[dict]:
 
     raw = paginate_shopify(fetch_page)
     records = [normalize_shopify_product(p, source) for p in raw]
-    return [r for r in records if r["name"]]
+    records = [r for r in records if r["name"]]
+    if source.get("kind") == "plant":
+        records = [r for r in records if is_listable_plant(r)]
+    return records
