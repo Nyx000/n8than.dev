@@ -93,6 +93,7 @@ def search_products(
     k: int = 5,
     in_stock_only: bool = False,
     category: str | None = None,
+    kind: str | None = None,
 ) -> str:
     """
     Semantic search over the SeedSearch catalog (San Diego & SoCal seed growers).
@@ -106,6 +107,7 @@ def search_products(
         k: Number of results to return (default 5, max 25).
         in_stock_only: If true, only return products currently in stock.
         category: Optional category name to restrict results (e.g. "Tomatoes").
+        kind: Optional 'plant' or 'seed' filter.
 
     Returns: JSON list of matches with name, category, price, stock, similarity,
     permalink, and a short description snippet.
@@ -120,13 +122,16 @@ def search_products(
     if category:
         where.append("%s = ANY(categories)")
         params.append(category)
+    if kind:
+        where.append("kind = %s")
+        params.append(kind)
     where_sql = ("WHERE " + " AND ".join(where)) if where else ""
     params.append(qvec)
     params.append(k)
 
     sql = f"""
         SELECT source, source_id, name, primary_category, categories, price, sale_price, on_sale,
-               is_in_stock, permalink, short_description,
+               is_in_stock, kind, permalink, short_description,
                1 - (embedding <=> %s::vector) AS similarity
         FROM sdseed_products
         {where_sql}
