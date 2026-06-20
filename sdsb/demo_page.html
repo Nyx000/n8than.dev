@@ -219,7 +219,7 @@
     <h2 class="sectionhead">Seeds <span class="sectioncount" id="seedsCount"></span></h2>
     <div class="grid" id="seedsGrid" aria-live="polite"></div>
   </section>
-  <p class=”note” id=”note”>
+  <p class="note" id="note">
     Try a description &mdash; <b>&ldquo;passion fruit vine,&rdquo;</b>
     <b>&ldquo;drought-tolerant CA natives,&rdquo;</b> or <b>&ldquo;low-light houseplant.&rdquo;</b>
     Seeds or live plants &mdash; no need to know variety names.
@@ -330,14 +330,14 @@ function renderSection(rows, sectionEl, gridEl, countEl){
 let inflight = null;
 async function search(q){
   if (!q.trim()) return;
-  $('#go').disabled = true;
-  note.hidden = true; meta.hidden = false;
-  meta.innerHTML = `Searching <b>${esc(q)}</b>…`;
-  plantsSection.hidden = seedsSection.hidden = true;
-  plantsGrid.innerHTML = seedsGrid.innerHTML = '';
-  const params = new URLSearchParams({ q, k:'9',
-    rerank: $('#rerank').checked, in_stock: $('#instock').checked });
   try{
+    $('#go').disabled = true;
+    note.hidden = true; meta.hidden = false;
+    meta.innerHTML = `Searching <b>${esc(q)}</b>…`;
+    plantsSection.hidden = seedsSection.hidden = true;
+    plantsGrid.innerHTML = seedsGrid.innerHTML = '';
+    const params = new URLSearchParams({ q, k:'9',
+      rerank: $('#rerank').checked, in_stock: $('#instock').checked });
     history.replaceState(null,'', BASE+'?q='+encodeURIComponent(q));
     if (inflight) inflight.abort();
     inflight = new AbortController();
