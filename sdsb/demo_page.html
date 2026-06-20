@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SeedSearch — Search SoCal seed catalogs by meaning</title>
-<meta name="description" content="Natural-language search across San Diego & SoCal seed catalogs. Describe your garden; get the right seeds.">
+<title>SeedSearch — Search SoCal seed & nursery catalogs by meaning</title>
+<meta name="description" content="Natural-language search across San Diego & SoCal seed and live-plant catalogs. Describe your garden; get the right seeds and plants.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -96,6 +96,10 @@
 
   /* ---------- grid + cards ---------- */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+  .section{margin-top:8px}
+  .sectionhead{font-family:var(--display);font-weight:500;font-size:22px;margin:26px 0 14px;
+    display:flex;align-items:baseline;gap:10px}
+  .sectioncount{font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--muted)}
   .packet{position:relative;background:var(--kraft);border:1px solid var(--kraft-edge);
     border-radius:3px;overflow:hidden;display:flex;flex-direction:column;
     box-shadow:var(--shadow);transition:transform .16s,box-shadow .16s}
@@ -169,15 +173,16 @@
   <header class="top">
     <div class="brandrow">
       <span class="seed-mark"><b></b>SeedSearch</span>
-      <span class="eyebrow">SoCal seed search · prototype</span>
+      <span class="eyebrow">SoCal seed & plant search · prototype</span>
     </div>
   </header>
 
   <section class="hero">
     <h1 class="reveal">Tell us what you<br>want to <em>grow.</em></h1>
-    <p class="lede reveal">Search San Diego &amp; SoCal seed catalogs by meaning, not keywords.
-      Describe your garden, your climate, or your plate &mdash; and the right seeds
-      come up. <b id="countline">Hundreds of varieties, one plain-English box.</b></p>
+    <p class="lede reveal">Search San Diego &amp; SoCal seed <b>and live-plant</b> catalogs by
+      meaning, not keywords. Describe your garden, your climate, or your plate &mdash; and the
+      right seeds <b>and nursery plants</b> come up.
+      <b id="countline">Seeds and live plants, one plain-English box.</b></p>
   </section>
 
   <section class="instrument">
@@ -206,7 +211,14 @@
   </section>
 
   <div class="resultmeta" id="meta" hidden></div>
-  <section class="grid" id="grid" aria-live="polite"></section>
+  <section class="section" id="plantsSection" hidden>
+    <h2 class="sectionhead">Live plants <span class="sectioncount" id="plantsCount"></span></h2>
+    <div class="grid" id="plantsGrid" aria-live="polite"></div>
+  </section>
+  <section class="section" id="seedsSection" hidden>
+    <h2 class="sectionhead">Seeds <span class="sectioncount" id="seedsCount"></span></h2>
+    <div class="grid" id="seedsGrid" aria-live="polite"></div>
+  </section>
   <p class="note" id="note">
     Try a description &mdash; <b>“fast greens for a fall raised bed,”</b>
     <b>“spicy peppers for hot sauce,”</b> or <b>“heirloom tomato for canning.”</b>
@@ -232,7 +244,7 @@
   </section>
 
   <footer class="foot">
-    <span>Prototype over live, public SoCal seed catalogs.</span>
+    <span>Prototype over live, public SoCal seed &amp; nursery catalogs.</span>
     <span>Links go to the real product pages.</span>
     <span id="modelline"></span>
   </footer>
@@ -241,24 +253,25 @@
 <script>
 const BASE = location.pathname.endsWith('/') ? location.pathname : location.pathname + '/';
 const $ = s => document.querySelector(s);
-const grid = $('#grid'), note = $('#note'), meta = $('#meta');
+const note = $('#note'), meta = $('#meta');
 
 const EXAMPLES = [
-  "fall garden for zone 10",
+  "passion fruit vine",
+  "drought-tolerant CA natives",
+  "low-light houseplant for a north window",
   "spicy peppers for hot sauce",
-  "low-water flowers for pollinators",
+  "dwarf citrus for a patio pot",
   "fast greens for a raised bed",
-  "heirloom tomato for canning",
-  "herbs for a sunny windowsill",
 ];
 
 // produce spectrum keyed to category vocabulary
 const SPECTRUM = [
   [/tomato|pepper|chili|chile/i, '#C0492F'],
   [/herb|basil|cilantro|mint|medicinal/i, '#4E7A37'],
-  [/squash|melon|cucumber|gourd|pumpkin|zucchini/i, '#C98A2B'],
-  [/flower|dahlia|sunflower|bulb|aster|poppy/i, '#8C3A63'],
+  [/squash|melon|cucumber|gourd|pumpkin|zucchini|fruit|citrus|avocado|mango|fig|grape/i, '#C98A2B'],
+  [/flower|dahlia|sunflower|bulb|aster|poppy|native|perennial/i, '#8C3A63'],
   [/cool|lettuce|green|kale|spinach|brassica|broccoli|cabbage|root|beet|carrot/i, '#3E6B86'],
+  [/succulent|cactus|cacti|aloe|agave|tropical|houseplant|indoor|hoya|vine|palm/i, '#3C6B2E'],
 ];
 const bandColor = cats => {
   const hay = (cats||[]).join(' ');
@@ -303,13 +316,25 @@ function card(r, i){
   return el;
 }
 
+const plantsSection = $('#plantsSection'), seedsSection = $('#seedsSection');
+const plantsGrid = $('#plantsGrid'), seedsGrid = $('#seedsGrid');
+
+function renderSection(rows, sectionEl, gridEl, countEl){
+  gridEl.innerHTML = '';
+  if (!rows.length){ sectionEl.hidden = true; return; }
+  countEl.textContent = `${rows.length}`;
+  rows.forEach((r,i)=> gridEl.appendChild(card(r,i)));
+  sectionEl.hidden = false;
+}
+
 let inflight = null;
 async function search(q){
   if (!q.trim()) return;
   $('#go').disabled = true;
   note.hidden = true; meta.hidden = false;
   meta.innerHTML = `Searching <b>${esc(q)}</b>…`;
-  grid.innerHTML = Array.from({length:6}).map(()=>'<div class="skel"></div>').join('');
+  plantsSection.hidden = seedsSection.hidden = true;
+  plantsGrid.innerHTML = seedsGrid.innerHTML = '';
   const params = new URLSearchParams({ q, k:'9',
     rerank: $('#rerank').checked, in_stock: $('#instock').checked });
   try{
@@ -321,15 +346,16 @@ async function search(q){
     if (!res.ok) throw new Error('search failed');
     const data = await res.json();
     const ms = Math.round(performance.now()-t0);
-    grid.innerHTML = '';
-    if (!data.results.length){
+    const total = (data.plants?.length||0) + (data.seeds?.length||0);
+    if (!total){
       meta.hidden = true; note.hidden = false;
       note.innerHTML = `No matches for <b>${esc(q)}</b>. Try describing it differently.`;
       return;
     }
-    meta.innerHTML = `<span><b>${data.count}</b> matches for <b>${esc(q)}</b></span>`
+    meta.innerHTML = `<span><b>${total}</b> matches for <b>${esc(q)}</b></span>`
       + `<span>${data.reranked?'smart-ranked':'vector order'} · ${ms} ms</span>`;
-    data.results.forEach((r,i)=> grid.appendChild(card(r,i)));
+    renderSection(data.plants||[], plantsSection, plantsGrid, $('#plantsCount'));
+    renderSection(data.seeds||[], seedsSection, seedsGrid, $('#seedsCount'));
   }catch(e){
     if (e.name==='AbortError') return;
     meta.hidden = true; note.hidden = false;
