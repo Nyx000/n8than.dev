@@ -10,12 +10,13 @@ Adding a store later is one entry here — no code change elsewhere.
 from __future__ import annotations
 
 SOURCES = [
-    {"slug": "sandiegoseed",  "name": "San Diego Seed Company",      "type": "woocommerce", "base": "https://sandiegoseedcompany.com"},
-    {"slug": "plantgoodseed", "name": "The Plant Good Seed Company", "type": "shopify",     "base": "https://www.plantgoodseed.com"},
-    {"slug": "theodorepayne", "name": "Theodore Payne Foundation",   "type": "shopify",     "base": "https://store.theodorepayne.org", "collection": "seeds-1"},
+    {"slug": "sandiegoseed",  "name": "San Diego Seed Company",      "type": "woocommerce", "base": "https://sandiegoseedcompany.com",   "kind": "seed"},
+    {"slug": "plantgoodseed", "name": "The Plant Good Seed Company", "type": "shopify",     "base": "https://www.plantgoodseed.com",     "kind": "seed"},
+    {"slug": "theodorepayne", "name": "Theodore Payne Foundation",   "type": "shopify",     "base": "https://store.theodorepayne.org", "collection": "seeds-1", "kind": "seed"},
 ]
 
 VALID_TYPES = {"woocommerce", "shopify"}
+VALID_KINDS = {"seed", "plant"}
 
 
 def get_source(slug: str) -> dict:
@@ -32,3 +33,11 @@ def source_name(slug: str) -> str:
         if s["slug"] == slug:
             return s["name"]
     return slug
+
+
+def source_kind(slug: str) -> str:
+    """'seed' or 'plant' for a slug; defaults to 'seed' for unknown slugs."""
+    for s in SOURCES:
+        if s["slug"] == slug:
+            return s.get("kind", "seed")
+    return "seed"

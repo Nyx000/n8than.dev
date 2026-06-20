@@ -1,8 +1,8 @@
 import pytest
 
-from sources import SOURCES, VALID_TYPES, get_source, source_name
+from sources import SOURCES, VALID_TYPES, VALID_KINDS, get_source, source_name, source_kind
 
-REQUIRED_KEYS = {"slug", "name", "type", "base"}
+REQUIRED_KEYS = {"slug", "name", "type", "base", "kind"}
 ALLOWED_KEYS = REQUIRED_KEYS | {"collection"}
 
 
@@ -15,11 +15,19 @@ def test_every_source_has_required_keys_and_valid_shape():
     for s in SOURCES:
         assert REQUIRED_KEYS <= set(s) <= ALLOWED_KEYS
         assert s["type"] in VALID_TYPES
+        assert s["kind"] in VALID_KINDS
         assert s["base"].startswith("https://")
         assert not s["base"].endswith("/")
         if "collection" in s:
             assert s["type"] == "shopify"
-            assert s["collection"]  # non-empty handle
+            assert s["collection"]
+
+
+def test_existing_three_sources_are_seeds():
+    by_slug = {s["slug"]: s for s in SOURCES}
+    assert by_slug["sandiegoseed"]["kind"] == "seed"
+    assert by_slug["plantgoodseed"]["kind"] == "seed"
+    assert by_slug["theodorepayne"]["kind"] == "seed"
 
 
 def test_curated_socal_sources():
@@ -44,3 +52,8 @@ def test_get_source_roundtrip_and_unknown():
 def test_source_name_known_and_fallback():
     assert source_name("plantgoodseed") == "The Plant Good Seed Company"
     assert source_name("unknown-slug") == "unknown-slug"
+
+
+def test_source_kind_known_and_fallback():
+    assert source_kind("sandiegoseed") == "seed"
+    assert source_kind("unknown-slug") == "seed"
