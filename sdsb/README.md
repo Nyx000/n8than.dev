@@ -1,7 +1,7 @@
 # SeedSearch — Semantic Catalog Search
 
-Natural-language search over seed catalogs from three San Diego & SoCal seed
-growers, served at [n8than.dev/seedsearch](https://n8than.dev/seedsearch). Part
+Natural-language search over seed and live-plant catalogs from curated San Diego & SoCal
+seed growers and nurseries, served at [n8than.dev/seedsearch](https://n8than.dev/seedsearch). Part
 of the n8than.dev monorepo so it versions and deploys alongside the site.
 
 ```
@@ -38,6 +38,20 @@ The Caddy route lives in the site's `deploy/Caddyfile` (`/seedsearch` -> `127.0.
 - The service runs co-located with Postgres (`SDSEED_NO_TUNNEL=1`, direct
   `localhost:5432`). Off-server (local dev), the same code reaches the DB over an
   SSH tunnel via the `hetzner` host in `~/.ssh/config`.
+
+### Search response
+
+`GET /search?q=&k=&in_stock=&category=&rerank=&kind=` returns two sections:
+
+```json
+{ "query": "...", "reranked": true,
+  "counts": { "plants": 9, "seeds": 4 },
+  "plants": [ ...rows... ], "seeds": [ ...rows... ] }
+```
+
+`kind` ∈ `all|plant|seed` (default `all`). Recall is kind-aware (25 candidates per kind),
+then a single rerank orders the combined pool before it is split into the two sections.
+Each row carries `kind` and `source_name`.
 
 ## Deploy
 
@@ -76,6 +90,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE sdseed_products (
   source text NOT NULL, source_id bigint NOT NULL,
   name text NOT NULL, sku text, type text,
+  kind text NOT NULL DEFAULT 'seed',
   categories text[], primary_category text,
   price numeric(10,2), regular_price numeric(10,2), sale_price numeric(10,2),
   on_sale boolean, is_in_stock boolean, permalink text, image text,
@@ -89,17 +104,25 @@ CREATE INDEX ON sdseed_products USING hnsw (embedding vector_cosine_ops);
 
 Rows are keyed by `(source, source_id)` — the store slug plus that store's native
 product id. An existing single-source DB is migrated in place (no data loss) with
-`deploy/migrations/0001_multi_source.sql`; see **Deploy**.
+`deploy/migrations/0001_multi_source.sql`; see **Deploy**. The `kind` column (added
+in migration `0002`) distinguishes seed from live-plant products.
 
 ### Sources
 
-Curated to San Diego / SoCal seed growers:
+Curated to San Diego / SoCal seed growers and nurseries:
 
-| slug | platform | store | scope |
+| slug | platform | store | kind |
 |---|---|---|---|
-| `sandiegoseed`  | woocommerce | San Diego Seed Company      | full store |
-| `plantgoodseed` | shopify     | The Plant Good Seed Company | full store |
-| `theodorepayne` | shopify     | Theodore Payne Foundation   | `seeds-1` collection |
+| `sandiegoseed`  | woocommerce | San Diego Seed Company      | seed |
+| `plantgoodseed` | shopify     | The Plant Good Seed Company | seed |
+| `theodorepayne` | shopify     | Theodore Payne Foundation   | seed |
+| `ricardos`  | shopify | Ricardo's Nursery | plant |
+| `plantsexpress` | shopify | Plants Express | plant |
+| `neelsnursery` | shopify | Neel's Nursery | plant |
+| `livelyroot` | shopify | Lively Root | plant |
+| `gosucculent` | woocommerce | Daniel's Specialty Nursery | plant |
+| `wallaceranch` | shopify | Wallace Ranch Dragon Fruit | plant |
+| `planetdesert` | shopify | Planet Desert | plant |
 
 Add a store by appending one entry to `sources.py` (`shopify` or `woocommerce`).
 A Shopify source may set an optional `collection` handle to index only that
