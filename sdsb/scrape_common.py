@@ -142,20 +142,27 @@ def to_dollars(minor: str | None, exponent: int) -> float | None:
         return None
 
 
-# Terms that mark a nursery-catalog row as non-plant merch/services.
-NON_PLANT_TERMS = (
-    "gift card", "e-gift", "shipping", "deposit",
-    "sticker", "mug", "hat", "tote", "book", "merch", "pottery",
-)
+# Multi-word phrases are matched as substrings; single words are matched on
+# WORD BOUNDARIES so real plant names that merely contain a term survive
+# (e.g. "Mugwort", "Hatiora", "Bookleaf"). "hat" is intentionally omitted —
+# even as a whole word it collides with real names like "Hat Cactus".
+NON_PLANT_PHRASES = ("gift card", "e-gift")
+NON_PLANT_WORDS = frozenset({
+    "shipping", "deposit", "sticker", "mug", "tote", "book", "books", "merch", "pottery",
+})
 
 
 def is_listable_plant(rec: dict) -> bool:
     """True if a record is a priced, real live plant (not merch/services/$0).
 
     Applied ONLY to plant-kind sources, whose catalogs mix in gift cards,
-    shipping placeholders, and $0 browse-only/wholesale rows.
+    shipping placeholders, and $0 browse-only/wholesale rows. Single-word merch
+    terms match on word boundaries so plant names containing them aren't dropped.
     """
     if (rec.get("price") or 0) <= 0:
         return False
     haystack = f"{rec.get('name') or ''} {rec.get('type') or ''}".lower()
-    return not any(term in haystack for term in NON_PLANT_TERMS)
+    if any(phrase in haystack for phrase in NON_PLANT_PHRASES):
+        return False
+    words = set(re.findall(r"[a-z]+", haystack))
+    return words.isdisjoint(NON_PLANT_WORDS)

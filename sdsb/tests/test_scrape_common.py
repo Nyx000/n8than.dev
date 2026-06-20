@@ -17,10 +17,23 @@ def test_is_listable_plant_drops_zero_and_none_price():
 
 
 def test_is_listable_plant_drops_merch_by_name_or_type():
-    assert is_listable_plant(_plant(name="Gift Card")) is False
-    assert is_listable_plant(_plant(name="Logo Sticker")) is False
-    assert is_listable_plant(_plant(type="Books")) is False
-    assert is_listable_plant(_plant(name="Shipping")) is False
+    assert is_listable_plant(_plant(name="Gift Card")) is False         # phrase
+    assert is_listable_plant(_plant(name="E-Gift Card")) is False        # phrase
+    assert is_listable_plant(_plant(name="Logo Sticker")) is False       # word
+    assert is_listable_plant(_plant(type="Books")) is False              # word (plural)
+    assert is_listable_plant(_plant(name="Flat Rate Shipping")) is False
+    assert is_listable_plant(_plant(name="Ceramic Pottery")) is False
+
+
+def test_is_listable_plant_keeps_real_plants_that_contain_merch_substrings():
+    # word-boundary matching must NOT drop real plant names merely CONTAINING a term
+    assert is_listable_plant(_plant(name="Mugwort", type="Herb")) is True
+    assert is_listable_plant(_plant(name="Hatiora salicornioides", type="Cactus")) is True
+    assert is_listable_plant(_plant(name="Bookleaf Pine", type="Tree")) is True
+
+
+def test_is_listable_plant_drops_negative_price():
+    assert is_listable_plant(_plant(price=-5.0)) is False
 
 
 def test_html_to_text_paragraphs():
