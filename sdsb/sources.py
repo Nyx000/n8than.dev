@@ -13,6 +13,13 @@ SOURCES = [
     {"slug": "sandiegoseed",  "name": "San Diego Seed Company",      "type": "woocommerce", "base": "https://sandiegoseedcompany.com",   "kind": "seed"},
     {"slug": "plantgoodseed", "name": "The Plant Good Seed Company", "type": "shopify",     "base": "https://www.plantgoodseed.com",     "kind": "seed"},
     {"slug": "theodorepayne", "name": "Theodore Payne Foundation",   "type": "shopify",     "base": "https://store.theodorepayne.org", "collection": "seeds-1", "kind": "seed"},
+    {"slug": "ricardos",      "name": "Ricardo's Nursery",          "type": "shopify",     "base": "https://store.ricardosnursery.com",     "kind": "plant"},
+    {"slug": "plantsexpress", "name": "Plants Express",             "type": "shopify",     "base": "https://plantsexpress.com",             "kind": "plant"},
+    {"slug": "neelsnursery",  "name": "Neel's Nursery",             "type": "shopify",     "base": "https://neelsnursery.com",              "kind": "plant"},
+    {"slug": "livelyroot",    "name": "Lively Root",                "type": "shopify",     "base": "https://www.livelyroot.com",            "kind": "plant"},
+    {"slug": "gosucculent",   "name": "Daniel's Specialty Nursery", "type": "woocommerce", "base": "https://gosucculent.com",               "kind": "plant"},
+    {"slug": "wallaceranch",  "name": "Wallace Ranch Dragon Fruit", "type": "shopify",     "base": "https://wallaceranchdragonfruit.com",   "kind": "plant"},
+    {"slug": "planetdesert",  "name": "Planet Desert",              "type": "shopify",     "base": "https://planetdesert.com",              "kind": "plant"},
 ]
 
 VALID_TYPES = {"woocommerce", "shopify"}

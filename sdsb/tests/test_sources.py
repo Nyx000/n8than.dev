@@ -57,3 +57,20 @@ def test_source_name_known_and_fallback():
 def test_source_kind_known_and_fallback():
     assert source_kind("sandiegoseed") == "seed"
     assert source_kind("unknown-slug") == "seed"
+
+
+PLANT_SLUGS = {"ricardos", "plantsexpress", "neelsnursery", "livelyroot",
+               "gosucculent", "wallaceranch", "planetdesert"}
+
+
+def test_seven_plant_sources_present_and_shaped():
+    by_slug = {s["slug"]: s for s in SOURCES}
+    assert PLANT_SLUGS <= set(by_slug)
+    for slug in PLANT_SLUGS:
+        s = by_slug[slug]
+        assert s["kind"] == "plant"
+        assert s["type"] in VALID_TYPES
+        assert s["base"].startswith("https://") and not s["base"].endswith("/")
+    # the verified host gotcha: Ricardo's must use the store. subdomain
+    assert by_slug["ricardos"]["base"] == "https://store.ricardosnursery.com"
+    assert by_slug["gosucculent"]["type"] == "woocommerce"
