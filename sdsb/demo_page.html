@@ -216,7 +216,7 @@
     </div>
   </section>
 
-  <div class="resulthead" id="resulthead" hidden>
+  <div class="resulthead" id="resulthead">
     <div class="kindtabs" role="tablist" aria-label="Result type">
       <button class="kindtab" id="tabSeed" type="button" role="tab" data-kind="seed"
         aria-selected="true" aria-controls="grid">Seeds <span class="kindcount" id="countSeed">—</span></button>
@@ -330,11 +330,10 @@ const KINDS = {
 };
 
 let activeKind = 'seed';                 // sticky across searches this session
-let cacheKey = null;                     // identity of the cached query+filters
-let cache = { seed: null, plant: null }; // rows per kind; null = not loaded
-let inflight = null;
+let results = null;                      // { seed:[...], plant:[...] } from the last search; null = none yet
+let lastQuery = '';                      // query the current results belong to
+let inflight = null;                     // AbortController for the in-flight search
 
-const keyFor   = q => JSON.stringify([q.trim(), $('#rerank').checked, $('#instock').checked]);
 const syncTabs = kind => { for (const k in KINDS) KINDS[k].tab.setAttribute('aria-selected', String(k===kind)); };
 const setCount = (kind, v) => { KINDS[kind].count.textContent = v; };
 const syncURL  = (q, kind) => history.replaceState(null, '', BASE+'?q='+encodeURIComponent(q)+'&kind='+kind);
@@ -343,12 +342,13 @@ function showSkeleton(){
   grid.hidden = false; note.hidden = true; grid.innerHTML = '';
   for (let i=0;i<8;i++){ const d=document.createElement('div'); d.className='skel'; grid.appendChild(d); }
 }
-function renderGrid(rows, q, kind){
+function renderActive(){                                  // paint whichever bucket is active — no network
+  const rows = results ? results[activeKind] : [];
   grid.innerHTML = '';
   if (!rows.length){
     grid.hidden = true; note.hidden = false;
-    const other = kind==='seed' ? 'Plants' : 'Seeds';
-    note.innerHTML = `No ${KINDS[kind].label} match <b>${esc(q)}</b>. `
+    const other = activeKind==='seed' ? 'Plants' : 'Seeds';
+    note.innerHTML = `No ${KINDS[activeKind].label} match <b>${esc(lastQuery)}</b>. `
       + `Try the <b>${other}</b> tab, or describe it differently.`;
     return;
   }
@@ -356,66 +356,64 @@ function renderGrid(rows, q, kind){
   rows.forEach((r,i)=> grid.appendChild(card(r,i)));
 }
 
-async function loadKind(q, kind){
-  if (cache[kind] != null) return cache[kind];          // cache hit — no network
-  if (inflight) inflight.abort();
-  inflight = new AbortController();
-  const params = new URLSearchParams({ q, k:'12', kind,
-    rerank: $('#rerank').checked, in_stock: $('#instock').checked });
-  const res = await fetch(BASE+'search?'+params, {signal:inflight.signal});
-  if (!res.ok) throw new Error('search failed');
-  const data = await res.json();
-  cache[kind] = kind==='plant' ? (data.plants||[]) : (data.seeds||[]);
-  return cache[kind];
+function selectKind(kind){                                // flip the view; both kinds are already in hand
+  activeKind = kind;
+  syncTabs(kind);
+  if (lastQuery) syncURL(lastQuery, kind);
+  if (results) renderActive();                           // instant swap, no fetch
 }
 
-async function show(q, kind){
-  if (!q.trim()) return;
-  activeKind = kind;
-  syncTabs(kind); syncURL(q, kind);
-  resulthead.hidden = false;
-  if (keyFor(q) !== cacheKey){                 // new query or changed filters
-    cache = { seed:null, plant:null }; cacheKey = keyFor(q);
-    setCount('seed','—'); setCount('plant','—');
-  }
-  const cached = cache[kind] != null;
+async function search(q){
+  q = q.trim();
+  if (!q) return;
+  lastQuery = q;
+  syncTabs(activeKind); syncURL(q, activeKind);
+  if (inflight) inflight.abort();
+  inflight = new AbortController();
+  const params = new URLSearchParams({ q, k:'15', kind:'all',
+    rerank: $('#rerank').checked, in_stock: $('#instock').checked });
   try{
     $('#go').disabled = true;
-    if (!cached){ showSkeleton(); rankmeta.textContent = 'Searching…'; }
+    showSkeleton(); rankmeta.textContent = 'Searching…';
+    setCount('seed','—'); setCount('plant','—');
     const t0 = performance.now();
-    const rows = await loadKind(q, kind);
-    if (kind !== activeKind) return;            // a newer click/search superseded this one
-    renderGrid(rows, q, kind);
-    setCount(kind, rows.length);
+    const res = await fetch(BASE+'search?'+params, {signal:inflight.signal});
+    if (!res.ok) throw new Error('search failed');
+    const data = await res.json();
+    results = { seed: data.seeds || [], plant: data.plants || [] };
+    setCount('seed', results.seed.length);
+    setCount('plant', results.plant.length);
+    renderActive();
     rankmeta.textContent = `${$('#rerank').checked ? 'smart-ranked' : 'vector order'} · `
-      + `${cached ? 'cached' : Math.round(performance.now()-t0)+' ms'}`;
+      + `${Math.round(performance.now()-t0)} ms`;
   }catch(e){
     if (e.name === 'AbortError') return;
-    resulthead.hidden = true; grid.hidden = true; note.hidden = false;
+    setCount('seed','—'); setCount('plant','—'); rankmeta.textContent = '';
+    grid.hidden = true; note.hidden = false;
     note.innerHTML = `Something went wrong reaching the catalog. Try again in a moment.`;
   }finally{ $('#go').disabled = false; }
 }
 
 // wire up
-$('#form').addEventListener('submit', e=>{ e.preventDefault(); show($('#q').value, activeKind); });
+$('#form').addEventListener('submit', e=>{ e.preventDefault(); search($('#q').value); });
 const chips = $('#chips');
 EXAMPLES.forEach(x=>{
   const b = document.createElement('button');
   b.type='button'; b.className='chip'; b.textContent=x;
-  b.onclick = ()=>{ $('#q').value = x; show(x, activeKind); };
+  b.onclick = ()=>{ $('#q').value = x; search(x); };
   chips.appendChild(b);
 });
-$('#rerank').addEventListener('change',  ()=>{ if($('#q').value.trim()) show($('#q').value, activeKind); });
-$('#instock').addEventListener('change', ()=>{ if($('#q').value.trim()) show($('#q').value, activeKind); });
+$('#rerank').addEventListener('change',  ()=>{ if($('#q').value.trim()) search($('#q').value); });
+$('#instock').addEventListener('change', ()=>{ if($('#q').value.trim()) search($('#q').value); });
 for (const k in KINDS){
-  KINDS[k].tab.addEventListener('click', ()=>{ if($('#q').value.trim()) show($('#q').value, k); });
+  KINDS[k].tab.addEventListener('click', ()=> selectKind(k));
 }
-$('.kindtabs').addEventListener('keydown', e=>{          // left/right arrows switch tabs
+$('.kindtabs').addEventListener('keydown', e=>{          // left/right arrows switch the view
   if (e.key!=='ArrowLeft' && e.key!=='ArrowRight') return;
   e.preventDefault();
   const next = activeKind==='seed' ? 'plant' : 'seed';
   KINDS[next].tab.focus();
-  if ($('#q').value.trim()) show($('#q').value, next);
+  selectKind(next);
 });
 
 // reveal hero
@@ -426,7 +424,8 @@ requestAnimationFrame(()=> document.querySelectorAll('.hero .reveal').forEach((e
 const sp = new URLSearchParams(location.search);
 const urlQ = sp.get('q'), urlKind = sp.get('kind');
 if (urlKind==='plant' || urlKind==='seed') activeKind = urlKind;
-if (urlQ){ $('#q').value = urlQ; show(urlQ, activeKind); }
+syncTabs(activeKind);                            // toggle reflects the active kind from load
+if (urlQ){ $('#q').value = urlQ; search(urlQ); }
 
 // live counts in the lede + footer
 fetch(BASE+'health').then(r=>r.json()).then(h=>{
