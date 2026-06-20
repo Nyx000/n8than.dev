@@ -27,7 +27,9 @@ import sys
 import time
 import xml.etree.ElementTree as ET
 
-from scrape_common import PER_PAGE, SLEEP_BETWEEN, fetch, html_to_text, to_dollars, is_listable_plant
+from scrape_common import (
+    PER_PAGE, SLEEP_BETWEEN, fetch, html_to_text, to_dollars, is_listable_plant, resolve_kind,
+)
 
 BASE = "https://sandiegoseedcompany.com"
 PRODUCTS_URL = f"{BASE}/wp-json/wc/store/v1/products"
@@ -273,6 +275,8 @@ def scrape_woocommerce(source: dict) -> list[dict]:
     records = [r for r in records if r["name"]]
     if kind == "plant":
         records = [r for r in records if is_listable_plant(r)]
+        for r in records:
+            r["kind"] = resolve_kind(r, "plant")  # seed packs -> kind="seed"
     return records
 
 

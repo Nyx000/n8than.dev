@@ -146,9 +146,27 @@ def to_dollars(minor: str | None, exponent: int) -> float | None:
 # WORD BOUNDARIES so real plant names that merely contain a term survive
 # (e.g. "Mugwort", "Hatiora", "Bookleaf"). "hat" is intentionally omitted —
 # even as a whole word it collides with real names like "Hat Cactus".
-NON_PLANT_PHRASES = ("gift card", "e-gift")
+# "greeting card"/"note card" catch seed-paper stationery; "top dressing"
+# catches pumice/pebble soil supplies — both ride in on plant-nursery feeds.
+NON_PLANT_PHRASES = ("gift card", "e-gift", "greeting card", "note card", "top dressing")
 NON_PLANT_WORDS = frozenset({
     "shipping", "deposit", "sticker", "mug", "tote", "book", "books", "merch", "pottery",
+})
+
+# Seed inventory carried by a plant-kind source is detected two ways:
+#  1. an EXACT product_type match (Shopify stores tag seeds cleanly, e.g. "Seed"
+#     or "Seeds & Seed Kits"). Compared whole — never substring — so an SEO-stuffed
+#     breadcrumb product_type like "...> creeping thyme seeds >..." on a live plant
+#     does not match.
+#  2. the whole word "seed"/"seeds" in the NAME (backstop for loose seed a nursery
+#     mis-typed, e.g. "Foothill Clover Annual 1tsp. Seed"). Word-boundary matching
+#     is the point: "seedless" (grape), "seedling" (young tree), "hopseed"/"dotseed"
+#     (plant names) tokenize to a single word that is NOT "seed"/"seeds", so those
+#     stay correctly classified as live plants.
+SEED_WORDS = frozenset({"seed", "seeds"})
+SEED_TYPES = frozenset({
+    "seed", "seeds", "seed kit", "seed kits", "seeds & seed kits",
+    "seed pack", "seed packs", "seed packet", "seed packets",
 })
 
 
@@ -166,3 +184,28 @@ def is_listable_plant(rec: dict) -> bool:
         return False
     words = set(re.findall(r"[a-z]+", haystack))
     return words.isdisjoint(NON_PLANT_WORDS)
+
+
+def looks_like_seed(rec: dict) -> bool:
+    """True if a record is seed inventory rather than a live plant.
+
+    An exact seed product_type (e.g. "Seeds & Seed Kits", "Seed"), or the whole
+    word "seed"/"seeds" in the name (e.g. "Serrano Hot Pepper Seed Pack", "Chia -
+    Seed"). Run AFTER is_listable_plant so merch that merely mentions seeds (e.g.
+    "Seed Paper Greeting Card") is already dropped.
+    """
+    if (rec.get("type") or "").strip().lower() in SEED_TYPES:
+        return True
+    name_words = set(re.findall(r"[a-z]+", (rec.get("name") or "").lower()))
+    return not name_words.isdisjoint(SEED_WORDS)
+
+
+def resolve_kind(rec: dict, source_kind: str) -> str:
+    """Per-product kind. Defaults to the source's kind, but reclassifies a
+    plant-source product to "seed" when it is actually seed inventory — so a
+    nursery's seed packs land in the Seeds section instead of polluting Plants.
+    Seed-kind sources are returned unchanged (their rows are all seeds already).
+    """
+    if source_kind == "plant" and looks_like_seed(rec):
+        return "seed"
+    return source_kind

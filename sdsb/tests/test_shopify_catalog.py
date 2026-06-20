@@ -199,6 +199,35 @@ def test_scrape_shopify_filters_merch_for_plant_source(monkeypatch):
     assert recs[0]["kind"] == "plant"
 
 
+def test_scrape_shopify_reclassifies_seed_packs_and_drops_card_merch(monkeypatch):
+    import shopify_catalog as m
+    seed_pack = {"id": 10, "title": "Serrano Hot Pepper Seed Pack", "handle": "serrano-pack",
+                 "product_type": "Seeds & Seed Kits",
+                 "variants": [{"title": "1", "price": "6.00", "available": True}]}
+    live_plant = {"id": 11, "title": "Chiltepin Chili Pepper", "handle": "chiltepin",
+                  "product_type": "Fruit and Citrus",
+                  "variants": [{"title": "1 gal", "price": "18.00", "available": True}]}
+    seedless = {"id": 12, "title": "Grape Thompson Seedless", "handle": "thompson",
+                "product_type": "Fruit and Citrus",
+                "variants": [{"title": "1 gal", "price": "30.00", "available": True}]}
+    card = {"id": 13, "title": "Seed Paper Greeting Card", "handle": "card",
+            "product_type": "Accessory",
+            "variants": [{"title": "1", "price": "8.00", "available": True}]}
+
+    def fake_fetch(url, params=None, **kw):
+        prods = [seed_pack, live_plant, seedless, card]
+        return _FakeResp({"products": prods}) if params["page"] == 1 else _FakeResp({"products": []})
+
+    monkeypatch.setattr(m, "fetch", fake_fetch)
+    monkeypatch.setattr(m, "SLEEP_BETWEEN", 0)
+    recs = m.scrape_shopify(PLANT_SRC)
+    by_id = {r["source_id"]: r for r in recs}
+    assert set(by_id) == {10, 11, 12}        # greeting-card merch dropped
+    assert by_id[10]["kind"] == "seed"       # seed pack reclassified out of plants
+    assert by_id[11]["kind"] == "plant"      # real live plant stays
+    assert by_id[12]["kind"] == "plant"      # 'Seedless' grape is a live plant
+
+
 def test_scrape_shopify_does_not_filter_seed_source(monkeypatch):
     import shopify_catalog as m
     cheap = {"id": 3, "title": "Free Seed Sample", "handle": "free",

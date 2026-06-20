@@ -11,7 +11,7 @@ from __future__ import annotations
 import sys
 import time
 
-from scrape_common import SLEEP_BETWEEN, fetch, html_to_text, is_listable_plant
+from scrape_common import SLEEP_BETWEEN, fetch, html_to_text, is_listable_plant, resolve_kind
 
 SHOPIFY_LIMIT = 250   # max page size Shopify allows for products.json
 MAX_PAGES = 50        # infinite-loop backstop (50 * 250 = 12,500 products)
@@ -146,4 +146,6 @@ def scrape_shopify(source: dict) -> list[dict]:
     records = [r for r in records if r["name"]]
     if source.get("kind") == "plant":
         records = [r for r in records if is_listable_plant(r)]
+        for r in records:
+            r["kind"] = resolve_kind(r, "plant")  # seed packs -> kind="seed"
     return records

@@ -86,3 +86,18 @@ def test_scrape_woocommerce_filters_merch_for_plant_source(monkeypatch):
     recs = m.scrape_woocommerce(PLANT_SRC)
     assert [r["source_id"] for r in recs] == [2]      # gift card + $0 dropped
     assert recs[0]["kind"] == "plant"
+
+
+def test_scrape_woocommerce_reclassifies_seed_named_for_plant_source(monkeypatch):
+    import sdseed_catalog as m
+    seed = dict(SAMPLE, id=10, name="California Wildflower Mix - Seed",
+                prices={"price": "500", "regular_price": "500", "sale_price": "",
+                        "currency_minor_unit": 2, "currency_symbol": "$"})
+    plant = dict(SAMPLE, id=11, name="Echeveria subsessilis",
+                 prices={"price": "400", "regular_price": "400", "sale_price": "",
+                         "currency_minor_unit": 2, "currency_symbol": "$"})
+    monkeypatch.setattr(m, "probe", lambda url: True)
+    monkeypatch.setattr(m, "fetch_all_products", lambda url: [seed, plant])
+    recs = m.scrape_woocommerce(PLANT_SRC)
+    by_id = {r["source_id"]: r["kind"] for r in recs}
+    assert by_id == {10: "seed", 11: "plant"}         # 'Seed' in name -> seed inventory
