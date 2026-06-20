@@ -30,11 +30,13 @@ from fastapi.responses import HTMLResponse, JSONResponse
 import sdseed_common as c
 from load_pgvector import vec_literal
 from sources import source_name
+from search_sections import partition_sections
 
 c.load_env()
 app = FastAPI(title="SeedSearch — Semantic Catalog Search")
 
 RECALL = 50  # vector candidates pulled before reranking
+RECALL_PER_KIND = 25  # vector candidates pulled per kind before reranking
 _conn = None
 
 # --- Generous in-memory rate limiting on /search (it calls Voyage = costs money).
@@ -107,32 +109,20 @@ def health():
             "embed_model": c.EMBED_MODEL, "rerank_model": c.RERANK_MODEL}
 
 
-@app.get("/search")
-def search(
-    request: Request,
-    q: str = Query(..., min_length=1, description="natural-language query"),
-    k: int = Query(8, ge=1, le=25),
-    in_stock: bool = Query(False),
-    category: str | None = Query(None),
-    rerank: bool = Query(True),
-):
-    _rate_limit(request)
-    conn = _get_conn()
-    qvec = vec_literal(c.embed_query(q))
-
-    where = ["status='active'"]
-    params: list = [qvec]
+def _recall(conn, qvec, kind: str, in_stock: bool, category: str | None, limit: int) -> list[dict]:
+    """Nearest `limit` active rows of one kind by cosine distance."""
+    where = ["status='active'", "kind=%s"]
+    params: list = [qvec, kind]
     if in_stock:
         where.append("is_in_stock=true")
     if category:
         where.append("%s = ANY(categories)")
         params.append(category)
     params.append(qvec)
-    params.append(RECALL if rerank else k)
-
+    params.append(limit)
     sql = f"""
         SELECT source, source_id, name, primary_category, categories, price, regular_price,
-               sale_price, on_sale, is_in_stock, permalink, image, short_description,
+               sale_price, on_sale, is_in_stock, permalink, image, short_description, kind,
                1 - (embedding <=> %s::vector) AS vec_score
         FROM sdseed_products
         WHERE {' AND '.join(where)}
@@ -142,30 +132,53 @@ def search(
     with conn.cursor() as cur:
         cur.execute(sql, params)
         cols = [d.name for d in cur.description]
-        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        return [dict(zip(cols, r)) for r in cur.fetchall()]
 
-    if rerank and rows:
-        docs = [f"{r['name']}. {r['short_description'] or ''}" for r in rows]
-        ranked = c.rerank(q, docs, top_k=k)
-        out = []
+
+@app.get("/search")
+def search(
+    request: Request,
+    q: str = Query(..., min_length=1, description="natural-language query"),
+    k: int = Query(8, ge=1, le=25),
+    in_stock: bool = Query(False),
+    category: str | None = Query(None),
+    rerank: bool = Query(True),
+    kind: str = Query("all"),
+):
+    _rate_limit(request)
+    conn = _get_conn()
+    qvec = vec_literal(c.embed_query(q))
+
+    kinds = ["plant", "seed"] if kind == "all" else [kind]
+    per_kind = RECALL_PER_KIND if rerank else k
+    candidates: list = []
+    for kd in kinds:
+        candidates.extend(_recall(conn, qvec, kd, in_stock, category, per_kind))
+
+    if rerank and candidates:
+        docs = [f"{r['name']}. {r['short_description'] or ''}" for r in candidates]
+        ranked = c.rerank(q, docs, top_k=len(candidates))
+        ordered = []
         for idx, score in ranked:
-            r = rows[idx]
+            r = candidates[idx]
             r["rerank_score"] = round(float(score), 4)
-            out.append(r)
-        rows = out
-    else:
-        rows = rows[:k]
+            ordered.append(r)
+        candidates = ordered
 
-    for r in rows:
-        r["price"] = _money(r["price"])
-        r["regular_price"] = _money(r["regular_price"])
-        r["sale_price"] = _money(r["sale_price"])
-        r["vec_score"] = round(float(r["vec_score"]), 4)
-        r["source_name"] = source_name(r["source"])
-        sd = r.get("short_description") or ""
-        r["short_description"] = (sd[:280] + "…") if len(sd) > 280 else sd
+    sections = partition_sections(candidates, k)
+    for bucket in sections.values():
+        for r in bucket:
+            r["price"] = _money(r["price"])
+            r["regular_price"] = _money(r["regular_price"])
+            r["sale_price"] = _money(r["sale_price"])
+            r["vec_score"] = round(float(r["vec_score"]), 4)
+            r["source_name"] = source_name(r["source"])
+            sd = r.get("short_description") or ""
+            r["short_description"] = (sd[:280] + "…") if len(sd) > 280 else sd
 
-    return {"query": q, "count": len(rows), "reranked": rerank, "results": rows}
+    return {"query": q, "reranked": rerank,
+            "counts": {"plants": len(sections["plant"]), "seeds": len(sections["seed"])},
+            "plants": sections["plant"], "seeds": sections["seed"]}
 
 
 @app.get("/product/{source}/{source_id}")
