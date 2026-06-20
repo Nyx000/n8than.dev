@@ -140,3 +140,22 @@ def to_dollars(minor: str | None, exponent: int) -> float | None:
         return int(minor) / (10 ** exponent)
     except (ValueError, TypeError):
         return None
+
+
+# Terms that mark a nursery-catalog row as non-plant merch/services.
+NON_PLANT_TERMS = (
+    "gift card", "e-gift", "shipping", "deposit",
+    "sticker", "mug", "hat", "tote", "book", "merch", "pottery",
+)
+
+
+def is_listable_plant(rec: dict) -> bool:
+    """True if a record is a priced, real live plant (not merch/services/$0).
+
+    Applied ONLY to plant-kind sources, whose catalogs mix in gift cards,
+    shipping placeholders, and $0 browse-only/wholesale rows.
+    """
+    if (rec.get("price") or 0) <= 0:
+        return False
+    haystack = f"{rec.get('name') or ''} {rec.get('type') or ''}".lower()
+    return not any(term in haystack for term in NON_PLANT_TERMS)

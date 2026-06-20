@@ -1,4 +1,26 @@
-from scrape_common import html_to_text, to_dollars
+from scrape_common import html_to_text, to_dollars, is_listable_plant
+
+
+def _plant(**over):
+    base = {"name": "Passion Fruit Vine", "type": "Vines", "price": 24.0}
+    base.update(over)
+    return base
+
+
+def test_is_listable_plant_keeps_priced_plant():
+    assert is_listable_plant(_plant()) is True
+
+
+def test_is_listable_plant_drops_zero_and_none_price():
+    assert is_listable_plant(_plant(price=0)) is False
+    assert is_listable_plant(_plant(price=None)) is False
+
+
+def test_is_listable_plant_drops_merch_by_name_or_type():
+    assert is_listable_plant(_plant(name="Gift Card")) is False
+    assert is_listable_plant(_plant(name="Logo Sticker")) is False
+    assert is_listable_plant(_plant(type="Books")) is False
+    assert is_listable_plant(_plant(name="Shipping")) is False
 
 
 def test_html_to_text_paragraphs():
