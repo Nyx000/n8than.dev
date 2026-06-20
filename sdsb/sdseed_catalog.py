@@ -27,7 +27,7 @@ import sys
 import time
 import xml.etree.ElementTree as ET
 
-from scrape_common import PER_PAGE, SLEEP_BETWEEN, fetch, html_to_text, to_dollars
+from scrape_common import PER_PAGE, SLEEP_BETWEEN, fetch, html_to_text, to_dollars, is_listable_plant
 
 BASE = "https://sandiegoseedcompany.com"
 PRODUCTS_URL = f"{BASE}/wp-json/wc/store/v1/products"
@@ -208,7 +208,7 @@ def _iter_jsonld_nodes(data):
 # --------------------------------------------------------------------------- #
 # Normalization
 # --------------------------------------------------------------------------- #
-def normalize(product: dict, source_slug: str = "sandiegoseed") -> dict:
+def normalize(product: dict, source_slug: str = "sandiegoseed", kind: str = "seed") -> dict:
     prices = product.get("prices") or {}
     exp = prices.get("currency_minor_unit", 2)
     symbol = prices.get("currency_symbol", "$")
@@ -242,6 +242,7 @@ def normalize(product: dict, source_slug: str = "sandiegoseed") -> dict:
         "name": html.unescape((product.get("name") or "").strip()),
         "sku": product.get("sku") or "",
         "type": product.get("type", ""),
+        "kind": kind,
         "categories": cats,
         "price": to_dollars(prices.get("price"), exp),
         "regular_price": to_dollars(prices.get("regular_price"), exp),
@@ -267,8 +268,12 @@ def scrape_woocommerce(source: dict) -> list[dict]:
         raw = fetch_all_products(products_url)
     else:
         raw = fetch_via_sitemap(sitemap_url)
-    records = [normalize(p, source["slug"]) for p in raw]
-    return [r for r in records if r["name"]]
+    kind = source.get("kind", "seed")
+    records = [normalize(p, source["slug"], kind) for p in raw]
+    records = [r for r in records if r["name"]]
+    if kind == "plant":
+        records = [r for r in records if is_listable_plant(r)]
+    return records
 
 
 # --------------------------------------------------------------------------- #
