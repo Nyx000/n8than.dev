@@ -35,7 +35,6 @@ from search_sections import partition_sections
 c.load_env()
 app = FastAPI(title="SeedSearch — Semantic Catalog Search")
 
-RECALL = 50  # vector candidates pulled before reranking
 RECALL_PER_KIND = 25  # vector candidates pulled per kind before reranking
 _conn = None
 
