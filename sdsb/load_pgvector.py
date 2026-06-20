@@ -69,20 +69,20 @@ def batched(items: list, size: int, char_cap: int):
 
 UPSERT_SQL = """
 INSERT INTO sdseed_products (
-    source, source_id, name, sku, type, categories, primary_category,
+    source, source_id, name, sku, type, kind, categories, primary_category,
     price, regular_price, sale_price, on_sale, is_in_stock,
     permalink, image, attributes, variations,
     short_description, description, embed_text, embedding,
     content_hash, status, updated_at
 ) VALUES (
-    %(source)s, %(source_id)s, %(name)s, %(sku)s, %(type)s, %(categories)s, %(primary_category)s,
+    %(source)s, %(source_id)s, %(name)s, %(sku)s, %(type)s, %(kind)s, %(categories)s, %(primary_category)s,
     %(price)s, %(regular_price)s, %(sale_price)s, %(on_sale)s, %(is_in_stock)s,
     %(permalink)s, %(image)s, %(attributes)s, %(variations)s,
     %(short_description)s, %(description)s, %(embed_text)s, %(embedding)s::vector,
     %(content_hash)s, 'active', now()
 )
 ON CONFLICT (source, source_id) DO UPDATE SET
-    name=EXCLUDED.name, sku=EXCLUDED.sku, type=EXCLUDED.type,
+    name=EXCLUDED.name, sku=EXCLUDED.sku, type=EXCLUDED.type, kind=EXCLUDED.kind,
     categories=EXCLUDED.categories, primary_category=EXCLUDED.primary_category,
     price=EXCLUDED.price, regular_price=EXCLUDED.regular_price,
     sale_price=EXCLUDED.sale_price, on_sale=EXCLUDED.on_sale,
@@ -98,7 +98,7 @@ ON CONFLICT (source, source_id) DO UPDATE SET
 # (price/stock/links/etc.) WITHOUT re-embedding.
 META_UPDATE_SQL = """
 UPDATE sdseed_products SET
-    name=%(name)s, sku=%(sku)s, type=%(type)s,
+    name=%(name)s, sku=%(sku)s, type=%(type)s, kind=%(kind)s,
     categories=%(categories)s, primary_category=%(primary_category)s,
     price=%(price)s, regular_price=%(regular_price)s, sale_price=%(sale_price)s,
     on_sale=%(on_sale)s, is_in_stock=%(is_in_stock)s, permalink=%(permalink)s,
@@ -120,6 +120,7 @@ def upsert_params(item: dict, vec: list[float]) -> dict:
         "name": item["name"],
         "sku": item["sku"],
         "type": item["type"],
+        "kind": item.get("kind", "seed"),
         "categories": item["categories"],
         "primary_category": primary_category(item),
         "price": item["price"],

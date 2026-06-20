@@ -4,7 +4,7 @@ from load_pgvector import (
 
 REC = {
     "source": "seedsnow", "source_id": 999, "name": "Detroit Dark Red Beet",
-    "sku": "BEET-DDR", "type": "Vegetables",
+    "sku": "BEET-DDR", "type": "Vegetables", "kind": "seed",
     "categories": ["Vegetables", "Beets"],
     "price": 2.99, "regular_price": 2.99, "sale_price": None,
     "currency_symbol": "$", "on_sale": False, "is_in_stock": True,
@@ -71,3 +71,15 @@ def test_loadable_records_keeps_only_named_int_ids():
         {"name": "D", "source_id": 999},
     ]
     assert [r["source_id"] for r in loadable_records(recs)] == [1, 999]
+
+
+def test_upsert_params_includes_kind():
+    p = upsert_params(_prepared(), [0.1] * 1024)
+    assert p["kind"] == "seed"
+
+
+def test_kind_not_in_embed_text_so_no_reembed():
+    # Adding kind to a record must NOT change the embedded text or its hash.
+    seed_rec = dict(REC)
+    plant_rec = dict(REC, kind="plant")
+    assert build_embed_text(seed_rec) == build_embed_text(plant_rec)
