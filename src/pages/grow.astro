@@ -24,6 +24,17 @@ const probes = [
       <span id="grow-updated"></span>
     </p>
 
+    <article class="card cam-card">
+      <header class="card-head">
+        <h2 class="probe-name">TENT CAMERA</h2>
+        <span class="probe-note">live view — capped to a few concurrent viewers</span>
+      </header>
+      <div class="cam-frame">
+        <img id="grow-cam" class="cam-img" alt="live tent camera" />
+        <div id="grow-cam-offline" class="cam-overlay" hidden>camera offline · retrying…</div>
+      </div>
+    </article>
+
     <div class="grid stagger">
       {
         probes.map((p) => (
@@ -280,6 +291,44 @@ const probes = [
     font-size: 0.85rem;
     color: var(--color-muted);
   }
+
+  .cam-card {
+    margin-bottom: var(--space-lg);
+  }
+
+  .cam-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    margin-top: var(--space-md);
+    background: #0b0b0b;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .cam-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  .cam-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  .cam-overlay[hidden] {
+    display: none;
+  }
 </style>
 
 <script>
@@ -418,11 +467,34 @@ const probes = [
     timer = window.setInterval(tick, POLL_MS);
   }
 
+  // Live MJPEG camera. The stream never "ends", so 'load' fires on the first frame (hide the
+  // overlay) and 'error' fires if it's offline or at the viewer cap (show overlay, retry with a
+  // cache-busting param). src is set AFTER the listeners attach so the first event can't be missed.
+  let camRetry: number | undefined;
+  function setupCam() {
+    const cam = document.getElementById('grow-cam') as HTMLImageElement | null;
+    const overlay = document.getElementById('grow-cam-offline');
+    if (!cam || !overlay) return;
+    cam.addEventListener('load', () => {
+      overlay.hidden = true;
+    });
+    cam.addEventListener('error', () => {
+      overlay.hidden = false;
+      if (camRetry != null) clearTimeout(camRetry);
+      camRetry = window.setTimeout(() => {
+        cam.src = `/api/grow/cam/stream?t=${Date.now()}`;
+      }, 5000);
+    });
+    cam.src = '/api/grow/cam/stream';
+  }
+
   // ClientRouter is active: init on every page load, stop when leaving /grow or
   // when the tab is hidden.
   document.addEventListener('astro:page-load', () => {
-    if (document.getElementById('grow-root')) start();
-    else stop();
+    if (document.getElementById('grow-root')) {
+      start();
+      setupCam();
+    } else stop();
   });
 
   document.addEventListener('visibilitychange', () => {

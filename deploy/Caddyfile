@@ -1,13 +1,28 @@
 n8than.dev {
 	encode gzip
 
+	# Live climate slice — proxied from the Pi's own web over Tailscale (the Pi holds the live
+	# local DB since the BLE cutover; the box's local Postgres is stale).
 	handle /api/grow/live {
 		rewrite * /api/public/live
-		reverse_proxy 127.0.0.1:3001
+		reverse_proxy https://growtent.taile16d94.ts.net {
+			header_up Host growtent.taile16d94.ts.net
+		}
 		header {
 			-Server
 			Cache-Control "public, max-age=5"
 		}
+	}
+
+	# Live tent camera (MJPEG) — same Pi web over Tailscale; concurrency-capped at the Pi.
+	# flush_interval -1 disables response buffering so the multipart stream flows frame-by-frame.
+	handle /api/grow/cam/stream {
+		rewrite * /api/public/cam/stream
+		reverse_proxy https://growtent.taile16d94.ts.net {
+			header_up Host growtent.taile16d94.ts.net
+			flush_interval -1
+		}
+		header -Server
 	}
 
 	# SeedSearch semantic search demo (API + page) -> sdseed-search service
