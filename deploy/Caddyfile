@@ -1,5 +1,7 @@
 n8than.dev {
 	encode gzip
+	# security_headers snippet is defined in the box's main /etc/caddy/Caddyfile
+	import security_headers
 
 	# Live climate slice — proxied from the Pi's own web over Tailscale (the Pi holds the live
 	# local DB since the BLE cutover; the box's local Postgres is stale).
@@ -51,4 +53,11 @@ n8than.dev {
 		@assets path_regexp \.(js|css|jpg|jpeg|png|gif|svg|ico|woff2?|ttf|otf|webp|avif)$
 		header @assets Cache-Control "public, max-age=31536000, immutable"
 	}
+}
+
+# www -> apex redirect (also lets Caddy issue a cert for www, so HSTS includeSubDomains is safe).
+# The security_headers snippet is defined in the box's main /etc/caddy/Caddyfile.
+www.n8than.dev {
+	import security_headers
+	redir https://n8than.dev{uri} permanent
 }

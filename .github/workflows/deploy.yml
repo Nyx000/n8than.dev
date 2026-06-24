@@ -1,7 +1,8 @@
 name: Deploy to Hetzner
 
 on:
-  # NOTE: push trigger temporarily paused during SSH recovery — restored in follow-up commit.
+  push:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -13,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.2.2
+        uses: appleboy/ssh-action@2ead5e36573f08b82fbfce1504f1a4b05a647c6f # v1.2.2
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
