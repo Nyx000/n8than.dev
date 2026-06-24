@@ -2,6 +2,9 @@ n8than.dev {
 	encode gzip
 	# security_headers snippet is defined in the box's main /etc/caddy/Caddyfile
 	import security_headers
+	# CSP in report-only first (n8than.dev only). img-src allows https: for SeedSearch product CDNs.
+	# 'unsafe-inline' is required: Astro + the SeedSearch demo both ship inline scripts/styles.
+	header Content-Security-Policy-Report-Only "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self'"
 
 	# Live climate slice — proxied from the Pi's own web over Tailscale (the Pi holds the live
 	# local DB since the BLE cutover; the box's local Postgres is stale).
