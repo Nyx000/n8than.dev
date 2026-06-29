@@ -2,9 +2,9 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 const probes = [
-  { id: 'canopy', label: 'CANOPY', note: 'at the plant tops — drives VPD', spark: true },
-  { id: 'lower', label: 'LOWER TENT', note: 'under the canopy — gradient sentinel', spark: true },
-  { id: 'room', label: 'INTAKE AIR', note: 'ambient air feeding the tent', spark: true },
+  { id: 'canopy', label: 'CANOPY', note: 'at the plant tops — drives VPD' },
+  { id: 'lower', label: 'LOWER TENT', note: 'under the canopy — gradient sentinel' },
+  { id: 'room', label: 'INTAKE AIR', note: 'ambient air feeding the tent' },
 ];
 
 // The four readouts per card. `key` selects the contextual definition; `aria` names the
@@ -58,41 +58,11 @@ const defs: Record<string, Record<string, string>> = {
       <span id="grow-updated"></span>
     </p>
 
-    <article class="card cam-card">
-      <header class="card-head">
-        <h2 class="probe-name">TENT CAMERA</h2>
-      </header>
-      <div class="cam-frame">
-        <img id="grow-cam" class="cam-img" alt="live tent camera" />
-        <div id="grow-cam-offline" class="cam-overlay" hidden>camera offline · retrying…</div>
-        <button
-          id="grow-cam-fs"
-          class="cam-fs-btn"
-          type="button"
-          aria-label="Fullscreen camera"
-          title="Fullscreen"
-        >
-          <svg class="fs-enter" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              fill="currentColor"
-              d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"
-            ></path>
-          </svg>
-          <svg class="fs-exit" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              fill="currentColor"
-              d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"
-            ></path>
-          </svg>
-        </button>
-      </div>
-    </article>
-
-    <div class="grid stagger">
+    <div class="cluster stagger">
       {
         probes.map((p) => (
-          <article class="card" data-probe={p.id}>
-            <header class="card-head">
+          <article class="zone" data-probe={p.id}>
+            <header class="zone-head">
               <h2 class="probe-name">{p.label}</h2>
               <span class="probe-note">{p.note}</span>
             </header>
@@ -122,26 +92,40 @@ const defs: Record<string, Record<string, string>> = {
                 </div>
               ))}
             </div>
-            {p.spark && (
-              <>
-                <svg
-                  class="spark"
-                  viewBox="0 0 100 28"
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                >
-                  <path class="spark-temp" d="" />
-                  <path class="spark-rh" d="" />
-                </svg>
-                <p class="spark-caption">
-                  <span class="k k-temp">temp</span> · <span class="k k-rh">RH</span> — last 30 min
-                </p>
-              </>
-            )}
           </article>
         ))
       }
     </div>
+
+    <article class="card cam-card">
+      <header class="card-head">
+        <h2 class="probe-name">TENT CAMERA</h2>
+      </header>
+      <div class="cam-frame">
+        <img id="grow-cam" class="cam-img" alt="live tent camera" />
+        <div id="grow-cam-offline" class="cam-overlay" hidden>camera offline · retrying…</div>
+        <button
+          id="grow-cam-fs"
+          class="cam-fs-btn"
+          type="button"
+          aria-label="Fullscreen camera"
+          title="Fullscreen"
+        >
+          <svg class="fs-enter" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"
+            ></path>
+          </svg>
+          <svg class="fs-exit" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"
+            ></path>
+          </svg>
+        </button>
+      </div>
+    </article>
   </section>
 </BaseLayout>
 
@@ -220,15 +204,48 @@ const defs: Record<string, Record<string, string>> = {
     font-size: 0.8rem;
   }
 
-  .grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--space-lg);
+  /* The instrument cluster. On phones the three zones read as ONE panel — a single
+     bordered console with hairline dividers, no inter-card gaps, no graphs — so the
+     whole readout sits compact above the camera. At 720px the panel dissolves and each
+     zone becomes its own card in a 3-up row. */
+  .cluster {
+    margin-bottom: var(--space-lg);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+  }
+
+  .zone {
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  .zone + .zone {
+    border-top: 1px solid var(--color-border);
   }
 
   @media (min-width: 720px) {
-    .grid {
+    .cluster {
+      display: grid;
       grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-lg);
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+    }
+
+    .zone {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      transition: border-color 0.25s ease;
+    }
+
+    .zone + .zone {
+      border-top: 1px solid var(--color-border);
+    }
+
+    .zone:hover {
+      border-color: var(--color-accent);
     }
   }
 
@@ -244,7 +261,8 @@ const defs: Record<string, Record<string, string>> = {
     border-color: var(--color-accent);
   }
 
-  .card-head {
+  .card-head,
+  .zone-head {
     margin-bottom: var(--space-md);
   }
 
@@ -377,39 +395,6 @@ const defs: Record<string, Record<string, string>> = {
     color: var(--color-muted);
   }
 
-  .spark {
-    width: 100%;
-    height: 56px;
-    margin-top: var(--space-md);
-    display: block;
-  }
-
-  .spark path {
-    fill: none;
-    stroke-width: 1.2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    vector-effect: non-scaling-stroke;
-  }
-
-  .spark-temp {
-    stroke: var(--color-accent);
-  }
-
-  .spark-rh {
-    stroke: var(--color-muted);
-  }
-
-  .spark-caption {
-    font-size: 0.7rem;
-    color: var(--color-muted);
-    margin: var(--space-sm) 0 0;
-  }
-
-  .k-temp {
-    color: var(--color-accent);
-  }
-
   .cam-card {
     margin-bottom: var(--space-lg);
   }
@@ -540,6 +525,94 @@ const defs: Record<string, Record<string, string>> = {
     aspect-ratio: auto;
     border-radius: 0;
   }
+
+  /* Phone: the whole page is one viewport with the camera as the hero. Each zone collapses
+     from a 2×2 card into a single tight row — the label on the left, its four readings inline
+     — so all three zones stack into a short strip. The intro prose, per-zone notes, and the
+     "?" tooltips are desktop-only here; the readings speak for themselves and every saved pixel
+     goes to the video. The camera then flexes to claim the rest of the screen. */
+  @media (max-width: 719px) {
+    #grow-root {
+      display: flex;
+      flex-direction: column;
+      /* Subtract the header + footer so the section ≈ the remaining screen, no long scroll. */
+      min-height: calc(100dvh - 11rem);
+      padding-top: var(--space-md);
+      padding-bottom: var(--space-md);
+    }
+
+    .section-heading {
+      font-size: 1.5rem;
+      margin-bottom: var(--space-sm);
+      padding-bottom: var(--space-sm);
+    }
+
+    .intro {
+      display: none;
+    }
+
+    .cluster {
+      margin-bottom: var(--space-md);
+    }
+
+    /* name | four readings, on one line */
+    .zone {
+      display: grid;
+      grid-template-columns: 4.25rem 1fr;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-sm) var(--space-md);
+    }
+
+    .zone-head {
+      margin-bottom: 0;
+    }
+
+    .probe-note {
+      display: none;
+    }
+
+    .probe-name {
+      font-size: 0.72rem;
+      line-height: 1.15;
+    }
+
+    .readout {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0 var(--space-sm);
+    }
+
+    .value {
+      font-size: 0.95rem;
+    }
+
+    .unit {
+      font-size: 0.6rem;
+    }
+
+    .label {
+      font-size: 0.5rem;
+    }
+
+    /* Tooltips are a desktop affordance; on a phone they'd be untappably small and steal room. */
+    .tip {
+      display: none;
+    }
+
+    /* Camera eats the rest of the column — the plant is the hero. */
+    .cam-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 0;
+    }
+
+    .cam-frame {
+      flex: 1;
+      min-height: 180px;
+      aspect-ratio: auto;
+    }
+  }
 </style>
 
 <script>
@@ -549,17 +622,10 @@ const defs: Record<string, Record<string, string>> = {
     vpdKpa: number | null;
     dewF: number | null;
   }
-  interface SparkPoint {
-    t: number;
-    tempF: number | null;
-    rh: number | null;
-    vpd: number | null;
-  }
   interface PublicLive {
     ts: number | null;
     freshness: 'live' | 'stale' | 'none';
     sensors: Record<'canopy' | 'lower' | 'room', PublicSensor | null>;
-    spark: Record<'canopy' | 'lower' | 'room', SparkPoint[]>;
   }
 
   // 5s matches the API's max-age=5 cache; the sensor cadence is slower (~1/min), so this
@@ -593,64 +659,6 @@ const defs: Record<string, Record<string, string>> = {
     }
   }
 
-  // One smooth path per series, each normalized to its own min..max (with a little
-  // headroom) so shape is visible regardless of absolute scale. The line is a Catmull-Rom
-  // spline so sparse/jagged probes (lower, room — intermittent BLE cadence) read as a
-  // trend curve instead of zig-zags. It still passes through every real reading: the
-  // smoothing only shapes the segments between points, it never invents data in the gaps.
-  function splinePath(pts: SparkPoint[], pick: (p: SparkPoint) => number | null): string {
-    const xs = pts.map(pick);
-    const valid = xs.filter((v): v is number => v != null);
-    if (valid.length < 2 || pts.length < 2) return '';
-    const lo = Math.min(...valid);
-    const hi = Math.max(...valid);
-    const pad = Math.max((hi - lo) * 0.15, 0.1);
-    const t0 = pts[0].t;
-    const t1 = pts[pts.length - 1].t;
-    const span = Math.max(t1 - t0, 1);
-    const pxy = pts
-      .map((p, i) => {
-        const v = xs[i];
-        if (v == null) return null;
-        return {
-          x: ((p.t - t0) / span) * 100,
-          y: 28 - ((v - (lo - pad)) / (hi - lo + 2 * pad)) * 28,
-        };
-      })
-      .filter((q): q is { x: number; y: number } => q != null);
-    if (pxy.length < 2) return '';
-    // Catmull-Rom → cubic Bézier control points; clamp control-y into [0,28] so the curve
-    // can't overshoot the viewBox and get clipped at the peaks.
-    const clampY = (y: number) => Math.max(0, Math.min(28, y));
-    const f = (n: number) => n.toFixed(2);
-    let d = `M ${f(pxy[0].x)},${f(pxy[0].y)}`;
-    for (let i = 0; i < pxy.length - 1; i++) {
-      const p0 = pxy[i - 1] ?? pxy[i];
-      const p1 = pxy[i];
-      const p2 = pxy[i + 1];
-      const p3 = pxy[i + 2] ?? pxy[i + 1];
-      const c1x = p1.x + (p2.x - p0.x) / 6;
-      const c1y = clampY(p1.y + (p2.y - p0.y) / 6);
-      const c2x = p2.x - (p3.x - p1.x) / 6;
-      const c2y = clampY(p2.y - (p3.y - p1.y) / 6);
-      d += ` C ${f(c1x)},${f(c1y)} ${f(c2x)},${f(c2y)} ${f(p2.x)},${f(p2.y)}`;
-    }
-    return d;
-  }
-
-  function renderSpark(id: 'canopy' | 'lower' | 'room', pts: SparkPoint[]) {
-    const svg = document.querySelector(`[data-probe="${id}"] svg.spark`);
-    if (!svg) return;
-    svg.querySelector('.spark-temp')?.setAttribute(
-      'd',
-      splinePath(pts, (p) => p.tempF),
-    );
-    svg.querySelector('.spark-rh')?.setAttribute(
-      'd',
-      splinePath(pts, (p) => p.rh),
-    );
-  }
-
   function renderUpdated() {
     const el = document.getElementById('grow-updated');
     if (!el) return;
@@ -674,9 +682,6 @@ const defs: Record<string, Record<string, string>> = {
       renderProbe('canopy', d.sensors.canopy);
       renderProbe('lower', d.sensors.lower);
       renderProbe('room', d.sensors.room);
-      renderSpark('canopy', d.spark.canopy);
-      renderSpark('lower', d.spark.lower);
-      renderSpark('room', d.spark.room);
       root.classList.remove('offline');
       if (d.freshness === 'live') setPill('live', 'LIVE');
       else if (d.freshness === 'stale') setPill('stale', 'STALE');
