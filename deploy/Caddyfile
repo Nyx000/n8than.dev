@@ -24,6 +24,10 @@ n8than.dev {
 		rewrite * /api/public/shoutbox
 		reverse_proxy https://growtent.taile16d94.ts.net {
 			header_up Host growtent.taile16d94.ts.net
+			# Overwrite (not append) X-Forwarded-For with the real client so the
+			# backend's per-IP rate-limit + daily cap can't be spoofed by a
+			# client-supplied X-Forwarded-For header.
+			header_up X-Forwarded-For {remote_host}
 		}
 		header {
 			-Server

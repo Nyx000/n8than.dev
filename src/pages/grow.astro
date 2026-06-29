@@ -1320,21 +1320,41 @@ const defs: Record<string, Record<string, string>> = {
     // Bottom-anchored like IRC: keep the newest line in view unless the reader has
     // scrolled up into history.
     const pinned = isNearBottom(log);
-    const prevScroll = log.scrollTop;
-    log.setAttribute('aria-busy', 'true'); // batch the polite announcement to one event
-    log.textContent = '';
+
     if (!items.length) {
+      chatterSeen = new Set();
+      log.textContent = '';
       const li = document.createElement('li');
       li.className = 'chatter-sys chatter-cursor';
       li.textContent = '*** channel quiet — say something ';
       log.append(li);
-    } else {
-      chatterSeen = new Set(items.map((i) => i.id));
-      // API returns newest-first; render oldest→newest so the latest lands at the bottom.
-      for (let i = items.length - 1; i >= 0; i--) log.append(shoutLine(items[i]));
+      return;
     }
-    log.setAttribute('aria-busy', 'false');
-    log.scrollTop = pinned ? log.scrollHeight : prevScroll;
+
+    // Incremental update: append only genuinely-new shouts (and drop any that were
+    // moderated away or fell out of the newest-50 window) instead of clearing and
+    // rebuilding. This way role="log" announces just the new lines to screen readers,
+    // not the whole channel on every 25s poll. Timestamps are absolute (HH:MM), so
+    // existing rows never need re-rendering.
+    log.querySelector('.chatter-sys')?.remove();
+    const incoming = new Set(items.map((i) => i.id));
+    log.querySelectorAll<HTMLLIElement>('.chatter-line').forEach((el) => {
+      const id = Number(el.dataset.id);
+      if (!incoming.has(id)) {
+        el.remove();
+        chatterSeen.delete(id);
+      }
+    });
+    // items are newest-first; walk oldest→newest so new lines append at the bottom in order.
+    for (let i = items.length - 1; i >= 0; i--) {
+      const sh = items[i];
+      if (!chatterSeen.has(sh.id)) {
+        log.append(shoutLine(sh, true));
+        chatterSeen.add(sh.id);
+      }
+    }
+
+    if (pinned) log.scrollTop = log.scrollHeight;
   }
 
   async function loadChatter() {
@@ -1375,7 +1395,7 @@ const defs: Record<string, Record<string, string>> = {
       if (count) {
         count.textContent = String(remaining);
         count.classList.toggle('is-warn', remaining <= 40 && remaining > 0);
-        count.classList.toggle('is-over', remaining <= 0);
+        count.classList.toggle('is-over', remaining < 0);
       }
     };
     body.addEventListener('input', updateCount);
