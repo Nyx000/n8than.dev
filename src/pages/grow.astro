@@ -130,6 +130,57 @@ const defs: Record<string, Record<string, string>> = {
         </button>
       </div>
     </article>
+
+    <article class="card chatter-card" id="grow-chatter">
+      <header class="card-head chatter-head">
+        <h2 class="probe-name">TENT CHATTER</h2>
+        <span class="probe-note" id="chatter-count-note">anonymous · open channel</span>
+      </header>
+      <ol
+        class="chatter-log"
+        id="chatter-log"
+        role="log"
+        aria-live="polite"
+        aria-label="recent shouts"
+        aria-busy="false"
+      >
+        <li class="chatter-empty">// opening channel…</li>
+      </ol>
+      <form class="chatter-form" id="chatter-form" autocomplete="off">
+        <textarea
+          id="chatter-body"
+          class="chatter-input"
+          name="body"
+          rows="2"
+          maxlength="280"
+          placeholder="leave a shout…"
+          required
+          aria-label="your shout"></textarea>
+        <div class="chatter-meta">
+          <input
+            id="chatter-name"
+            class="chatter-name"
+            name="name"
+            type="text"
+            maxlength="32"
+            placeholder="anon"
+            aria-label="name (optional)"
+          />
+          <input
+            id="chatter-hp"
+            class="chatter-hp"
+            name="website"
+            type="text"
+            tabindex="-1"
+            autocomplete="off"
+            aria-hidden="true"
+          />
+          <span class="chatter-count" id="chatter-count" aria-hidden="true">280</span>
+          <button type="submit" class="chatter-post" id="chatter-post">transmit</button>
+        </div>
+        <p class="chatter-status" id="chatter-status" role="status" aria-live="polite"></p>
+      </form>
+    </article>
   </section>
 </BaseLayout>
 
@@ -650,6 +701,242 @@ const defs: Record<string, Record<string, string>> = {
       flex: 1;
       min-height: 180px;
       aspect-ratio: auto;
+    }
+  }
+
+  /* ===== TENT CHATTER — a comms channel into the grow lab ===== */
+  .chatter-card {
+    /* Dedicated dim that clears WCAG 4.5:1 on the near-black bg (the global
+       --color-muted #6b6b72 does not, ~3.9:1). Used for log meta text. */
+    --chatter-dim: #8a8a92;
+    margin-bottom: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chatter-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-sm);
+  }
+
+  .chatter-log {
+    list-style: none;
+    margin: var(--space-md) 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    min-height: 4.5rem; /* reserve height so first paint doesn't jump (CLS) */
+    max-height: 18rem;
+    overflow-y: auto;
+    overflow-anchor: none; /* prepending newest must not yank the scroll */
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+
+  .chatter-line {
+    color: var(--color-text);
+    word-break: break-word;
+  }
+
+  .chatter-line::before {
+    content: '❯ ';
+    color: var(--color-accent);
+  }
+
+  .chatter-handle {
+    color: var(--chatter-dim);
+  }
+
+  .chatter-time {
+    color: var(--chatter-dim);
+    font-size: 0.72rem;
+  }
+
+  .chatter-empty {
+    color: var(--chatter-dim);
+  }
+
+  /* Blinking orange block cursor — signals the channel is live. */
+  .chatter-cursor::after {
+    content: '';
+    display: inline-block;
+    width: 0.5em;
+    height: 1em;
+    margin-left: 0.1em;
+    vertical-align: text-bottom;
+    background: var(--color-accent);
+    animation: chatter-blink 1.1s step-end infinite;
+  }
+
+  @keyframes chatter-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  /* Subtle "incoming" reveal on a freshly posted/arrived line. */
+  @media (prefers-reduced-motion: no-preference) {
+    .chatter-line.is-new {
+      animation: chatter-in 0.18s ease both;
+    }
+  }
+
+  @keyframes chatter-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chatter-cursor::after {
+      animation: none;
+      opacity: 0.85;
+    }
+  }
+
+  .chatter-form {
+    margin-top: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .chatter-input,
+  .chatter-name {
+    width: 100%;
+    padding: 0.5em 0.6em;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--color-text);
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+  }
+
+  .chatter-input {
+    resize: vertical;
+  }
+
+  .chatter-input::placeholder,
+  .chatter-name::placeholder {
+    color: var(--chatter-dim);
+  }
+
+  .chatter-input:focus,
+  .chatter-name:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 1px var(--color-accent);
+  }
+
+  .chatter-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .chatter-name {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .chatter-count {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--chatter-dim);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .chatter-count.is-warn {
+    color: var(--color-accent);
+  }
+
+  .chatter-count.is-over {
+    color: #ff5a5a;
+  }
+
+  .chatter-post {
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.45em 1.1em;
+    color: var(--color-accent);
+    background: transparent;
+    border: 1px solid var(--color-accent);
+    border-radius: 6px;
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .chatter-post:hover {
+    background: var(--color-accent);
+    color: var(--color-bg);
+  }
+
+  .chatter-post:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .chatter-post:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .chatter-status {
+    min-height: 1em;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--chatter-dim);
+  }
+
+  .chatter-status.is-error {
+    color: #ff5a5a;
+  }
+
+  /* Honeypot: kept in the layout (bots fill it) but off-screen for humans + AT. */
+  .chatter-hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+
+  /* Wide-screen marginalia: lift into the left gutter only when there's genuine
+     room (64rem column + a readable rail each side). Below this it stays in flow
+     below the camera. */
+  @media (min-width: 1600px) {
+    #grow-root {
+      position: relative;
+    }
+
+    .chatter-card {
+      position: absolute;
+      top: 8.5rem;
+      left: calc(-1 * (18rem + var(--space-lg)));
+      width: 18rem;
+      max-height: calc(100vh - 12rem);
+      overflow: auto;
+      margin-bottom: 0;
+    }
+
+    .chatter-log {
+      max-height: 22rem;
     }
   }
 </style>
