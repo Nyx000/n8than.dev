@@ -699,7 +699,7 @@ const defs: Record<string, Record<string, string>> = {
 
     .cam-frame {
       flex: 1;
-      min-height: 180px;
+      min-height: 58vh;
       aspect-ratio: auto;
     }
   }
@@ -835,25 +835,6 @@ const defs: Record<string, Record<string, string>> = {
     font-style: italic;
   }
 
-  /* blinking amber block cursor — the channel is live */
-  .chatter-cursor::after {
-    content: '';
-    display: inline-block;
-    width: 0.5em;
-    height: 1em;
-    margin-left: 0.15em;
-    vertical-align: text-bottom;
-    background: var(--crt-amber);
-    box-shadow: 0 0 6px var(--crt-glow);
-    animation: chatter-blink 1.1s step-end infinite;
-  }
-
-  @keyframes chatter-blink {
-    50% {
-      opacity: 0;
-    }
-  }
-
   @media (prefers-reduced-motion: no-preference) {
     .chatter-line.is-new {
       animation: chatter-in 0.18s ease both;
@@ -868,13 +849,6 @@ const defs: Record<string, Record<string, string>> = {
     to {
       opacity: 1;
       transform: none;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .chatter-cursor::after {
-      animation: none;
-      opacity: 0.85;
     }
   }
 
@@ -999,26 +973,25 @@ const defs: Record<string, Record<string, string>> = {
     opacity: 0;
   }
 
-  /* Wide-screen marginalia: lift into the left gutter only when it genuinely
-     fits a 20rem rail beside the 64rem column (~1760px). Below this it sits in
-     flow below the camera, full width. (The old 1600px breakpoint pushed the
-     rail partly off-screen.) */
-  @media (min-width: 1760px) {
-    #grow-root {
-      position: relative;
-    }
-
+  /* Mobile: the plant is the hero. Trim the chatter's padding and cap the log
+     short so the camera claims the screen; the box sits compact below it. */
+  @media (max-width: 719px) {
     #grow-chatter.chatter-card {
-      position: absolute;
-      top: 8.5rem;
-      left: calc(-1 * (20rem + var(--space-lg)));
-      width: 20rem;
-      max-height: calc(100vh - 12rem);
+      padding: 0.55rem 0.65rem;
       margin-bottom: 0;
     }
 
     .chatter-log {
-      max-height: 30rem;
+      max-height: 9rem;
+      margin-top: 0.45rem;
+    }
+
+    .chatter-form {
+      margin-top: 0.45rem;
+    }
+
+    .chatter-title {
+      font-size: 0.85rem;
     }
   }
 </style>
@@ -1220,9 +1193,6 @@ const defs: Record<string, Record<string, string>> = {
   const CHATTER_POLL_MS = 25_000;
   let chatterTimer: number | undefined;
   let chatterSeen = new Set<number>();
-  // Optimistically-posted shout ids awaiting confirmation from the feed — shielded
-  // from incremental eviction so a poll that predates the new post can't delete it.
-  let chatterPending = new Set<number>();
 
   // IRC-style HH:MM clock (local, 24h). Full timestamp lives in the title tooltip.
   function clockTime(iso: string): string {
@@ -1290,31 +1260,22 @@ const defs: Record<string, Record<string, string>> = {
     const pinned = isNearBottom(log);
 
     if (!items.length) {
-      chatterSeen = new Set();
-      log.textContent = '';
-      const li = document.createElement('li');
-      li.className = 'chatter-sys chatter-cursor';
-      li.textContent = '*** channel quiet — say something ';
-      log.append(li);
+      // Show the placeholder only if nothing has ever been rendered — never wipe
+      // shouts already on screen (messages don't erase).
+      if (!log.querySelector('.chatter-line')) {
+        log.textContent = '';
+        const li = document.createElement('li');
+        li.className = 'chatter-sys';
+        li.textContent = '*** channel quiet — say something';
+        log.append(li);
+      }
       return;
     }
 
-    // Incremental update: append only genuinely-new shouts (and drop any that were
-    // moderated away or fell out of the newest-50 window) instead of clearing and
-    // rebuilding. This way role="log" announces just the new lines to screen readers,
-    // not the whole channel on every 25s poll. Timestamps are absolute (HH:MM), so
-    // existing rows never need re-rendering.
+    // Append-only: add new shouts at the bottom and NEVER remove a rendered line, so
+    // nothing erases. Dedup by id so polls don't duplicate; role="log" announces only
+    // the newly-appended lines. Timestamps are absolute, so old rows never need redraw.
     log.querySelector('.chatter-sys')?.remove();
-    const incoming = new Set(items.map((i) => i.id));
-    // Any pending post that now appears in the feed is confirmed — stop shielding it.
-    for (const sh of items) chatterPending.delete(sh.id);
-    log.querySelectorAll<HTMLLIElement>('.chatter-line').forEach((el) => {
-      const id = Number(el.dataset.id);
-      if (!incoming.has(id) && !chatterPending.has(id)) {
-        el.remove();
-        chatterSeen.delete(id);
-      }
-    });
     // items are newest-first; walk oldest→newest so new lines append at the bottom in order.
     for (let i = items.length - 1; i >= 0; i--) {
       const sh = items[i];
@@ -1398,7 +1359,6 @@ const defs: Record<string, Record<string, string>> = {
             if (!chatterSeen.has(sh.id)) {
               log.append(shoutLine(sh, true));
               chatterSeen.add(sh.id);
-              chatterPending.add(sh.id); // shield from eviction until a poll confirms it
             }
             log.scrollTop = log.scrollHeight; // jump to the newest (the poster's own line)
           }
