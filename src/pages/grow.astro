@@ -422,10 +422,14 @@ const defs: Record<string, Record<string, string>> = {
   }
 
   .cam-img {
+    /* Absolutely fill the frame so the feed covers it edge-to-edge in every case — a
+       percentage height won't resolve against the flex-sized frame on mobile, which would
+       letterbox the 16:9 feed inside the taller frame. cover (not contain) keeps the plant
+       the dominant object; center keeps the canopy in frame. */
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
-    /* cover (not contain) so the feed fills the frame edge-to-edge with no letterbox bars —
-       the plant becomes the dominant object. Center so the canopy stays in frame. */
     object-fit: cover;
     object-position: center;
     display: block;
