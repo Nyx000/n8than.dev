@@ -134,7 +134,7 @@ const defs: Record<string, Record<string, string>> = {
     <article class="card chatter-card" id="grow-chatter">
       <header class="chatter-head">
         <h2 class="chatter-title">TENT CHATTER</h2>
-        <span class="chatter-topic" id="chatter-count-note">#grow-tent · connecting…</span>
+        <span class="chatter-topic" id="chatter-count-note">#grow-tent</span>
       </header>
       <ol
         class="chatter-log"
@@ -813,7 +813,7 @@ const defs: Record<string, Record<string, string>> = {
     margin: var(--space-md) 0 0;
     padding: 0.3rem 0;
     min-height: 5rem;
-    max-height: 20rem;
+    max-height: 34rem;
     overflow-y: auto;
     overflow-anchor: none; /* prepend must not yank the scroll */
     font-family: var(--font-mono);
@@ -1053,7 +1053,7 @@ const defs: Record<string, Record<string, string>> = {
     }
 
     .chatter-log {
-      max-height: 24rem;
+      max-height: 30rem;
     }
   }
 </style>
@@ -1308,17 +1308,19 @@ const defs: Record<string, Record<string, string>> = {
     return li;
   }
 
-  function updateCountNote(n: number) {
-    const el = document.getElementById('chatter-count-note');
-    if (!el) return;
-    el.textContent =
-      n === 0 ? '#grow-tent · no one here yet' : `#grow-tent · ${n}${n >= 30 ? '+' : ''} shout${n === 1 ? '' : 's'}`;
+  // Is the log scrolled to (near) the bottom? Used to keep the newest line in view
+  // IRC-style without yanking a reader who has scrolled up into history.
+  function isNearBottom(el: HTMLElement): boolean {
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 48;
   }
 
   function renderChatter(items: PublicShout[]) {
     const log = document.getElementById('chatter-log');
     if (!log) return;
-    const prevScroll = log.scrollTop; // don't yank a reader mid-scroll on a poll refresh
+    // Bottom-anchored like IRC: keep the newest line in view unless the reader has
+    // scrolled up into history.
+    const pinned = isNearBottom(log);
+    const prevScroll = log.scrollTop;
     log.setAttribute('aria-busy', 'true'); // batch the polite announcement to one event
     log.textContent = '';
     if (!items.length) {
@@ -1328,16 +1330,16 @@ const defs: Record<string, Record<string, string>> = {
       log.append(li);
     } else {
       chatterSeen = new Set(items.map((i) => i.id));
-      for (const sh of items) log.append(shoutLine(sh));
+      // API returns newest-first; render oldest→newest so the latest lands at the bottom.
+      for (let i = items.length - 1; i >= 0; i--) log.append(shoutLine(items[i]));
     }
     log.setAttribute('aria-busy', 'false');
-    log.scrollTop = prevScroll;
-    updateCountNote(items.length);
+    log.scrollTop = pinned ? log.scrollHeight : prevScroll;
   }
 
   async function loadChatter() {
     try {
-      const res = await fetch('/api/grow/shoutbox?limit=30', { cache: 'no-store' });
+      const res = await fetch('/api/grow/shoutbox?limit=50', { cache: 'no-store' });
       if (!res.ok) throw new Error(String(res.status));
       renderChatter((await res.json()) as PublicShout[]);
     } catch {
@@ -1404,10 +1406,10 @@ const defs: Record<string, Record<string, string>> = {
           if (log) {
             log.querySelector('.chatter-sys')?.remove();
             if (!chatterSeen.has(sh.id)) {
-              log.prepend(shoutLine(sh, true));
+              log.append(shoutLine(sh, true));
               chatterSeen.add(sh.id);
             }
-            updateCountNote(log.querySelectorAll('.chatter-line').length);
+            log.scrollTop = log.scrollHeight; // jump to the newest (the poster's own line)
           }
           body.value = '';
           updateCount();
