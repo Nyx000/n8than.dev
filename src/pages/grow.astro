@@ -111,8 +111,8 @@ const defs: Record<string, Record<string, string>> = {
                   preserveAspectRatio="none"
                   aria-hidden="true"
                 >
-                  <polyline class="spark-temp" points="" />
-                  <polyline class="spark-rh" points="" />
+                  <path class="spark-temp" d="" />
+                  <path class="spark-rh" d="" />
                 </svg>
                 <p class="spark-caption">
                   <span class="k k-temp">temp</span> · <span class="k k-rh">RH</span> — last 30 min
@@ -365,9 +365,11 @@ const defs: Record<string, Record<string, string>> = {
     display: block;
   }
 
-  .spark polyline {
+  .spark path {
     fill: none;
     stroke-width: 1.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
   }
 
@@ -477,9 +479,12 @@ const defs: Record<string, Record<string, string>> = {
     }
   }
 
-  // One polyline per series, each normalized to its own min..max (with a little
-  // headroom) so shape is visible regardless of absolute scale.
-  function polylinePoints(pts: SparkPoint[], pick: (p: SparkPoint) => number | null): string {
+  // One smooth path per series, each normalized to its own min..max (with a little
+  // headroom) so shape is visible regardless of absolute scale. The line is a Catmull-Rom
+  // spline so sparse/jagged probes (lower, room — intermittent BLE cadence) read as a
+  // trend curve instead of zig-zags. It still passes through every real reading: the
+  // smoothing only shapes the segments between points, it never invents data in the gaps.
+  function splinePath(pts: SparkPoint[], pick: (p: SparkPoint) => number | null): string {
     const xs = pts.map(pick);
     const valid = xs.filter((v): v is number => v != null);
     if (valid.length < 2 || pts.length < 2) return '';
@@ -489,28 +494,46 @@ const defs: Record<string, Record<string, string>> = {
     const t0 = pts[0].t;
     const t1 = pts[pts.length - 1].t;
     const span = Math.max(t1 - t0, 1);
-    return pts
+    const pxy = pts
       .map((p, i) => {
         const v = xs[i];
         if (v == null) return null;
-        const x = ((p.t - t0) / span) * 100;
-        const y = 28 - ((v - (lo - pad)) / (hi - lo + 2 * pad)) * 28;
-        return `${x.toFixed(2)},${y.toFixed(2)}`;
+        return {
+          x: ((p.t - t0) / span) * 100,
+          y: 28 - ((v - (lo - pad)) / (hi - lo + 2 * pad)) * 28,
+        };
       })
-      .filter(Boolean)
-      .join(' ');
+      .filter((q): q is { x: number; y: number } => q != null);
+    if (pxy.length < 2) return '';
+    // Catmull-Rom → cubic Bézier control points; clamp control-y into [0,28] so the curve
+    // can't overshoot the viewBox and get clipped at the peaks.
+    const clampY = (y: number) => Math.max(0, Math.min(28, y));
+    const f = (n: number) => n.toFixed(2);
+    let d = `M ${f(pxy[0].x)},${f(pxy[0].y)}`;
+    for (let i = 0; i < pxy.length - 1; i++) {
+      const p0 = pxy[i - 1] ?? pxy[i];
+      const p1 = pxy[i];
+      const p2 = pxy[i + 1];
+      const p3 = pxy[i + 2] ?? pxy[i + 1];
+      const c1x = p1.x + (p2.x - p0.x) / 6;
+      const c1y = clampY(p1.y + (p2.y - p0.y) / 6);
+      const c2x = p2.x - (p3.x - p1.x) / 6;
+      const c2y = clampY(p2.y - (p3.y - p1.y) / 6);
+      d += ` C ${f(c1x)},${f(c1y)} ${f(c2x)},${f(c2y)} ${f(p2.x)},${f(p2.y)}`;
+    }
+    return d;
   }
 
   function renderSpark(id: 'canopy' | 'lower' | 'room', pts: SparkPoint[]) {
     const svg = document.querySelector(`[data-probe="${id}"] svg.spark`);
     if (!svg) return;
     svg.querySelector('.spark-temp')?.setAttribute(
-      'points',
-      polylinePoints(pts, (p) => p.tempF),
+      'd',
+      splinePath(pts, (p) => p.tempF),
     );
     svg.querySelector('.spark-rh')?.setAttribute(
-      'points',
-      polylinePoints(pts, (p) => p.rh),
+      'd',
+      splinePath(pts, (p) => p.rh),
     );
   }
 
