@@ -464,7 +464,9 @@ const defs: Record<string, Record<string, string>> = {
     spark: Record<'canopy' | 'lower' | 'room', SparkPoint[]>;
   }
 
-  const POLL_MS = 10_000;
+  // 5s matches the API's max-age=5 cache; the sensor cadence is slower (~1/min), so this
+  // mainly smooths the "Xs ago" counter and freshness pill rather than fetching newer data.
+  const POLL_MS = 5_000;
   let timer: number | undefined;
   let failures = 0;
   let lastTs: number | null = null;
