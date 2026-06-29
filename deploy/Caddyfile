@@ -19,6 +19,18 @@ n8than.dev {
 		}
 	}
 
+	# Tent shoutbox (anonymous chat) — GET ?limit=… + POST.
+	handle /api/grow/shoutbox {
+		rewrite * /api/public/shoutbox
+		reverse_proxy https://growtent.taile16d94.ts.net {
+			header_up Host growtent.taile16d94.ts.net
+		}
+		header {
+			-Server
+			Cache-Control "no-store"
+		}
+	}
+
 	# Live tent camera (MJPEG) — same Pi web over Tailscale; concurrency-capped at the Pi.
 	# flush_interval -1 disables response buffering so the multipart stream flows frame-by-frame.
 	handle /api/grow/cam/stream {
