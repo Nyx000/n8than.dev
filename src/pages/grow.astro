@@ -394,6 +394,18 @@ const defs: Record<string, Record<string, string>> = {
     margin-bottom: var(--space-lg);
   }
 
+  /* On wide screens, let the camera break out of the 64rem text column to fill more of the
+     viewport (e.g. a 1440p display). The page container is viewport-centered, so left:50% +
+     translateX(-50%) re-centers a wider card on the viewport; the readouts stay at 64rem. */
+  @media (min-width: 1080px) {
+    .cam-card {
+      position: relative;
+      left: 50%;
+      width: min(94vw, 1600px);
+      transform: translateX(-50%);
+    }
+  }
+
   .cam-frame {
     position: relative;
     width: 100%;
