@@ -1139,6 +1139,185 @@ const defs: Record<string, Record<string, string>> = {
     sync();
   }
 
+  // ===== TENT CHATTER (anonymous shoutbox) =====
+  interface PublicShout {
+    id: number;
+    body: string;
+    name: string | null;
+    created_at: string;
+  }
+
+  const CHATTER_POLL_MS = 25_000;
+  let chatterTimer: number | undefined;
+  let chatterSeen = new Set<number>();
+
+  // Tiered relative time, computed in UTC ms on both sides to avoid tz/offset bugs.
+  function relTime(iso: string): string {
+    const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+    if (s < 60) return 'just now';
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  }
+
+  function absTime(iso: string): string {
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? iso : d.toLocaleString();
+  }
+
+  // Build a shout line with TEXT NODES only — body/name are untrusted, never innerHTML.
+  function shoutLine(sh: PublicShout, isNew = false): HTMLLIElement {
+    const li = document.createElement('li');
+    li.className = isNew ? 'chatter-line is-new' : 'chatter-line';
+    li.dataset.id = String(sh.id);
+    li.append(document.createTextNode(sh.body + '  '));
+    const handle = document.createElement('span');
+    handle.className = 'chatter-handle';
+    handle.textContent = `— ${sh.name ? sh.name : 'anon'} `;
+    li.append(handle);
+    const t = document.createElement('time');
+    t.className = 'chatter-time';
+    t.dateTime = sh.created_at;
+    t.title = absTime(sh.created_at);
+    t.textContent = `· ${relTime(sh.created_at)}`;
+    li.append(t);
+    return li;
+  }
+
+  function updateCountNote(n: number) {
+    const el = document.getElementById('chatter-count-note');
+    if (!el) return;
+    el.textContent =
+      n === 0 ? 'anonymous · be the first' : `anonymous · ${n}${n >= 30 ? '+' : ''} shout${n === 1 ? '' : 's'}`;
+  }
+
+  function renderChatter(items: PublicShout[]) {
+    const log = document.getElementById('chatter-log');
+    if (!log) return;
+    const prevScroll = log.scrollTop; // don't yank a reader mid-scroll on a poll refresh
+    log.setAttribute('aria-busy', 'true'); // batch the polite announcement to one event
+    log.textContent = '';
+    if (!items.length) {
+      const li = document.createElement('li');
+      li.className = 'chatter-empty chatter-cursor';
+      li.textContent = '// no signal yet. be the first.';
+      log.append(li);
+    } else {
+      chatterSeen = new Set(items.map((i) => i.id));
+      for (const sh of items) log.append(shoutLine(sh));
+    }
+    log.setAttribute('aria-busy', 'false');
+    log.scrollTop = prevScroll;
+    updateCountNote(items.length);
+  }
+
+  async function loadChatter() {
+    try {
+      const res = await fetch('/api/grow/shoutbox?limit=30', { cache: 'no-store' });
+      if (!res.ok) throw new Error(String(res.status));
+      renderChatter((await res.json()) as PublicShout[]);
+    } catch {
+      const log = document.getElementById('chatter-log');
+      if (log && !log.querySelector('.chatter-line')) {
+        log.textContent = '';
+        const li = document.createElement('li');
+        li.className = 'chatter-empty';
+        li.textContent = '// channel unreachable — retrying';
+        log.append(li);
+      }
+    }
+  }
+
+  function setChatterStatus(msg: string, isError = false) {
+    const el = document.getElementById('chatter-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.toggle('is-error', isError);
+  }
+
+  function setupChatterForm() {
+    const form = document.getElementById('chatter-form') as HTMLFormElement | null;
+    const body = document.getElementById('chatter-body') as HTMLTextAreaElement | null;
+    const name = document.getElementById('chatter-name') as HTMLInputElement | null;
+    const hp = document.getElementById('chatter-hp') as HTMLInputElement | null;
+    const count = document.getElementById('chatter-count');
+    const postBtn = document.getElementById('chatter-post') as HTMLButtonElement | null;
+    if (!form || !body || !postBtn) return;
+
+    const updateCount = () => {
+      const remaining = 280 - body.value.length;
+      if (count) {
+        count.textContent = String(remaining);
+        count.classList.toggle('is-warn', remaining <= 40 && remaining > 0);
+        count.classList.toggle('is-over', remaining <= 0);
+      }
+    };
+    body.addEventListener('input', updateCount);
+    updateCount();
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = body.value.trim();
+      if (!text) {
+        setChatterStatus('say something first', true);
+        return;
+      }
+      postBtn.disabled = true;
+      setChatterStatus('transmitting…');
+      try {
+        const res = await fetch('/api/grow/shoutbox', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            body: text,
+            name: name && name.value.trim() ? name.value.trim() : undefined,
+            website: hp ? hp.value : '',
+          }),
+        });
+        if (res.status === 201) {
+          const sh = (await res.json()) as PublicShout;
+          const log = document.getElementById('chatter-log');
+          if (log) {
+            log.querySelector('.chatter-empty')?.remove();
+            if (!chatterSeen.has(sh.id)) {
+              log.prepend(shoutLine(sh, true));
+              chatterSeen.add(sh.id);
+            }
+            updateCountNote(log.querySelectorAll('.chatter-line').length);
+          }
+          body.value = '';
+          updateCount();
+          setChatterStatus('transmitted ✓');
+          body.focus(); // poster's own action — keep focus for rapid posting (not focus-stealing)
+        } else if (res.status === 429) {
+          setChatterStatus('slow down a sec', true);
+        } else if (res.status === 400) {
+          const d = (await res.json().catch(() => ({}))) as { error?: string };
+          setChatterStatus(d.error || "that didn't go through", true);
+        } else {
+          throw new Error(String(res.status));
+        }
+      } catch {
+        setChatterStatus("couldn't send — try again", true);
+      } finally {
+        postBtn.disabled = false;
+      }
+    });
+  }
+
+  function startChatter() {
+    stopChatter();
+    void loadChatter();
+    chatterTimer = window.setInterval(loadChatter, CHATTER_POLL_MS);
+  }
+
+  function stopChatter() {
+    if (chatterTimer != null) clearInterval(chatterTimer);
+    chatterTimer = undefined;
+  }
+
   // ClientRouter is active: init on every page load, stop when leaving /grow or
   // when the tab is hidden.
   document.addEventListener('astro:page-load', () => {
@@ -1146,12 +1325,22 @@ const defs: Record<string, Record<string, string>> = {
       start();
       setupCam();
       setupCamFullscreen();
-    } else stop();
+      setupChatterForm();
+      startChatter();
+    } else {
+      stop();
+      stopChatter();
+    }
   });
 
   document.addEventListener('visibilitychange', () => {
     if (!document.getElementById('grow-root')) return;
-    if (document.hidden) stop();
-    else start();
+    if (document.hidden) {
+      stop();
+      stopChatter();
+    } else {
+      start();
+      startChatter();
+    }
   });
 </script>
