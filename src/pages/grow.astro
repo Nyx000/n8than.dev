@@ -939,6 +939,18 @@ const defs: Record<string, Record<string, string>> = {
       max-height: 22rem;
     }
   }
+
+  /* Keep the chatter header legible on phones — the chatter card is a full panel
+     below the camera, not a compact zone header, so it opts out of the zone shrink. */
+  @media (max-width: 719px) {
+    .chatter-card .probe-name {
+      font-size: 0.95rem;
+    }
+
+    .chatter-card .probe-note {
+      display: inline;
+    }
+  }
 </style>
 
 <script>
