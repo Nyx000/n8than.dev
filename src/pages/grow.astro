@@ -103,6 +103,10 @@ const defs: Record<string, Record<string, string>> = {
       </header>
       <div class="cam-frame">
         <img id="grow-cam" class="cam-img" alt="live tent camera" />
+        <div id="grow-cam-loading" class="cam-overlay cam-loading">
+          <span class="cam-spinner" aria-hidden="true"></span>
+          connecting to camera…
+        </div>
         <div id="grow-cam-offline" class="cam-overlay" hidden>camera offline · retrying…</div>
         <button
           id="grow-cam-fs"
@@ -452,6 +456,37 @@ const defs: Record<string, Record<string, string>> = {
     display: none;
   }
 
+  /* First-load state: a solid fill over the void with a spinning ring, until the first
+     MJPEG frame arrives (cleared on 'load') or the feed errors (offline overlay takes over). */
+  .cam-loading {
+    flex-direction: column;
+    gap: 0.85rem;
+    background: #0b0b0b;
+  }
+
+  .cam-spinner {
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 2px solid var(--color-border);
+    border-top-color: var(--color-accent);
+    border-radius: 50%;
+    animation: cam-spin 0.8s linear infinite;
+  }
+
+  @keyframes cam-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cam-spinner {
+      animation: none;
+      border-top-color: var(--color-accent);
+      opacity: 0.6;
+    }
+  }
+
   .cam-fs-btn {
     position: absolute;
     top: 0.6rem;
@@ -718,11 +753,15 @@ const defs: Record<string, Record<string, string>> = {
   function setupCam() {
     const cam = document.getElementById('grow-cam') as HTMLImageElement | null;
     const overlay = document.getElementById('grow-cam-offline');
+    const loading = document.getElementById('grow-cam-loading');
     if (!cam || !overlay) return;
     cam.addEventListener('load', () => {
       overlay.hidden = true;
+      if (loading) loading.hidden = true;
     });
     cam.addEventListener('error', () => {
+      // First connect failed (or the feed dropped): drop the spinner, show the retry notice.
+      if (loading) loading.hidden = true;
       overlay.hidden = false;
       if (camRetry != null) clearTimeout(camRetry);
       camRetry = window.setTimeout(() => {
