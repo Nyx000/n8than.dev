@@ -743,40 +743,9 @@ const defs: Record<string, Record<string, string>> = {
       0deg,
       rgba(0, 0, 0, 0) 0px,
       rgba(0, 0, 0, 0) 3px,
-      rgba(0, 0, 0, 0.04) 3px,
-      rgba(0, 0, 0, 0.04) 4px
+      rgba(0, 0, 0, 0.02) 3px,
+      rgba(0, 0, 0, 0.02) 4px
     );
-  }
-
-  /* a slow phosphor sweep down the screen (the refresh band) */
-  #grow-chatter::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    height: 26%;
-    z-index: 6;
-    pointer-events: none;
-    background: linear-gradient(180deg, rgba(255, 130, 40, 0.05), transparent);
-    animation: crt-sweep 7s linear infinite;
-  }
-
-  @keyframes crt-sweep {
-    0% {
-      transform: translateY(-30%);
-      opacity: 0;
-    }
-    12% {
-      opacity: 1;
-    }
-    88% {
-      opacity: 1;
-    }
-    100% {
-      transform: translateY(380%);
-      opacity: 0;
-    }
   }
 
   /* content above the overlays */
@@ -906,10 +875,6 @@ const defs: Record<string, Record<string, string>> = {
     .chatter-cursor::after {
       animation: none;
       opacity: 0.85;
-    }
-    #grow-chatter::before {
-      animation: none;
-      opacity: 0;
     }
   }
 
@@ -1255,6 +1220,9 @@ const defs: Record<string, Record<string, string>> = {
   const CHATTER_POLL_MS = 25_000;
   let chatterTimer: number | undefined;
   let chatterSeen = new Set<number>();
+  // Optimistically-posted shout ids awaiting confirmation from the feed — shielded
+  // from incremental eviction so a poll that predates the new post can't delete it.
+  let chatterPending = new Set<number>();
 
   // IRC-style HH:MM clock (local, 24h). Full timestamp lives in the title tooltip.
   function clockTime(iso: string): string {
@@ -1338,9 +1306,11 @@ const defs: Record<string, Record<string, string>> = {
     // existing rows never need re-rendering.
     log.querySelector('.chatter-sys')?.remove();
     const incoming = new Set(items.map((i) => i.id));
+    // Any pending post that now appears in the feed is confirmed — stop shielding it.
+    for (const sh of items) chatterPending.delete(sh.id);
     log.querySelectorAll<HTMLLIElement>('.chatter-line').forEach((el) => {
       const id = Number(el.dataset.id);
-      if (!incoming.has(id)) {
+      if (!incoming.has(id) && !chatterPending.has(id)) {
         el.remove();
         chatterSeen.delete(id);
       }
@@ -1428,6 +1398,7 @@ const defs: Record<string, Record<string, string>> = {
             if (!chatterSeen.has(sh.id)) {
               log.append(shoutLine(sh, true));
               chatterSeen.add(sh.id);
+              chatterPending.add(sh.id); // shield from eviction until a poll confirms it
             }
             log.scrollTop = log.scrollHeight; // jump to the newest (the poster's own line)
           }
