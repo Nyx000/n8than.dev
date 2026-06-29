@@ -65,6 +65,26 @@ const defs: Record<string, Record<string, string>> = {
       <div class="cam-frame">
         <img id="grow-cam" class="cam-img" alt="live tent camera" />
         <div id="grow-cam-offline" class="cam-overlay" hidden>camera offline · retrying…</div>
+        <button
+          id="grow-cam-fs"
+          class="cam-fs-btn"
+          type="button"
+          aria-label="Fullscreen camera"
+          title="Fullscreen"
+        >
+          <svg class="fs-enter" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"
+            ></path>
+          </svg>
+          <svg class="fs-exit" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"
+            ></path>
+          </svg>
+        </button>
       </div>
     </article>
 
@@ -442,6 +462,84 @@ const defs: Record<string, Record<string, string>> = {
   .cam-overlay[hidden] {
     display: none;
   }
+
+  .cam-fs-btn {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    padding: 0;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    cursor: pointer;
+    opacity: 0.55;
+    transition:
+      opacity 0.2s ease,
+      background 0.2s ease;
+  }
+
+  .cam-frame:hover .cam-fs-btn,
+  .cam-fs-btn:focus-visible {
+    opacity: 1;
+    outline: none;
+  }
+
+  .cam-fs-btn:hover {
+    background: rgba(0, 0, 0, 0.72);
+  }
+
+  .cam-fs-btn svg {
+    width: 1.3rem;
+    height: 1.3rem;
+  }
+
+  .cam-fs-btn .fs-exit {
+    display: none;
+  }
+
+  .cam-frame.is-fs .cam-fs-btn .fs-enter {
+    display: none;
+  }
+
+  .cam-frame.is-fs .cam-fs-btn .fs-exit {
+    display: inline;
+  }
+
+  /* CSS "fill the viewport" fallback for browsers without element fullscreen (iPhone Safari
+     on an <img>). Native fullscreen (desktop, Android) is handled by the :fullscreen rules. */
+  .cam-frame.cam-pseudo-fs {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    margin: 0;
+    aspect-ratio: auto;
+    border-radius: 0;
+  }
+
+  /* In any fullscreen mode, show the whole feed (no crop) and let it fill the screen. */
+  .cam-frame.cam-pseudo-fs .cam-img,
+  .cam-frame:fullscreen .cam-img,
+  .cam-frame:-webkit-full-screen .cam-img {
+    object-fit: contain;
+  }
+
+  .cam-frame:fullscreen,
+  .cam-frame:-webkit-full-screen {
+    width: 100vw;
+    height: 100vh;
+    aspect-ratio: auto;
+    border-radius: 0;
+  }
 </style>
 
 <script>
@@ -625,12 +723,82 @@ const defs: Record<string, Record<string, string>> = {
     cam.src = '/api/grow/cam/stream';
   }
 
+  // Fullscreen the camera. Native Fullscreen API where available (desktop, Android) — with a
+  // best-effort landscape lock on mobile so it auto-rotates to fill the screen. iPhone Safari
+  // has no element fullscreen for an <img>, so we fall back to a CSS fixed-overlay that fills
+  // the viewport (the user rotates to landscape themselves).
+  function setupCamFullscreen() {
+    const frame = document.querySelector('.cam-frame') as HTMLElement | null;
+    const btn = document.getElementById('grow-cam-fs');
+    if (!frame || !btn) return;
+    const d = document as any;
+    const f = frame as any;
+
+    const nativeOn = () => d.fullscreenElement || d.webkitFullscreenElement;
+    const pseudoOn = () => frame.classList.contains('cam-pseudo-fs');
+
+    const lockLandscape = async () => {
+      try {
+        await (screen.orientation as any)?.lock?.('landscape');
+      } catch {
+        /* unsupported (iOS) or not permitted — fine */
+      }
+    };
+    const unlockOrientation = () => {
+      try {
+        (screen.orientation as any)?.unlock?.();
+      } catch {
+        /* no-op */
+      }
+    };
+
+    const sync = () => {
+      const active = !!nativeOn() || pseudoOn();
+      frame.classList.toggle('is-fs', active);
+      btn.setAttribute('aria-label', active ? 'Exit fullscreen' : 'Fullscreen camera');
+      btn.setAttribute('title', active ? 'Exit fullscreen' : 'Fullscreen');
+    };
+
+    async function enter() {
+      const req = f.requestFullscreen || f.webkitRequestFullscreen;
+      if (req) {
+        try {
+          await req.call(frame);
+          void lockLandscape();
+          return;
+        } catch {
+          /* fall through to the CSS overlay */
+        }
+      }
+      frame.classList.add('cam-pseudo-fs');
+      void lockLandscape();
+      sync();
+    }
+
+    function exit() {
+      if (nativeOn()) (d.exitFullscreen || d.webkitExitFullscreen)?.call(document);
+      if (pseudoOn()) frame.classList.remove('cam-pseudo-fs');
+      unlockOrientation();
+      sync();
+    }
+
+    btn.addEventListener('click', () => (nativeOn() || pseudoOn() ? exit() : enter()));
+    // Esc already exits native fullscreen; handle it for the pseudo-fullscreen overlay too.
+    frame.addEventListener('keydown', (e) => {
+      if ((e as KeyboardEvent).key === 'Escape' && pseudoOn()) exit();
+    });
+    document.addEventListener('fullscreenchange', sync);
+    document.addEventListener('webkitfullscreenchange', sync as EventListener);
+    sync();
+  }
+
   // ClientRouter is active: init on every page load, stop when leaving /grow or
   // when the tab is hidden.
   document.addEventListener('astro:page-load', () => {
     if (document.getElementById('grow-root')) {
       start();
       setupCam();
+      setupCamFullscreen();
     } else stop();
   });
 
