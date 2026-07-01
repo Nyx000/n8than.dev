@@ -62,6 +62,18 @@ n8than.dev {
 		redir * /seedsearch/ permanent
 	}
 
+	# Sandy Vans demo (Next.js) -> sandyvans service. Unlike /seedsearch, the app is
+	# built with SV_BASE_PATH=/sandyvans and expects the prefix intact, so this proxies
+	# the full path (handle, not handle_path — no stripping).
+	handle /sandyvans {
+		reverse_proxy 127.0.0.1:3005
+		header -Server
+	}
+	handle /sandyvans/* {
+		reverse_proxy 127.0.0.1:3005
+		header -Server
+	}
+
 	handle {
 		root * /var/www/n8than.dev/dist
 		file_server
