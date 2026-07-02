@@ -72,19 +72,20 @@ export const projects: Project[] = [
       <p class="stats">~610 lines · 8 philosophers · 3 execution modes</p>`,
   },
   {
-    title: 'CafeNightclub',
+    title: 'CafeNightClub',
     description:
-      'The project that started it all. Full-stack ordering platform built for 80+ night-shift hospital staff at Scripps Health. Real-time order tracking, push notifications, role-based access control. Ran in production Jan–Mar 2026.',
+      'The project that started it all — a full-stack ordering platform built for 80+ night-shift hospital staff at Scripps Health (in production Jan–Mar 2026). Now running as a live, cyberpunk-themed demo you can log into and order from.',
+    url: 'https://cafenightclub.com',
     tags: ['Next.js', 'React 19', 'Supabase', 'Tailwind CSS', 'TypeScript'],
     expandable: true,
     details: `
-      <p class="hook">Built to solve a real problem at my night job. 80+ registered users, real orders flowing through it every shift. This is where the architecture was battle-tested.</p>
+      <p class="hook">Built to solve a real problem at my night job — 80+ registered users, real orders flowing through it every shift. This is where the architecture was battle-tested. <a href="https://cafenightclub.com" target="_blank" rel="noopener noreferrer">Explore the live demo →</a></p>
       <ul class="highlights">
         <li><strong>Real-time order tracking.</strong> Supabase Realtime pushes status updates instantly. The connection handles tab visibility changes, exponential backoff on failure, and silent auth token refresh to prevent 1-hour expiration disconnects.</li>
         <li><strong>Atomic transactions.</strong> Order creation runs as a single Supabase RPC call. No partial writes, no race conditions between cart validation and inventory checks.</li>
         <li><strong>Row-level security everywhere.</strong> Every table has RLS policies. Role-based access (user, admin, owner) is enforced server-side, not just in the UI. Rate limiting on cart operations prevents abuse.</li>
       </ul>
-      <p class="stats">Predecessor to OrderKit · Production Jan–Mar 2026 · 80+ users</p>`,
+      <p class="stats">Live demo at cafenightclub.com · Production Jan–Mar 2026 · 80+ users · Predecessor to OrderKit</p>`,
   },
   {
     title: 'n8than.dev',
