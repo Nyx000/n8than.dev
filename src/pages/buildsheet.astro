@@ -1,0 +1,536 @@
+---
+/**
+ * STANDALONE PROTOTYPE — not part of the n8than.dev site chrome.
+ * Order → Build Sheet automation demo for Solid Wood Worx (4Runner V2.7 pilot).
+ * 100% client-side: catalog + resolver + renderer are ported to TS and run in the browser,
+ * so it deploys as a static page (no server).
+ *
+ * Design: a dark, warm control console (the workbench) with the build sheet presented as a
+ * real white sheet of paper. Screen = dark UI + white paper w/ brand accents; print drops the
+ * console and renders the sheet in clean black-on-white grayscale.
+ */
+
+// Segmented controls, server-rendered; the client script reads the active option per group.
+const groups = [
+  { field: 'generation', label: 'Generation', options: [['4th', '4th Gen'], ['5th', '5th Gen']] },
+  { field: 'rear_config', label: 'Rear Configuration', options: [['standard', 'Standard'], ['2nd_row_delete', '2nd Row Delete']] },
+  { field: 'fulfillment', label: 'Fulfillment', options: [['ship', 'Ship'], ['shop_pickup', 'Shop Pickup'], ['install', 'Install']] },
+  { field: 'bed_extension', label: 'Bed Extension', options: [['none', 'None'], ['60_40_split', '60 / 40 Split']] },
+  { field: 'separators', label: 'Separators', options: [['none', 'None'], ['set_of_2', 'Set of 2'], ['set_of_3', 'Set of 3']] },
+  { field: 'extra_dividers', label: 'Extra Dividers', options: [['none', 'None'], ['add_2', '+2'], ['add_4', '+4']] },
+  { field: 'false_tops_left', label: 'False Tops — Left', options: [['none', 'None'], ['bamboo', 'Bamboo'], ['metal', 'Metal'], ['normal', 'Normal']] },
+  { field: 'false_tops_right', label: 'False Tops — Right', options: [['none', 'None'], ['bamboo', 'Bamboo'], ['metal', 'Metal'], ['normal', 'Normal']] },
+] as const;
+
+// Initial load = the #7101 example order (a rich sheet on first paint).
+const defaults: Record<string, string> = {
+  generation: '5th',
+  rear_config: 'standard',
+  fulfillment: 'ship',
+  bed_extension: '60_40_split',
+  separators: 'none',
+  extra_dividers: 'add_2',
+  false_tops_left: 'bamboo',
+  false_tops_right: 'bamboo',
+};
+
+const presets = [
+  { key: 'base', label: 'Base Kit' },
+  { key: 'example', label: 'Example · #7101' },
+  { key: 'loaded', label: 'Fully Loaded' },
+];
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Build-Sheet Generator — Solid Wood Worx (prototype)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="topbar">
+      <span class="tb-left"><span class="dot" aria-hidden="true"></span>Build System · V2.7 Pilot</span>
+      <span class="tb-right">Prototype · Internal Demo</span>
+    </div>
+
+    <div class="wrap">
+      <header class="brandhead">
+        <img class="logo" src="/buildsheet-logo.png" alt="Solid Wood Worx" width="320" height="116" />
+        <div class="tag">Overlanding Storage Systems</div>
+      </header>
+
+      <div class="kicker">Shopify order → cut list</div>
+      <h1 class="title">4Runner Build-Sheet Generator</h1>
+      <p class="lead">
+        Pick the options a customer selected at checkout. The production build sheet — the exact
+        cut list, hardware counts, and box grouping the floor works from — is <b>generated live</b>,
+        in the same format the team fills out by hand today.
+      </p>
+
+      <div class="app">
+        <!-- ── CONTROLS ─────────────────────────────────────────────── -->
+        <section class="panel controls" aria-label="Order configuration">
+          <div class="presets">
+            {presets.map((p) => (
+              <button type="button" class="preset" data-preset={p.key}>{p.label}</button>
+            ))}
+          </div>
+
+          <div class="two">
+            <div class="field">
+              <label for="order_number">Order #</label>
+              <input class="txt" id="order_number" type="text" value="7101" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="customer_name">Customer</label>
+              <input class="txt" id="customer_name" type="text" value="Jordan Blake" autocomplete="off" />
+            </div>
+          </div>
+
+          {groups.map((g) => (
+            <div class="field">
+              <div class="lbl">{g.label}</div>
+              <div class="seg" data-field={g.field}>
+                {g.options.map(([val, text]) => (
+                  <button type="button" class={`opt${defaults[g.field] === val ? ' active' : ''}`} data-value={val}>
+                    {text}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <!-- ── OUTPUT ───────────────────────────────────────────────── -->
+        <section class="output">
+          <div class="toolbar">
+            <div class="readout">
+              <span class="ro-n" id="bomcount">0</span> Line Items
+              <span class="ro-sep">/</span>
+              <span class="ro-n" id="flagcount">0</span> Review Flags
+            </div>
+            <button type="button" class="btn-print" id="print">Print / Save PDF</button>
+          </div>
+          <div class="paper">
+            <span class="crop tl" aria-hidden="true"></span>
+            <span class="crop tr" aria-hidden="true"></span>
+            <span class="crop bl" aria-hidden="true"></span>
+            <span class="crop br" aria-hidden="true"></span>
+            <div class="buildsheet" id="sheet"></div>
+          </div>
+        </section>
+      </div>
+
+      <p class="disclaimer">
+        Prototype. Catalog data transcribed from a photo of the current V2.7 checklist — shown as
+        <b>DRAFT</b>, pending verification with the shop. Anything inferred (cubby selection, set/pair
+        counts, 2nd-row-delete behaviour) is flagged on the sheet rather than silently assumed.
+      </p>
+    </div>
+
+    <script>
+      import { CATALOG_4RUNNER } from '../lib/4runnerCatalog';
+      import { resolve } from '../lib/resolveBuildSheet';
+      import type { Order } from '../lib/resolveBuildSheet';
+      import { renderBuildSheet } from '../lib/renderBuildSheet';
+
+      const FIELDS = [
+        'generation', 'rear_config', 'fulfillment', 'bed_extension',
+        'separators', 'extra_dividers', 'false_tops_left', 'false_tops_right',
+      ] as const;
+
+      const q = <T extends Element>(sel: string): T | null => document.querySelector(sel) as T | null;
+
+      function readState(): Record<string, string> {
+        const s: Record<string, string> = {};
+        for (const f of FIELDS) {
+          const active = document.querySelector(`.seg[data-field="${f}"] .opt.active`) as HTMLElement | null;
+          s[f] = active?.dataset.value ?? 'none';
+        }
+        s.order_number = q<HTMLInputElement>('#order_number')?.value.trim() ?? '';
+        s.customer_name = q<HTMLInputElement>('#customer_name')?.value.trim() ?? '';
+        return s;
+      }
+
+      function toOrder(s: Record<string, string>): Order {
+        return {
+          order_number: s.order_number || undefined,
+          customer: { name: s.customer_name || undefined },
+          fulfillment: s.fulfillment,
+          vehicle: '4Runner',
+          generation: s.generation,
+          rear_config: s.rear_config,
+          add_ons: {
+            bed_extension: s.bed_extension,
+            separators: s.separators,
+            extra_dividers: s.extra_dividers,
+            false_tops_left: s.false_tops_left,
+            false_tops_right: s.false_tops_right,
+          },
+        };
+      }
+
+      // Brief "gauge tick" when a count changes — machine-readout feedback, reduced-motion safe.
+      let prevBom = -1;
+      let prevFlags = -1;
+      function pulse(el: Element | null): void {
+        if (!el) return;
+        el.classList.remove('pulse');
+        void (el as HTMLElement).offsetWidth; // reflow so the animation restarts
+        el.classList.add('pulse');
+      }
+
+      function render(): void {
+        const order = toOrder(readState());
+        const { bom, warnings } = resolve(order, CATALOG_4RUNNER);
+        const sheet = q('#sheet');
+        if (sheet) sheet.innerHTML = renderBuildSheet(order, bom, warnings, CATALOG_4RUNNER);
+
+        const count = q('#bomcount');
+        if (count) {
+          count.textContent = String(bom.length);
+          if (bom.length !== prevBom) pulse(count);
+          prevBom = bom.length;
+        }
+        const flags = q('#flagcount');
+        if (flags) {
+          flags.textContent = String(warnings.length);
+          if (warnings.length !== prevFlags) pulse(flags);
+          prevFlags = warnings.length;
+        }
+      }
+
+      document.querySelectorAll('.seg .opt').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          btn.closest('.seg')?.querySelectorAll('.opt').forEach((o) => o.classList.remove('active'));
+          btn.classList.add('active');
+          render();
+        });
+      });
+
+      document.querySelectorAll('#order_number, #customer_name').forEach((inp) =>
+        inp.addEventListener('input', render),
+      );
+
+      const PRESETS: Record<string, Record<string, string>> = {
+        base: {
+          generation: '5th', rear_config: 'standard', fulfillment: 'ship', bed_extension: 'none',
+          separators: 'none', extra_dividers: 'none', false_tops_left: 'none', false_tops_right: 'none',
+          order_number: '7000', customer_name: '',
+        },
+        example: {
+          generation: '5th', rear_config: 'standard', fulfillment: 'ship', bed_extension: '60_40_split',
+          separators: 'none', extra_dividers: 'add_2', false_tops_left: 'bamboo', false_tops_right: 'bamboo',
+          order_number: '7101', customer_name: 'Jordan Blake',
+        },
+        loaded: {
+          generation: '4th', rear_config: '2nd_row_delete', fulfillment: 'install', bed_extension: '60_40_split',
+          separators: 'set_of_3', extra_dividers: 'add_4', false_tops_left: 'metal', false_tops_right: 'metal',
+          order_number: '7250', customer_name: 'Sam Rivera',
+        },
+      };
+
+      function applyState(s: Record<string, string>): void {
+        for (const f of FIELDS) {
+          document.querySelector(`.seg[data-field="${f}"]`)?.querySelectorAll('.opt').forEach((o) => {
+            const el = o as HTMLElement;
+            el.classList.toggle('active', el.dataset.value === s[f]);
+          });
+        }
+        const on = q<HTMLInputElement>('#order_number');
+        const cn = q<HTMLInputElement>('#customer_name');
+        if (on && 'order_number' in s) on.value = s.order_number;
+        if (cn && 'customer_name' in s) cn.value = s.customer_name;
+        render();
+      }
+
+      document.querySelectorAll('[data-preset]').forEach((btn) =>
+        btn.addEventListener('click', () => applyState(PRESETS[(btn as HTMLElement).dataset.preset as string])),
+      );
+
+      q('#print')?.addEventListener('click', () => window.print());
+
+      render();
+    </script>
+
+    <style is:global>
+      :root {
+        /* Console — warm dark (a wood shop, not a cold startup) */
+        --bg: #14100b;
+        --bg-well: #100c08;
+        --surface: #1e1810;
+        --surface-2: #272016;
+        --line: #3a2e1e;
+        --line-soft: #2a2216;
+        /* Brand */
+        --rust: #d17b2c;
+        --rust-2: #e89a4a;
+        /* Text */
+        --ink: #ede3d0;
+        --body: #c4b7a0;
+        --muted: #8b7c64;
+        /* Type roles */
+        --display: 'Archivo', system-ui, sans-serif;
+        --mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', monospace;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        color: var(--body);
+        font-family: var(--display);
+        font-weight: 400;
+        line-height: 1.55;
+        background:
+          radial-gradient(1200px 520px at 50% -12%, rgba(209, 123, 44, 0.07), transparent 60%),
+          var(--bg);
+        background-attachment: fixed;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Console status strip */
+      .topbar {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        background: var(--bg-well);
+        border-bottom: 1px solid var(--line-soft);
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase;
+        padding: 9px 20px;
+      }
+      .topbar .tb-left { color: var(--body); }
+      .topbar .dot {
+        display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+        background: var(--rust); margin-right: 9px; vertical-align: middle;
+        box-shadow: 0 0 0 3px rgba(209, 123, 44, 0.18);
+        animation: dotPulse 2.6s ease-in-out infinite;
+      }
+      @keyframes dotPulse {
+        0%, 100% { box-shadow: 0 0 0 3px rgba(209, 123, 44, 0.18); }
+        50% { box-shadow: 0 0 0 6px rgba(209, 123, 44, 0.03); }
+      }
+
+      .wrap { max-width: 1180px; margin: 0 auto; padding: 34px 24px 64px; }
+
+      /* Brand header */
+      .brandhead { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 0; }
+      .logo { height: 72px; width: auto; display: block; }
+      .tag {
+        font-family: var(--mono); color: var(--muted);
+        font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+      }
+
+      /* Hero */
+      .kicker {
+        display: flex; align-items: center; gap: 10px;
+        font-family: var(--mono); color: var(--rust-2);
+        font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+        margin-top: 30px;
+      }
+      .kicker::before { content: ''; width: 24px; height: 1px; background: var(--rust); }
+      h1.title {
+        font-family: var(--display); font-weight: 800;
+        font-size: clamp(30px, 4.2vw, 42px); line-height: 1.02; letter-spacing: -0.6px;
+        color: var(--ink); margin: 10px 0 12px;
+      }
+      .lead { color: var(--body); max-width: 62ch; margin: 0 0 30px; font-size: 16px; line-height: 1.62; }
+      .lead b { color: var(--ink); font-weight: 600; }
+
+      /* Layout */
+      .app { display: grid; grid-template-columns: 340px 1fr; gap: 26px; align-items: start; }
+      @media (max-width: 900px) { .app { grid-template-columns: 1fr; } }
+
+      /* Console module */
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 22px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      }
+      .controls { position: sticky; top: 16px; }
+      @media (max-width: 900px) { .controls { position: static; } }
+
+      /* Presets */
+      .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+      .preset {
+        font-family: var(--mono); font-size: 12px; letter-spacing: 0.3px;
+        padding: 8px 14px; border-radius: 8px;
+        border: 1px solid var(--line); background: var(--surface-2); color: var(--body);
+        cursor: pointer; transition: border-color 0.14s ease, color 0.14s ease, background 0.14s ease;
+      }
+      .preset:hover { border-color: var(--rust); color: var(--rust-2); }
+
+      /* Fields + labels */
+      .field { margin-bottom: 18px; }
+      .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .field label,
+      .field .lbl {
+        display: block; font-family: var(--mono);
+        font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+        color: var(--muted); margin-bottom: 8px; font-weight: 500;
+      }
+      input.txt {
+        width: 100%; padding: 9px 12px;
+        border: 1px solid var(--line); border-radius: 8px;
+        background: var(--surface-2); color: var(--ink);
+        font-family: var(--mono); font-size: 14px; letter-spacing: 0.3px;
+      }
+      input.txt::placeholder { color: var(--muted); }
+      input.txt:focus { outline: none; border-color: var(--rust); box-shadow: 0 0 0 3px rgba(209, 123, 44, 0.18); }
+
+      /* Segmented controls */
+      .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+      .opt {
+        font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.2px;
+        padding: 8px 13px; border-radius: 8px;
+        border: 1px solid var(--line); background: var(--surface-2); color: var(--body);
+        cursor: pointer; transition: border-color 0.14s ease, color 0.14s ease, background 0.14s ease;
+      }
+      .opt:hover { border-color: var(--rust); color: var(--ink); }
+      .opt.active {
+        background: var(--rust); border-color: var(--rust); color: #1a130a; font-weight: 600;
+        box-shadow: 0 2px 12px rgba(209, 123, 44, 0.32);
+      }
+
+      /* Output toolbar */
+      .toolbar {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 14px; flex-wrap: wrap; margin-bottom: 16px;
+      }
+      .readout {
+        font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.6px;
+        text-transform: uppercase; color: var(--muted);
+      }
+      .readout .ro-n { color: var(--rust-2); font-weight: 600; font-size: 15px; }
+      .readout .ro-sep { color: var(--line); margin: 0 8px; }
+      .ro-n.pulse { animation: roPulse 0.5s ease; }
+      @keyframes roPulse {
+        0% { color: var(--rust-2); }
+        45% { color: #fff; text-shadow: 0 0 12px rgba(232, 154, 74, 0.7); }
+        100% { color: var(--rust-2); text-shadow: none; }
+      }
+      .btn-print {
+        font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.6px; text-transform: uppercase;
+        background: var(--rust); color: #1a130a; border: 0; border-radius: 8px;
+        padding: 10px 18px; font-weight: 600; cursor: pointer; transition: background 0.14s ease;
+      }
+      .btn-print:hover { background: var(--rust-2); }
+
+      /* The paper sheet — the signature: a real sheet on the workbench, with crop marks */
+      .paper {
+        position: relative;
+        background: #fff; color: #1a1a1a;
+        max-width: 860px; padding: 34px 36px; border-radius: 2px;
+        box-shadow: 0 26px 64px -14px rgba(0, 0, 0, 0.62), 0 6px 16px rgba(0, 0, 0, 0.4);
+      }
+      .crop { position: absolute; width: 13px; height: 13px; pointer-events: none; }
+      .crop::before, .crop::after { content: ''; position: absolute; background: var(--rust); }
+      .crop::before { width: 13px; height: 1.5px; }
+      .crop::after { width: 1.5px; height: 13px; }
+      .crop.tl { top: -8px; left: -8px; }
+      .crop.tl::before, .crop.tl::after { top: 0; left: 0; }
+      .crop.tr { top: -8px; right: -8px; }
+      .crop.tr::before { top: 0; right: 0; }
+      .crop.tr::after { top: 0; right: 0; }
+      .crop.bl { bottom: -8px; left: -8px; }
+      .crop.bl::before { bottom: 0; left: 0; }
+      .crop.bl::after { bottom: 0; left: 0; }
+      .crop.br { bottom: -8px; right: -8px; }
+      .crop.br::before { bottom: 0; right: 0; }
+      .crop.br::after { bottom: 0; right: 0; }
+
+      .disclaimer {
+        font-family: var(--mono); color: var(--muted);
+        font-size: 11.5px; line-height: 1.7; letter-spacing: 0.2px;
+        margin-top: 34px; max-width: 92ch;
+      }
+      .disclaimer b { color: var(--rust-2); font-weight: 600; }
+
+      /* Keyboard focus (quality floor) */
+      .opt:focus-visible, .preset:focus-visible, .btn-print:focus-visible, input.txt:focus-visible {
+        outline: 2px solid var(--rust-2); outline-offset: 2px;
+      }
+
+      /* ── Build sheet internals (ported from render.py, scoped under .buildsheet) ── */
+      .buildsheet { font: 11px/1.2 'Segoe UI', Roboto, -apple-system, sans-serif; color: #1a1a1a; }
+      .buildsheet header { border-bottom: 2.5px solid var(--rust); padding-bottom: 5px; margin-bottom: 7px; }
+      .buildsheet h1 {
+        font-size: 17px; margin: 0;
+        font-family: var(--display); font-weight: 800; letter-spacing: 0.2px; color: #1a1a1a;
+      }
+      .buildsheet .sub { color: #666; font-size: 9.5px; }
+      .buildsheet .meta { display: flex; flex-wrap: wrap; gap: 1px 15px; margin-top: 3px; font-size: 9.5px; }
+      .buildsheet .meta b { color: #000; }
+      .buildsheet h2 {
+        font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; margin: 8px 0 2px;
+        border-bottom: 1.5px solid var(--rust); padding-bottom: 1px;
+        font-family: var(--display); font-weight: 700; color: #3a2b1a;
+      }
+      .buildsheet h2:first-child { margin-top: 0; }
+      .buildsheet .sheet { display: flex; gap: 22px; align-items: flex-start; }
+      .buildsheet .col { flex: 1; min-width: 0; }
+      .buildsheet .boxgrp, .buildsheet .addon { break-inside: avoid; margin: 0 0 4px; }
+      .buildsheet .boxhdr { display: flex; align-items: baseline; gap: 6px; border-bottom: 1px solid #ddd; }
+      .buildsheet .bx { color: var(--rust); font-weight: bold; }
+      .buildsheet .bn { color: #aaa; font-size: 9px; flex: 1; }
+      .buildsheet .cols { color: #777; font-size: 9px; font-family: Consolas, monospace; }
+      .buildsheet .addonname { font-weight: bold; margin: 3px 0 0; }
+      .buildsheet table.parts { width: 100%; border-collapse: collapse; }
+      .buildsheet table.parts td { padding: 0 4px; vertical-align: top; line-height: 1.3; }
+      .buildsheet td.stages { white-space: nowrap; width: 46px; }
+      .buildsheet .chk { font-size: 13px; color: #555; }
+      .buildsheet td.pid {
+        font-family: Consolas, ui-monospace, monospace; white-space: nowrap; padding-right: 8px; color: #444;
+      }
+      .buildsheet .qty { color: var(--rust); font-weight: bold; }
+      .buildsheet .none { color: #999; font-size: 10px; font-style: italic; }
+      .buildsheet .flags {
+        break-inside: avoid; border: 1px solid #d99; background: #fff6f6;
+        padding: 4px 9px; margin: 0 0 6px; font-size: 9px; border-radius: 4px;
+      }
+      .buildsheet .flags ul { margin: 2px 0 0 15px; padding: 0; }
+      .buildsheet footer {
+        margin-top: 9px; border-top: 1px solid #ccc; padding-top: 6px; display: flex; gap: 28px; font-size: 10px;
+      }
+      .buildsheet .sign .line { display: inline-block; border-bottom: 1px solid #333; width: 135px; margin-left: 6px; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .topbar .dot { animation: none; }
+        .ro-n.pulse { animation: none; }
+        * { scroll-behavior: auto; }
+      }
+
+      /* ── Print: drop the console; render the sheet as clean black-on-white grayscale ── */
+      @media print {
+        @page { size: letter; margin: 0.45in; }
+        body { background: #fff; }
+        .topbar, .brandhead, .kicker, h1.title, .lead, .controls, .toolbar, .disclaimer, .crop {
+          display: none !important;
+        }
+        .wrap { max-width: none; margin: 0; padding: 0; }
+        .app { display: block; }
+        .output { display: block; }
+        .paper {
+          max-width: none; margin: 0; padding: 0;
+          border: 0; border-radius: 0; box-shadow: none; background: #fff;
+        }
+        .buildsheet { font-size: 10px; line-height: 1.18; color: #000; }
+        .buildsheet header { border-bottom-color: #000; }
+        .buildsheet h1 { color: #000; }
+        .buildsheet h2 { color: #000; border-bottom-color: #000; }
+        .buildsheet .bx, .buildsheet .qty, .buildsheet .chk, .buildsheet td.pid { color: #000; }
+        .buildsheet .sub, .buildsheet .cols, .buildsheet .bn { color: #555; }
+        .buildsheet .flags { background: #fff; border: 1px solid #000; border-radius: 0; }
+      }
+    </style>
+  </body>
+</html>
