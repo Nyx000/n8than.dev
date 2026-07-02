@@ -22,21 +22,21 @@ const groups = [
   { field: 'false_tops_right', label: 'False Tops — Right', options: [['none', 'None'], ['bamboo', 'Bamboo'], ['metal', 'Metal'], ['normal', 'Normal']] },
 ] as const;
 
-// Initial load = the #7101 example order (a rich sheet on first paint).
+// Initial load = real order #7296 — the validation example (matched the shop's hand sheet 1:1).
 const defaults: Record<string, string> = {
   generation: '5th',
   rear_config: 'standard',
   fulfillment: 'ship',
   bed_extension: '60_40_split',
-  separators: 'none',
+  separators: 'set_of_3',
   extra_dividers: 'add_2',
   false_tops_left: 'bamboo',
-  false_tops_right: 'bamboo',
+  false_tops_right: 'metal',
 };
 
 const presets = [
   { key: 'base', label: 'Base Kit' },
-  { key: 'example', label: 'Example · #7101' },
+  { key: 'example', label: 'Real Order · #7296' },
   { key: 'loaded', label: 'Fully Loaded' },
 ];
 ---
@@ -71,7 +71,8 @@ const presets = [
       <p class="lead">
         Pick the options a customer selected at checkout. The production build sheet — the exact
         cut list, hardware counts, and box grouping the floor works from — is <b>generated live</b>,
-        in the same format the team fills out by hand today.
+        in the same format the team fills out by hand today. It loads with real order <b>#7296</b>,
+        whose generated sheet matched the shop's hand-built one <b>line for line</b>.
       </p>
 
       <div class="app">
@@ -86,11 +87,11 @@ const presets = [
           <div class="two">
             <div class="field">
               <label for="order_number">Order #</label>
-              <input class="txt" id="order_number" type="text" value="7101" autocomplete="off" />
+              <input class="txt" id="order_number" type="text" value="7296" autocomplete="off" />
             </div>
             <div class="field">
               <label for="customer_name">Customer</label>
-              <input class="txt" id="customer_name" type="text" value="Jordan Blake" autocomplete="off" />
+              <input class="txt" id="customer_name" type="text" value="Tay" autocomplete="off" />
             </div>
           </div>
 
@@ -129,9 +130,9 @@ const presets = [
       </div>
 
       <p class="disclaimer">
-        Prototype. Catalog data transcribed from a photo of the current V2.7 checklist — shown as
-        <b>DRAFT</b>, pending verification with the shop. Anything inferred (cubby selection, set/pair
-        counts, 2nd-row-delete behaviour) is flagged on the sheet rather than silently assumed.
+        Prototype. Catalog data started from a photo of the current V2.7 checklist, then
+        <b>reconciled with the shop and validated against real order #7296</b>. Anything still
+        unconfirmed is flagged on the sheet rather than silently assumed.
       </p>
     </div>
 
@@ -227,8 +228,8 @@ const presets = [
         },
         example: {
           generation: '5th', rear_config: 'standard', fulfillment: 'ship', bed_extension: '60_40_split',
-          separators: 'none', extra_dividers: 'add_2', false_tops_left: 'bamboo', false_tops_right: 'bamboo',
-          order_number: '7101', customer_name: 'Jordan Blake',
+          separators: 'set_of_3', extra_dividers: 'add_2', false_tops_left: 'bamboo', false_tops_right: 'metal',
+          order_number: '7296', customer_name: 'Tay',
         },
         loaded: {
           generation: '4th', rear_config: '2nd_row_delete', fulfillment: 'install', bed_extension: '60_40_split',

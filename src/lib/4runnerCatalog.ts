@@ -83,7 +83,7 @@ export const CATALOG_4RUNNER: Catalog = {
     hardware_variant: 'China Hex + China Slides',
     source_document: '4Runner 4th & 5th Gen V2.7 Checklist (China Hex + China Slides)',
     source_updated: '2026-06-03',
-    status: 'DRAFT — unverified',
+    status: 'DRAFT — core rules validated against real order #7296 (2026-07-02)',
   },
 
   legend: {
@@ -135,8 +135,8 @@ export const CATALOG_4RUNNER: Catalog = {
       qty: 1,
       options: ['F9', 'F39', 'F41'],
       select: [
-        { when: { generation: '5th', rear_config: 'standard' }, id: 'F9' },
-        { when: { generation: '5th', rear_config: '3rd_row_delete' }, id: 'F39' },
+        { when: { generation: '5th', rear_config: '3rd_row_delete' }, id: 'F39' }, // 3rd-row replaces (ON HOLD)
+        { when: { generation: '5th' }, id: 'F9' }, // 5th standard + 2nd-row-delete — unchanged
         { when: { generation: '4th' }, id: 'F41' },
       ],
     },
@@ -147,8 +147,8 @@ export const CATALOG_4RUNNER: Catalog = {
       qty: 1,
       options: ['F10', 'F40', 'F42'],
       select: [
-        { when: { generation: '5th', rear_config: 'standard' }, id: 'F10' },
-        { when: { generation: '5th', rear_config: '3rd_row_delete' }, id: 'F40' },
+        { when: { generation: '5th', rear_config: '3rd_row_delete' }, id: 'F40' }, // 3rd-row replaces (ON HOLD)
+        { when: { generation: '5th' }, id: 'F10' }, // standard + 2nd-row-delete — unchanged
         { when: { generation: '4th' }, id: 'F42' },
       ],
     },
@@ -159,8 +159,8 @@ export const CATALOG_4RUNNER: Catalog = {
       qty: 1,
       options: ['F11', 'F43', 'F45'],
       select: [
-        { when: { generation: '5th', rear_config: 'standard' }, id: 'F11' },
-        { when: { generation: '5th', rear_config: '3rd_row_delete' }, id: 'F43' },
+        { when: { generation: '5th', rear_config: '3rd_row_delete' }, id: 'F43' }, // 3rd-row replaces (ON HOLD)
+        { when: { generation: '5th' }, id: 'F11' }, // standard + 2nd-row-delete — unchanged
         { when: { generation: '4th' }, id: 'F45' },
       ],
     },
@@ -171,8 +171,8 @@ export const CATALOG_4RUNNER: Catalog = {
       qty: 1,
       options: ['F12', 'F44', 'F46'],
       select: [
-        { when: { generation: '5th', rear_config: 'standard' }, id: 'F12' },
-        { when: { generation: '5th', rear_config: '3rd_row_delete' }, id: 'F44' },
+        { when: { generation: '5th', rear_config: '3rd_row_delete' }, id: 'F44' }, // 3rd-row replaces (ON HOLD)
+        { when: { generation: '5th' }, id: 'F12' }, // standard + 2nd-row-delete — unchanged
         { when: { generation: '4th' }, id: 'F46' },
       ],
     },
@@ -207,7 +207,7 @@ export const CATALOG_4RUNNER: Catalog = {
         { id: 'H1', desc: '7/16" Framing Screw', box: 2, stage_type: 'stocked', qty: 20 },
         { id: 'H10', desc: '1/4-20 x 3/4" Bolt', box: 2, stage_type: 'stocked', qty: 4 },
         { id: 'H14', desc: '1/4-20 x 3/4" T-Nut', box: 2, stage_type: 'stocked', qty: 4 },
-        { id: 'H00', desc: '30° bracket', box: 2, stage_type: 'stocked', qty: 4 },
+        { id: 'H28', desc: '30° bracket', box: 2, stage_type: 'stocked', qty: 4 }, // canonical id (assembly pg 47)
       ],
     },
 
