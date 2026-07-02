@@ -500,9 +500,19 @@ const presets = [
       }
       .buildsheet .flags ul { margin: 2px 0 0 15px; padding: 0; }
       .buildsheet footer {
-        margin-top: 9px; border-top: 1px solid #ccc; padding-top: 6px; display: flex; gap: 28px; font-size: 10px;
+        margin-top: 9px; border-top: 1px solid #ccc; padding-top: 6px;
+        display: flex; flex-direction: column; gap: 5px; font-size: 10px;
       }
+      .buildsheet footer .signrow { display: flex; gap: 28px; }
       .buildsheet .sign .line { display: inline-block; border-bottom: 1px solid #333; width: 135px; margin-left: 6px; }
+      .buildsheet .legend {
+        display: flex; flex-wrap: wrap; gap: 2px 20px;
+        font-size: 8.5px; color: #777;
+      }
+      .buildsheet .legend b {
+        color: var(--rust); font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.05em; font-size: 8px; margin-right: 4px;
+      }
 
       @media (prefers-reduced-motion: reduce) {
         .topbar .dot { animation: none; }
@@ -528,8 +538,8 @@ const presets = [
         .buildsheet header { border-bottom-color: #000; }
         .buildsheet h1 { color: #000; }
         .buildsheet h2 { color: #000; border-bottom-color: #000; }
-        .buildsheet .bx, .buildsheet .qty, .buildsheet .chk, .buildsheet td.pid { color: #000; }
-        .buildsheet .sub, .buildsheet .cols, .buildsheet .bn { color: #555; }
+        .buildsheet .bx, .buildsheet .qty, .buildsheet .chk, .buildsheet td.pid, .buildsheet .legend b { color: #000; }
+        .buildsheet .sub, .buildsheet .cols, .buildsheet .bn, .buildsheet .legend { color: #444; }
         .buildsheet .flags { background: #fff; border: 1px solid #000; border-radius: 0; }
       }
     </style>

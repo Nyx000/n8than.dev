@@ -78,6 +78,37 @@ function boxed(items: BomItem[], boxNames: Record<number, string>): string {
   return out;
 }
 
+// Abbreviations mirror STAGE_HEADER above (C · Pr · Pa / St · Pa) — kept as a small map rather
+// than auto-derived first letters, since "Processed"/"Packed" both start with P.
+const STAGE_ABBR: Record<string, string> = { Cut: 'C', Processed: 'Pr', Packed: 'Pa', Stocked: 'St' };
+
+function legendHtml(catalog: Catalog): string {
+  const boxNames = catalog.legend.boxes;
+  const stageTypes = catalog.legend.stage_types;
+
+  const seen = new Set<string>();
+  const stageParts: string[] = [];
+  for (const names of Object.values(stageTypes)) {
+    for (const name of names) {
+      if (seen.has(name)) continue;
+      seen.add(name);
+      stageParts.push(`${esc(STAGE_ABBR[name] ?? name.slice(0, 2))}=${esc(name)}`);
+    }
+  }
+
+  const boxParts = Object.keys(boxNames)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .map((n) => `${n}=${esc(boxNames[n])}`);
+
+  return (
+    `<div class="legend">` +
+    `<span><b>Stages</b> ${stageParts.join(' &middot; ')}</span>` +
+    `<span><b>Boxes</b> ${boxParts.join(' &middot; ')}</span>` +
+    `</div>`
+  );
+}
+
 function addonBlocks(items: BomItem[], boxNames: Record<number, string>): string {
   const bySrc = new Map<string, BomItem[]>();
   for (const it of items) {
@@ -150,9 +181,10 @@ export function renderBuildSheet(order: Order, bom: BomItem[], warnings: string[
     `</div>${shipLine}</header>`;
 
   const footer =
-    `<footer><span class="sign">Packed By<span class="line"></span></span>` +
+    `<footer>${legendHtml(catalog)}` +
+    `<div class="signrow"><span class="sign">Packed By<span class="line"></span></span>` +
     `<span class="sign">QA Check By<span class="line"></span></span>` +
-    `<span class="sign">Date<span class="line"></span></span></footer>`;
+    `<span class="sign">Date<span class="line"></span></span></div></footer>`;
 
   const body = `<div class="sheet"><div class="col">${left}</div><div class="col">${right}</div></div>`;
 
