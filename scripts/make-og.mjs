@@ -85,7 +85,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" 
   <text x="80" y="250" font-family="'Share Tech Mono','Consolas','DejaVu Sans Mono',monospace" font-size="110" fill="${accent}" letter-spacing="2">n8than.dev</text>
   <rect x="84" y="278" width="150" height="4" fill="${accent}"/>
   <text x="86" y="330" font-family="'Outfit','Segoe UI','DejaVu Sans',sans-serif" font-size="40" fill="${text}">software engineer — san diego</text>
-  <text x="86" y="384" font-family="'Share Tech Mono','Consolas','DejaVu Sans Mono',monospace" font-size="26" fill="${muted}"># i build the systems people rely on at 3 a.m.</text>
+  <text x="86" y="384" font-family="'Share Tech Mono','Consolas','DejaVu Sans Mono',monospace" font-size="26" fill="${muted}"># i build software people actually use</text>
 </svg>`;
 
 await sharp(Buffer.from(svg)).png().toFile(out);
