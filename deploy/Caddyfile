@@ -116,12 +116,15 @@ n8than.dev {
 		# WS3 cache matrix — specific matchers hard-set their value; the `?` default
 		# only fills Cache-Control where no matcher set it, so header-handler ordering
 		# can't let the default stomp the specific rules (a plain set-default did).
-		@hashed path /_astro/*
-		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		# Unhashed assets at the site root (favicon, award image) — 1 day.
 		@static path *.ico *.svg *.png *.jpg *.jpeg *.webp *.avif *.woff2 *.ttf *.otf
 		header @static Cache-Control "public, max-age=86400"
 		@resume path /resume.pdf
 		header @resume Cache-Control "public, max-age=3600, must-revalidate"
+		# /_astro/* is content-hashed → immutable. LAST so it wins for hashed fonts and
+		# images that also match @static (Caddy applies the last matching hard-set).
+		@hashed path /_astro/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
 		header ?Cache-Control "no-cache"
 
 		file_server
