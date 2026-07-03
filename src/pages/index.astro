@@ -1,12 +1,14 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CitadelHero from '../components/CitadelHero.astro';
+import Grain from '../components/Grain.astro';
 ---
 
 <BaseLayout
   title="n8than.dev"
   description="Computer scientist, software engineer, and problem solver"
 >
+  <Grain />
   <section class="hero">
     <CitadelHero />
     <div class="hero-inner stagger">
@@ -21,7 +23,6 @@ import CitadelHero from '../components/CitadelHero.astro';
           >résumé</a
         >
         <a href="/projects">projects</a>
-        <a href="/blog">blog</a>
         <a href="/recognition">recognition</a>
         <a href="/about">about</a>
       </nav>
