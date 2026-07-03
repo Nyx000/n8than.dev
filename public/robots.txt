@@ -1,0 +1,6 @@
+# https://n8than.dev/robots.txt
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://n8than.dev/sitemap-index.xml

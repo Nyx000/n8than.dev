@@ -1,0 +1,5 @@
+# Security contact for n8than.dev — RFC 9116 (https://securitytxt.org)
+Contact: mailto:husenathan@gmail.com
+Expires: 2027-07-02T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://n8than.dev/.well-known/security.txt
