@@ -33,6 +33,7 @@ const { title, description, canonicalURL, ogImage } = Astro.props;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    min-height: 100svh; /* excludes the mobile URL bar so the footer sits right */
   }
 
   main {
