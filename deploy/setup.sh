@@ -48,15 +48,18 @@ if ! grep -qE '^\s*import /etc/caddy/sites/\*' /etc/caddy/Caddyfile; then
 fi
 
 # Staged install: back up, install, validate the assembled config, restore on failure.
+# Backup MUST live outside sites/ — `import /etc/caddy/sites/*` would otherwise load
+# the .bak as a second n8than.dev ("ambiguous site definition").
 SITE=/etc/caddy/sites/n8than.dev
-[ -f "$SITE" ] && cp "$SITE" "$SITE.bak"
+BAK=/etc/caddy/n8than.dev.deploy.bak
+[ -f "$SITE" ] && cp "$SITE" "$BAK"
 cp deploy/Caddyfile "$SITE"
 if ! caddy validate --config /etc/caddy/Caddyfile; then
-  [ -f "$SITE.bak" ] && mv "$SITE.bak" "$SITE"
+  [ -f "$BAK" ] && mv "$BAK" "$SITE"
   echo "ERROR: caddy validate failed; previous site config restored." >&2
   exit 1
 fi
-rm -f "$SITE.bak"
+rm -f "$BAK"
 systemctl reload caddy
 
 echo ""
