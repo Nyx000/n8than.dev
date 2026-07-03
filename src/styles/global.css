@@ -22,7 +22,10 @@ body {
   --color-bg: #0a0a0a;
   --color-surface: #131313;
   --color-text: #d4d0c8;
-  --color-muted: #6b6b72;
+  /* #6b6b72 was 3.74:1 on --color-bg (fails WCAG AA); #8a8a92 is 5.78:1 (passes AA
+     for normal text). This token carries real content — nav, project descriptions,
+     testimonials, grow labels — so the bump is a contrast fix, not just chrome. */
+  --color-muted: #8a8a92;
   --color-accent: #ff6600;
   --color-accent-hover: #ff8833;
   --color-border: #1e1e22;
