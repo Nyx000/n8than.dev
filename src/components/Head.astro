@@ -1,5 +1,10 @@
 ---
 import { ClientRouter } from 'astro:transitions';
+// Self-hosted fonts: preload the two above-the-fold faces so they're ready at first
+// paint (the @fontsource CSS is imported in global.css). JetBrains Mono is below the
+// fold (/grow data), so it isn't preloaded.
+import outfitWoff2 from '@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2?url';
+import shareTechWoff2 from '@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff2?url';
 
 interface Props {
   title: string;
@@ -13,12 +18,8 @@ const { title, description, canonicalURL = Astro.url.href, ogImage } = Astro.pro
 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link
-  href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap"
-  rel="stylesheet"
-/>
+<link rel="preload" as="font" type="font/woff2" href={outfitWoff2} crossorigin />
+<link rel="preload" as="font" type="font/woff2" href={shareTechWoff2} crossorigin />
 <title>{title}</title>
 <meta name="description" content={description} />
 <meta name="generator" content={Astro.generator} />

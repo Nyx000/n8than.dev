@@ -16,6 +16,9 @@
     "@astrojs/node": "^9.5.4",
     "@astrojs/rss": "^4.0.15",
     "@astrojs/sitemap": "^3.7.0",
+    "@fontsource-variable/jetbrains-mono": "^5.2.8",
+    "@fontsource-variable/outfit": "^5.2.8",
+    "@fontsource/share-tech-mono": "^5.2.7",
     "astro": "^5.17.1",
     "typescript": "^5.9.3"
   },

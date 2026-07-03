@@ -1,3 +1,10 @@
+/* Self-hosted fonts (replaces the render-blocking Google Fonts <link>): removes the
+   CLS 0.34 swap, the third-party IP leak, and the Google hosts from the font CSP.
+   @import must precede all other rules. */
+@import '@fontsource/share-tech-mono/400.css';
+@import '@fontsource-variable/outfit/index.css';
+@import '@fontsource-variable/jetbrains-mono/index.css';
+
 /* Reset */
 *,
 *::before,
@@ -20,10 +27,10 @@ body {
   --color-accent-hover: #ff8833;
   --color-border: #1e1e22;
 
-  /* Typography — Google Fonts loaded in Head.astro */
+  /* Typography — self-hosted via @fontsource (imported above) */
   --font-display: 'Share Tech Mono', ui-monospace, monospace;
-  --font-body: 'Outfit', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-body: 'Outfit Variable', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
 
   /* Spacing scale */
   --space-xs: 0.25rem; /* used in about.astro; was undefined → declaration dropped */
