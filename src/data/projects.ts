@@ -12,7 +12,7 @@ export const projects: Project[] = [
   {
     title: 'SeedSearch — Semantic Catalog Search',
     description:
-      'Natural-language search across catalogs from three San Diego & SoCal seed growers. Describe a garden in plain English — "low-water flowers for pollinators" — and the right seeds surface, ranked by meaning. Built on pgvector + Voyage AI, with an MCP server and a self-maintaining ingest pipeline.',
+      'Natural-language search across catalogs from 10 San Diego & SoCal seed growers and nurseries. Describe a garden in plain English — "low-water flowers for pollinators" — and the right seeds and plants surface, ranked by meaning. Built on pgvector + Voyage AI, with an MCP server and a self-maintaining ingest pipeline.',
     url: '/seedsearch',
     tags: ['Python', 'FastAPI', 'PostgreSQL', 'pgvector', 'Voyage AI', 'MCP', 'Caddy'],
     expandable: true,
@@ -20,10 +20,10 @@ export const projects: Project[] = [
       <p class="hook">Keyword search makes you know the variety name. This doesn't: it reads what you mean and finds the seeds that fit. <a href="/seedsearch">Try it live →</a></p>
       <ul class="highlights">
         <li><strong>Two-stage retrieval.</strong> pgvector runs an approximate-nearest-neighbor recall over Voyage embeddings, then rerank-2.5 re-reads your full request against the finalists for precision. A live toggle lets you feel the reranker reorder results.</li>
-        <li><strong>Self-maintaining catalog.</strong> A polite scraper pulls live WooCommerce and Shopify product feeds across three SoCal seed growers, a content-hash diff re-embeds only what actually changed, vanished products are retired, and a weekly systemd timer keeps it current — at near-zero embedding cost.</li>
+        <li><strong>Self-maintaining catalog.</strong> A polite scraper pulls live WooCommerce and Shopify product feeds across 10 SoCal seed growers and nurseries, a content-hash diff re-embeds only what actually changed, vanished products are retired, and a weekly systemd timer keeps it current — at near-zero embedding cost.</li>
         <li><strong>Two front doors, one engine.</strong> The same vector store powers a public search UI and an MCP server that exposes the catalog as tools (search, lookup, categories) to any AI assistant.</li>
       </ul>
-      <p class="stats">3 SoCal seed growers · voyage-3.5 + rerank-2.5 · live at /seedsearch</p>`,
+      <p class="stats">10 SoCal sources · voyage-3.5 + rerank-2.5 · live at /seedsearch</p>`,
   },
   {
     title: 'Grow Tent Telemetry',
@@ -93,11 +93,11 @@ export const projects: Project[] = [
     tags: ['Astro 5', 'TypeScript', 'CSS'],
     expandable: true,
     details: `
-      <p class="hook">A portfolio that practices what it preaches. Static by default, zero client JavaScript, built with the same attention to craft it showcases.</p>
+      <p class="hook">A portfolio that practices what it preaches — designed instead of templated, and run like the production systems it documents.</p>
       <ul class="highlights">
-        <li><strong>Half-Life 2 aesthetic.</strong> Industrial orange on dark, CRT scanline overlay, animated film grain via canvas. Not a template.</li>
-        <li><strong>Zero JS by default.</strong> Astro 5 ships pure HTML/CSS. Interactive bits hydrate only where needed.</li>
-        <li><strong>Content collections.</strong> Journal posts live in markdown with type-safe frontmatter. RSS feed and sitemap generate automatically.</li>
+        <li><strong>Half-Life 2 aesthetic.</strong> Industrial orange on dark, a CRT scanline overlay, and an animated film-grain canvas on the homepage. Not a template.</li>
+        <li><strong>Static-first, JavaScript only where it earns it.</strong> Astro ships HTML and CSS by default; the procedural hero canvas, the live /grow telemetry, and view transitions are the deliberate exceptions.</li>
+        <li><strong>Run like production.</strong> An enforced Content-Security-Policy, a full security-header set, Caddy on a VPS, and CI deploys — treated as infrastructure, not a static dump.</li>
       </ul>`,
   },
 ];

@@ -109,6 +109,13 @@ const testimonials = [
       "Hi Nate! Just wanted to say thank you again for always being such a great & positive person, especially to those of us in the night shift, where positivity has been hard to find lately. You're always so kind and helpful, with a wonderful attitude that we should ALL have more of. It's always nice to see you there for us night shift peeps. You rock!",
   },
 ];
+
+// Derived so the summary can't drift from the data: unique colleagues and the
+// calendar-year span the notes cover.
+const colleagues = new Set(testimonials.map((t) => t.name)).size;
+const years = testimonials.map((t) => Number(t.date.slice(-4)));
+const spanStart = Math.min(...years);
+const spanEnd = Math.max(...years);
 ---
 
 <BaseLayout
@@ -139,8 +146,8 @@ const testimonials = [
       <h2>Colleague Testimonials</h2>
       <p class="testimonials-summary">
         <span class="stat">{testimonials.length}</span> recognitions from
-        <span class="stat">15+</span> colleagues over
-        <span class="stat">4+</span> years
+        <span class="stat">{colleagues}</span> colleagues,
+        <span class="stat">{spanStart}–{spanEnd}</span>
       </p>
 
       <div class="grid">
