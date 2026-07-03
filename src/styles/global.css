@@ -18,6 +18,8 @@ body {
 
 /* Design Tokens */
 :root {
+  color-scheme: dark;
+
   /* Color palette — Half-Life 2 */
   --color-bg: #0a0a0a;
   --color-surface: #131313;
@@ -29,11 +31,14 @@ body {
   --color-accent: #ff6600;
   --color-accent-hover: #ff8833;
   --color-border: #1e1e22;
+  --color-warn: #c9a227; /* STALE amber / band glyphs */
+  --color-danger: #b3404a; /* OFFLINE red */
 
   /* Typography — self-hosted via @fontsource (imported above) */
   --font-display: 'Share Tech Mono', ui-monospace, monospace;
   --font-body: 'Outfit Variable', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+  --text-h1: clamp(1.5rem, 1rem + 2.2vw, 2rem); /* fluid section heading */
 
   /* Spacing scale */
   --space-xs: 0.25rem; /* used in about.astro; was undefined → declaration dropped */
@@ -42,6 +47,37 @@ body {
   --space-lg: 2rem;
   --space-xl: 4rem;
   --space-2xl: 6rem;
+
+  /* Layout */
+  --container: 64rem;
+  --container-narrow: 42rem;
+
+  /* Radii */
+  --radius-sm: 4px; /* chips, buttons, inputs, code, small UI */
+  --radius-md: 8px; /* cards, panels, frames, pre blocks */
+
+  /* Motion */
+  --dur-fast: 150ms; /* color/opacity micro-states */
+  --dur-med: 250ms; /* surfaces, borders, glows */
+  --dur-slow: 350ms; /* structural (expand) */
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* Breakpoint convention — var() is illegal in @media, so these are documentation:
+     640px  — site chrome collapse (header stack, hero pad, recognition 1-col, citadel swap)
+     720px  — /grow instrument strip ⇄ 3-up zone cards (719 max-width / 720 min-width pair)
+     1080px — /grow camera breakout
+   Content-derived exceptions commented at use sites (cmdline 640px wrap, grow 374px readout). */
+
+html {
+  scroll-behavior: smooth;
+  scrollbar-color: var(--color-border) var(--color-bg);
+}
+
+/* Anchored targets clear the fixed chrome / give breathing room. */
+[id] {
+  scroll-margin-top: var(--space-lg);
 }
 
 /* Base Styles */
@@ -95,6 +131,132 @@ code {
   color: var(--color-bg);
 }
 
+/* ============================================================================
+   Global utilities (W1). Component-scoped selectors carry Astro's
+   [data-astro-cid-*] attribute → (0,2,0), so these (0,1,0) globals never fight
+   existing page styles. Any deliberate override in W4–W7 is a compound selector.
+   ============================================================================ */
+
+/* Layout containers — replace the 5 copy-pasted per-page blocks. */
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin-inline: auto;
+  padding: var(--space-lg) var(--space-md);
+}
+.container--narrow {
+  max-width: var(--container-narrow);
+}
+
+/* Section heading — the underlined display-font title used on every page. */
+.section-heading {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: var(--text-h1);
+  font-weight: 400;
+  line-height: 1.2;
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 2px solid var(--color-border);
+}
+
+/* Lead paragraph under a section heading. */
+.intro {
+  max-width: 60ch;
+  margin-bottom: var(--space-lg);
+  color: var(--color-muted);
+  line-height: 1.7;
+}
+
+/* One card spec. Base is inert (informational); .card--link opts into the
+   border + glow affordance — the ONLY hover treatment (no lift anywhere). */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+.card--link {
+  transition:
+    border-color var(--dur-med) var(--ease),
+    box-shadow var(--dur-med) var(--ease);
+}
+.card--link:hover,
+.card--link:focus-within {
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-accent) 22%, transparent),
+    0 10px 28px -14px color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+
+/* One chip spec — filled squares, mono, muted. */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tags > * {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.15em 0.55em;
+}
+
+/* Screen-reader-only + skip link (W9 wires the skip link into BaseLayout). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.skip-link {
+  position: absolute;
+  left: var(--space-sm);
+  top: -4rem;
+  z-index: 100;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-mono);
+  text-decoration: none;
+  transition: top var(--dur-fast) var(--ease);
+}
+.skip-link:focus {
+  top: var(--space-sm);
+}
+
+/* Shared keyframes (scoped component copies remain independent). */
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes livepulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 60%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
 /* Animated grain overlay (canvas-based, driven by grain.js) */
 #grain {
   position: fixed;
@@ -136,7 +298,7 @@ body::after {
 }
 
 .stagger > * {
-  animation: fadeUp 0.5s ease both;
+  animation: fadeUp 0.5s var(--ease-out) both;
 }
 .stagger > *:nth-child(1) {
   animation-delay: 0s;
@@ -165,8 +327,16 @@ body::after {
 .stagger > *:nth-child(9) {
   animation-delay: 0.64s;
 }
+/* Catch-all for groups larger than the 1–9 ladder (future blog lists). */
+.stagger > *:nth-child(n + 10) {
+  animation-delay: 0.72s;
+}
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   .stagger > * {
     animation: none;
     opacity: 1;
@@ -178,6 +348,20 @@ body::after {
 
   body::after {
     display: none;
+  }
+}
+
+/* ClientRouter root cross-fade tune (W3) — snappier than Astro's default, and
+   only where native view-transitions exist; no-preference gated. Header/Footer
+   opt out via transition:animate="none" so active-nav state swaps without a blink. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation-duration: 90ms;
+    animation-timing-function: ease-in;
+  }
+  ::view-transition-new(root) {
+    animation-duration: 140ms;
+    animation-timing-function: ease-out;
   }
 }
 

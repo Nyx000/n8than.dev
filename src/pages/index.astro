@@ -2,12 +2,32 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CitadelHero from '../components/CitadelHero.astro';
 import Grain from '../components/Grain.astro';
+
+const personSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: 'Nathan Huse',
+  url: 'https://n8than.dev',
+  jobTitle: 'Software Engineer',
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'San Diego',
+    addressRegion: 'CA',
+    addressCountry: 'US',
+  },
+  alumniOf: {
+    '@type': 'CollegeOrUniversity',
+    name: 'San Diego State University',
+  },
+  sameAs: ['https://github.com/Nyx000', 'https://www.linkedin.com/in/sd-nhuse/'],
+};
 ---
 
 <BaseLayout
-  title="n8than.dev"
-  description="Computer scientist, software engineer, and problem solver"
+  title="Nathan Huse — Software Engineer | n8than.dev"
+  description="Nathan Huse — software engineer in San Diego. I build the systems people rely on at 3 a.m.: a hospital food-ordering platform, a live grow-tent telemetry dashboard, and more."
 >
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(personSchema)} />
   <Grain />
   <section class="hero">
     <CitadelHero />

@@ -14,7 +14,7 @@ function isActive(href: string): boolean {
 }
 ---
 
-<header class="site-header">
+<header class="site-header" transition:animate="none">
   <a href="/" class="brand">n8than.dev</a>
   <nav>
     {
@@ -42,7 +42,7 @@ function isActive(href: string): boolean {
 
   .brand {
     font-family: var(--font-display);
-    font-weight: 700;
+    font-weight: 400; /* Share Tech Mono is single-weight; 700 was synthetic bold */
     font-size: 1.25rem;
     color: var(--color-text);
     text-decoration: none;
