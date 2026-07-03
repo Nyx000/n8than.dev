@@ -5,12 +5,25 @@
 	header {
 		defer
 		-Server
+		-Via
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "SAMEORIGIN"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Permissions-Policy "geolocation=(), microphone=(), camera=()"
 	}
+}
+
+# Non-deferred variant for handle_errors. Caddy's error path bypasses DEFERRED header
+# ops (so the block above never fires there), but plain set-ops do apply — this puts
+# the security headers on 404/5xx responses. No deletions here (a deletion would make
+# Caddy implicitly defer the whole block again); Server can't be stripped on errors.
+(n8than_headers_err) {
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	header X-Content-Type-Options "nosniff"
+	header X-Frame-Options "SAMEORIGIN"
+	header Referrer-Policy "strict-origin-when-cross-origin"
+	header Permissions-Policy "geolocation=(), microphone=(), camera=()"
 }
 
 # Strict CSP for the static site only (WS9). /seedsearch keeps its own relaxed policy.
@@ -100,22 +113,23 @@ n8than.dev {
 		root * /var/www/n8than.dev/current
 		import n8than_csp_site
 
-		# WS3 cache matrix — all immediate set-ops, document order = precedence
-		# (default first, specific overrides after). No deletions in these blocks.
-		header Cache-Control "no-cache"
+		# WS3 cache matrix — specific matchers hard-set their value; the `?` default
+		# only fills Cache-Control where no matcher set it, so header-handler ordering
+		# can't let the default stomp the specific rules (a plain set-default did).
 		@hashed path /_astro/*
 		header @hashed Cache-Control "public, max-age=31536000, immutable"
 		@static path *.ico *.svg *.png *.jpg *.jpeg *.webp *.avif *.woff2 *.ttf *.otf
 		header @static Cache-Control "public, max-age=86400"
 		@resume path /resume.pdf
 		header @resume Cache-Control "public, max-age=3600, must-revalidate"
+		header ?Cache-Control "no-cache"
 
 		file_server
 	}
 
 	# WS4: styled 404 + non-empty other errors, with full security headers.
 	handle_errors {
-		import n8than_headers
+		import n8than_headers_err
 		import n8than_csp_site
 		@404 expression {err.status_code} == 404
 		handle @404 {
