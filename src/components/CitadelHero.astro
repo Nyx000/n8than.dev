@@ -17,10 +17,10 @@
 </div>
 
 <style>
-  /* Lives in the same 64rem column as the header rule + footer bar. */
+  /* Lives in the same column as the header rule + footer bar. */
   .scene-wrap {
     width: 100%;
-    max-width: 64rem;
+    max-width: var(--container);
     margin: 1.5rem auto 0;
     padding: 0;
   }
@@ -40,6 +40,14 @@
     width: 100%;
     height: 100%;
     image-rendering: pixelated;
+    /* Fade in after the first frame paints (.lit added in script) — no blank flash,
+       no pop. Reduced-motion shows it immediately (below). */
+    opacity: 0;
+    transition: opacity 0.4s var(--ease-out);
+  }
+
+  .band canvas.lit {
+    opacity: 1;
   }
 
   /* Show the desktop canvas by default; the mobile one waits for the breakpoint. */
@@ -60,10 +68,13 @@
 
   /* Mobile: a 3.7:1 band crops the Citadel. Swap to a taller 150/126 band and
      its dedicated composition — Citadel centred and towering, sun beside it,
-     whole scene in frame. */
-  @media (max-width: 600px) {
+     whole scene in frame. Width is capped (not height) so pixels stay square and
+     the art never eats more than ~45svh of a phone screen. */
+  @media (max-width: 640px) {
     .band {
       aspect-ratio: 150 / 126;
+      width: min(100%, calc(45svh * 150 / 126));
+      margin-inline: auto;
     }
     .cv-d {
       display: none;
@@ -73,6 +84,22 @@
     }
     .band .melt {
       height: 17%;
+    }
+  }
+
+  /* Short landscape (phones on their side): cap the wide desktop band the same
+     way so it can't dominate a ~500px-tall viewport. */
+  @media (min-width: 641px) and (max-height: 520px) {
+    .band {
+      width: min(100%, calc(45svh * 340 / 92));
+      margin-inline: auto;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .band canvas {
+      opacity: 1;
+      transition: none;
     }
   }
 </style>
@@ -234,6 +261,12 @@
     // Paint one frame immediately so neither canvas ever flashes blank before the
     // observer fires; for prefers-reduced-motion this static frame is the whole show.
     for (const s of scenes) s.render(0);
+
+    // Fade the painted frame in on the next tick (CSS makes it instant under
+    // prefers-reduced-motion). Guards against a blank-then-pop on first load.
+    requestAnimationFrame(() => {
+      for (const s of scenes) s.cv.classList.add('lit');
+    });
 
     const observers: IntersectionObserver[] = [];
     if (!reduce) {

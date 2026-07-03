@@ -32,35 +32,47 @@ const personSchema = {
   <section class="hero">
     <CitadelHero />
     <div class="hero-inner stagger">
-      <h1 class="hero-name">๖ۣۜNathan</h1>
-      <div class="cmdline">
+      <h1 class="hero-name"><span class="clan-tag" aria-hidden="true">๖ۣۜ</span>Nathan</h1>
+      <p class="hero-tagline">
+        software engineer, san diego. i build the systems people rely on at 3 a.m.
+      </p>
+      <!-- Decorative typewriter flavour (the tagline above carries the real message),
+           so the whole widget is aria-hidden. -->
+      <div class="cmdline" aria-hidden="true">
         <span class="cmdline-line">
           <span class="cmdline-prompt">#</span><span class="cmdline-text"></span><span
-            class="cmdline-cursor"
-            aria-hidden="true"></span>
+            class="cmdline-cursor"></span>
         </span>
         <!-- Invisible sizer: holds the longest command so the box reserves its width
              (desktop) or wrapped height (mobile) without any JS measurement. Keep in
              sync with the longest string in `commands` below. -->
-        <span class="cmdline-line cmdline-sizer" aria-hidden="true">
+        <span class="cmdline-line cmdline-sizer">
           <span class="cmdline-prompt">#</span><span
             >npx tsx -e 'console.log("Making computers do what I want.")'</span
           ><span class="cmdline-cursor"></span>
         </span>
       </div>
-      <nav class="hero-links">
-        <a class="resume-link" href="/resume.pdf" target="_blank" rel="noopener noreferrer"
-          >résumé</a
+      <nav class="hero-links" aria-label="Primary">
+        <a class="resume-link" href="/resume.pdf" target="_blank" rel="noopener noreferrer">
+          résumé <span class="link-meta">— one pdf, no scrolling required</span>
+          <span class="sr-only">(opens in new tab)</span>
+        </a>
+        <a href="/projects">projects <span class="link-meta">— 6 built · 3 running live</span></a>
+        <a href="/recognition"
+          >recognition <span class="link-meta">— 18 thank-you notes · 1 award</span></a
         >
-        <a href="/projects">projects</a>
-        <a href="/recognition">recognition</a>
-        <a href="/about">about</a>
+        <a href="/about">about <span class="link-meta">— kitchen to code, the long version</span></a
+        >
+        <a href="/grow">grow <span class="link-meta">— live tent telemetry · streaming now</span></a
+        >
       </nav>
       <div class="nav-divider" aria-hidden="true"></div>
-      <nav class="hero-social">
-        <a href="https://github.com/Nyx000" target="_blank" rel="noopener noreferrer">github</a>
+      <nav class="hero-social" aria-label="Elsewhere">
+        <a href="https://github.com/Nyx000" target="_blank" rel="noopener noreferrer"
+          >github<span class="sr-only"> (opens in new tab)</span></a
+        >
         <a href="https://www.linkedin.com/in/sd-nhuse/" target="_blank" rel="noopener noreferrer"
-          >linkedin</a
+          >linkedin<span class="sr-only"> (opens in new tab)</span></a
         >
         <a href="mailto:husenathan@gmail.com">email</a>
       </nav>
@@ -75,6 +87,7 @@ const personSchema = {
     }
     document.addEventListener('astro:page-load', () => {
       const el = document.querySelector('.cmdline-text');
+      const box = document.querySelector('.cmdline');
       if (!el) return;
 
       const commands = [
@@ -82,66 +95,65 @@ const personSchema = {
         'python3 -c \'print("Making computers do what I want.")\'',
         'npx tsx -e \'console.log("Making computers do what I want.")\'',
       ];
+      const parked = commands[commands.length - 1];
 
-      // Box width/height is reserved by the CSS `.cmdline-sizer`, so no JS measuring.
+      // Box size is reserved by the CSS `.cmdline-sizer`, so no JS measuring.
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const alreadyPlayed = sessionStorage.getItem('hero-typed');
 
-      if (prefersReducedMotion) {
-        el.textContent = commands[0];
+      // Finite flavour: once seen (this session) or under reduced-motion, skip
+      // straight to the parked final command with an idle-blinking cursor.
+      if (prefersReducedMotion || alreadyPlayed) {
+        el.textContent = parked;
         return;
       }
 
       if (window.__cmdlineCleanup) window.__cmdlineCleanup();
-
-      let activeInterval = null;
-      let activeTimeout = null;
-      let cmdIndex = 0;
-      let firstTypeDone = false;
-
+      let timer: ReturnType<typeof setTimeout> | null = null;
       window.__cmdlineCleanup = () => {
-        if (activeInterval) clearInterval(activeInterval);
-        if (activeTimeout) clearTimeout(activeTimeout);
+        if (timer) clearTimeout(timer);
+        timer = null;
       };
 
-      function typeCommand(text, onDone) {
-        let i = 0;
-        activeInterval = setInterval(() => {
-          el.textContent += text[i];
-          i++;
-          if (i >= text.length) {
-            clearInterval(activeInterval);
-            activeInterval = null;
-            if (!firstTypeDone) {
-              firstTypeDone = true;
-              sessionStorage.setItem('hero-typed', '1');
-            }
-            onDone();
+      // Solid cursor while characters move; resume blink only when idle/parked.
+      const setTyping = (on: boolean) => box && box.classList.toggle('is-typing', on);
+
+      let ci = 0;
+      function type(cmd: string, i: number, done: () => void) {
+        setTyping(true);
+        if (i <= cmd.length) {
+          el!.textContent = cmd.slice(0, i);
+          timer = setTimeout(() => type(cmd, i + 1, done), 55);
+        } else {
+          setTyping(false);
+          done();
+        }
+      }
+      function erase(cmd: string, i: number, done: () => void) {
+        setTyping(true);
+        if (i >= 0) {
+          el!.textContent = cmd.slice(0, i);
+          timer = setTimeout(() => erase(cmd, i - 1, done), 30);
+        } else {
+          setTyping(false);
+          done();
+        }
+      }
+      function next() {
+        type(commands[ci], 0, () => {
+          if (ci === commands.length - 1) {
+            sessionStorage.setItem('hero-typed', '1'); // parked; done for the session
+            return;
           }
-        }, 85);
-      }
-
-      function cycleNext() {
-        el.textContent = '';
-        activeTimeout = setTimeout(() => {
-          cmdIndex = (cmdIndex + 1) % commands.length;
-          typeCommand(commands[cmdIndex], () => {
-            activeTimeout = setTimeout(() => {
-              cycleNext();
-            }, 2000);
-          });
-        }, 150);
-      }
-
-      const played = sessionStorage.getItem('hero-typed');
-      const initialDelay = played ? 0 : 700;
-
-      activeTimeout = setTimeout(() => {
-        typeCommand(commands[0], () => {
-          activeTimeout = setTimeout(() => {
-            cycleNext();
-          }, 2000);
+          timer = setTimeout(() => {
+            erase(commands[ci], commands[ci].length, () => {
+              ci += 1;
+              timer = setTimeout(next, 150);
+            });
+          }, 1400);
         });
-      }, initialDelay);
+      }
+      timer = setTimeout(next, 700);
     });
   </script>
 </BaseLayout>
@@ -172,6 +184,24 @@ const personSchema = {
     color: var(--color-accent);
     line-height: 1.05;
     margin-bottom: var(--space-sm);
+  }
+
+  /* Decorative clan glyphs isolated + shrunk so screen readers just say "Nathan". */
+  .clan-tag {
+    font-size: 0.5em;
+    opacity: 0.55;
+    vertical-align: 0.55em;
+  }
+
+  /* Static message under the name — the real headline (the cmdline is flavour). */
+  .hero-tagline {
+    max-width: 42ch;
+    margin: 0 0 var(--space-md);
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 1.05rem;
+    line-height: 1.5;
+    color: var(--color-text);
   }
 
   /* Inline-grid stack: the visible line and the invisible sizer share one cell, so the
@@ -230,6 +260,12 @@ const personSchema = {
     animation: blink 0.8s step-end infinite;
   }
 
+  /* Solid (not blinking) while characters are moving; blinks when idle/parked. */
+  .cmdline.is-typing .cmdline-cursor {
+    animation: none;
+    opacity: 1;
+  }
+
   @keyframes blink {
     50% {
       opacity: 0;
@@ -256,6 +292,15 @@ const personSchema = {
 
   .hero-links a {
     font-size: clamp(1.35rem, 2.4vw, 1.6rem);
+  }
+
+  /* Value annotation trailing each menu label — mono, muted, small. */
+  .link-meta {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--color-muted);
   }
 
   /* Résumé: pinned first and always lit in the accent so it reads as the
@@ -323,7 +368,7 @@ const personSchema = {
     }
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: 640px) {
     .hero-inner {
       --pad-l: 1.75rem;
       padding-right: var(--space-md);
