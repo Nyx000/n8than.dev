@@ -27,11 +27,13 @@
 }
 
 # Strict CSP for the static site only (WS9). /seedsearch keeps its own relaxed policy.
-# INTERIM value — after frontend ships assetsInlineLimit:0, drop 'unsafe-inline' from
-# script-src; fonts are self-hosted, so the Google Fonts hosts here are dead allowances
-# kept only until the CSP flip lands (they can be removed with the script-src tightening).
+# Both flips landed: Flip A dropped `script-src 'unsafe-inline'` (verified no inline
+# `<script type="module">` survives in dist — astro.config assetsInlineLimit:0 forces
+# every bundled script to a hashed /_astro file); Flip B dropped the Google Fonts hosts
+# (fonts are self-hosted via @fontsource). `style-src 'unsafe-inline'` stays on purpose
+# (Astro inlineStylesheets:auto + ClientRouter fallback styles).
 (n8than_csp_site) {
-	header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self'"
+	header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'"
 }
 
 # Single-hop http -> https apex for both hosts (WS6). ACME HTTP-01 is handled

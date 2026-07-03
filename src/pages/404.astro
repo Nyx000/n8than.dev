@@ -1,0 +1,138 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="404 — not found | n8than.dev"
+  description="That page doesn't exist. It may have moved, or it never compiled."
+>
+  <section class="container notfound stagger">
+    <h1 class="code">404</h1>
+    <div class="term" role="group" aria-label="terminal output">
+      <p class="line">
+        <span class="prompt" aria-hidden="true">$</span> cat <span class="path" data-path
+          >/requested/page</span
+        >
+      </p>
+      <p class="line err">
+        cat: <span class="path" data-path>/requested/page</span>: No such file or directory
+      </p>
+      <p class="line hint">it may have moved, or it never compiled.</p>
+    </div>
+    <nav class="recover" aria-label="Where to go next">
+      <a href="/"><span class="glyph" aria-hidden="true">~</span> home</a>
+      <a href="/projects">/projects</a>
+      <a href="/grow">/grow <span class="aside">— something live to look at</span></a>
+    </nav>
+  </section>
+
+  <script>
+    // Progressive enhancement: show the path the visitor actually asked for.
+    // This is a processed (bundled) script → served from /_astro as an external
+    // module, so it passes the tightened `script-src 'self'` CSP. With JS off,
+    // the static `/requested/page` copy from §6.7 stands.
+    document.addEventListener('astro:page-load', () => {
+      const path = location.pathname;
+      if (!path || path === '/404.html' || path === '/404' || path === '/404/') return;
+      const shown = path.length > 64 ? path.slice(0, 63) + '…' : path;
+      document.querySelectorAll('[data-path]').forEach((el) => {
+        el.textContent = shown;
+      });
+    });
+  </script>
+</BaseLayout>
+
+<style>
+  .container {
+    width: 100%;
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: var(--space-xl) var(--space-md);
+  }
+
+  .notfound {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .code {
+    font-family: var(--font-display);
+    font-size: clamp(3.5rem, 12vw, 6rem);
+    font-weight: 400;
+    line-height: 1;
+    color: var(--color-accent);
+    margin-bottom: var(--space-lg);
+  }
+
+  .term {
+    font-family: var(--font-mono);
+    font-size: clamp(0.85rem, 2.4vw, 0.95rem);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 8%, transparent);
+    border-radius: 3px;
+    padding: var(--space-md);
+    margin-bottom: var(--space-xl);
+    overflow-wrap: anywhere;
+  }
+
+  .line {
+    margin: 0;
+    line-height: 1.9;
+    color: var(--color-text);
+  }
+
+  .prompt {
+    color: var(--color-accent);
+    margin-right: 0.4em;
+    opacity: 0.8;
+  }
+
+  .path {
+    color: var(--color-text);
+  }
+
+  .err {
+    color: var(--color-danger);
+  }
+
+  .hint {
+    color: var(--color-muted);
+    margin-top: var(--space-sm);
+  }
+
+  .recover {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  .recover a {
+    font-family: var(--font-display);
+    font-size: clamp(1.2rem, 2.4vw, 1.5rem);
+    color: var(--color-text);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .recover a:hover,
+  .recover a:focus-visible {
+    color: var(--color-accent);
+  }
+
+  .glyph {
+    color: var(--color-muted);
+  }
+
+  .recover a:hover .glyph,
+  .recover a:focus-visible .glyph {
+    color: var(--color-accent);
+  }
+
+  .aside {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--color-muted);
+  }
+</style>
