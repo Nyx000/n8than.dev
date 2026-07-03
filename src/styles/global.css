@@ -257,6 +257,61 @@ code {
   }
 }
 
+/* Status pill — the DOT SHAPE encodes state, so it survives reduced-motion and
+   colour-blindness (colour is a redundant cue, not the only one):
+     .is-live       filled dot + livepulse ring   (accent)
+     .is-stale      half-filled dot               (warn)
+     .is-offline    hollow dot                    (danger)
+     .is-connecting hollow dot + blink            (muted) */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-muted);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  padding: 0.25em 0.7em;
+}
+.pill::before {
+  content: '';
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+}
+.pill.is-live {
+  color: var(--color-accent);
+}
+.pill.is-live::before {
+  background: currentColor;
+  animation: livepulse 2.2s var(--ease-out) infinite;
+}
+.pill.is-stale {
+  color: var(--color-warn);
+}
+.pill.is-stale::before {
+  background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+}
+.pill.is-offline {
+  color: var(--color-danger);
+}
+.pill.is-connecting::before {
+  animation: blink 1s step-end infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pill.is-live::before,
+  .pill.is-connecting::before {
+    animation: none;
+  }
+}
+
 /* Animated grain overlay (canvas-based, driven by grain.js) */
 #grain {
   position: fixed;

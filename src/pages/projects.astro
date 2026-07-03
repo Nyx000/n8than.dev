@@ -4,10 +4,13 @@ import ProjectCard from '../components/ProjectCard.astro';
 import { projects } from '../data/projects';
 ---
 
-<BaseLayout title="Projects | n8than.dev" description="Things I've built">
+<BaseLayout
+  title="Projects | n8than.dev"
+  description="Production apps, AI tooling, and open-source projects — three of them running live."
+>
   <section class="container">
     <h1 class="section-heading">Projects</h1>
-    <p class="intro">A mix of production apps, AI tooling, and open-source projects.</p>
+    <p class="intro">Six systems. Three are running live — click through and use them.</p>
     <div class="grid stagger">
       {projects.map((project) => <ProjectCard {...project} />)}
     </div>
@@ -15,30 +18,6 @@ import { projects } from '../data/projects';
 </BaseLayout>
 
 <style>
-  .container {
-    width: 100%;
-    max-width: 64rem;
-    margin: 0 auto;
-    padding: var(--space-lg) var(--space-md);
-  }
-
-  .section-heading {
-    font-family: var(--font-display);
-    font-size: 2rem;
-    font-weight: 400;
-    margin-bottom: var(--space-lg);
-    padding-bottom: var(--space-md);
-    border-bottom: 2px solid var(--color-border);
-    display: inline-block;
-  }
-
-  .intro {
-    color: var(--color-muted);
-    font-size: 0.95rem;
-    margin-top: calc(-0.5 * var(--space-lg));
-    margin-bottom: var(--space-lg);
-  }
-
   .grid {
     display: grid;
     grid-template-columns: 1fr;

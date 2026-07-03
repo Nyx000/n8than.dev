@@ -3,7 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout title="About | n8than.dev" description="About me">
-  <section class="container stagger">
+  <section class="container container--narrow stagger">
     <h1 class="section-heading">About</h1>
     <blockquote class="epigraph">
       "Accept the things to which fate binds you, and love the people with whom fate brings you
@@ -69,16 +69,20 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <h2>Find me online</h2>
       <ul>
         <li>
-          <a href="https://github.com/Nyx000" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href="https://github.com/Nyx000" target="_blank" rel="noopener noreferrer"
+            >GitHub<span class="sr-only"> (opens in new tab)</span></a
+          >
         </li>
         <li>
           <a href="https://www.linkedin.com/in/sd-nhuse/" target="_blank" rel="noopener noreferrer"
-            >LinkedIn</a
+            >LinkedIn<span class="sr-only"> (opens in new tab)</span></a
           >
         </li>
         <li><a href="mailto:husenathan@gmail.com">Email</a></li>
         <li>
-          <a href="/resume.pdf" target="_blank" rel="noopener noreferrer">Résumé</a>
+          <a href="/resume.pdf" target="_blank" rel="noopener noreferrer"
+            >Résumé<span class="sr-only"> (opens in new tab)</span></a
+          >
         </li>
       </ul>
     </section>
@@ -86,23 +90,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 </BaseLayout>
 
 <style>
-  .container {
-    width: 100%;
-    max-width: 42rem;
-    margin: 0 auto;
-    padding: var(--space-lg) var(--space-md);
-  }
-
-  .section-heading {
-    font-family: var(--font-display);
-    font-size: 2rem;
-    font-weight: 400;
-    margin-bottom: var(--space-lg);
-    padding-bottom: var(--space-md);
-    border-bottom: 2px solid var(--color-border);
-    display: inline-block;
-  }
-
   .epigraph {
     border-left: 2px solid var(--color-accent);
     padding-left: var(--space-md);

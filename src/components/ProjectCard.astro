@@ -9,10 +9,10 @@ const isExternal = !!url && !url.startsWith('/');
 const visitLabel = isExternal ? 'Visit site' : 'Open live';
 ---
 
-<article class:list={['card', { 'card--live': isLive }]}>
+<article class:list={['card', 'card--link', { 'card--live': isLive }]}>
   <div class="card-summary">
     <div class="card-head">
-      <h3>
+      <h2 class="card-title">
         {
           url ? (
             <a
@@ -21,16 +21,17 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
               rel={isExternal ? 'noopener noreferrer' : undefined}
             >
               {title}
+              {isExternal && <span class="sr-only"> (opens in new tab)</span>}
             </a>
           ) : (
             <span class="title-text">{title}</span>
           )
         }
-      </h3>
+      </h2>
       {
         isLive && (
           <span class="live-badge" title="Live — click to open">
-            <span class="dot" />
+            <span class="dot" aria-hidden="true" />
             Live
           </span>
         )
@@ -50,14 +51,15 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
               target={isExternal ? '_blank' : undefined}
               rel={isExternal ? 'noopener noreferrer' : undefined}
             >
-              {visitLabel} &#8594;
+              {visitLabel} <span aria-hidden="true">&#8594;</span>
+              {isExternal && <span class="sr-only"> (opens in new tab)</span>}
             </a>
           )
         }
         {
           expandable && details && (
             <button class="details-btn" aria-expanded="false">
-              Details &#9656;
+              Details <span class="chev" aria-hidden="true">&#9656;</span>
             </button>
           )
         }
@@ -66,7 +68,7 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
   </div>
   {
     expandable && details && (
-      <div class="card-expand">
+      <div class="card-expand" inert>
         <div class="expand-inner">
           <div class="expand-content" set:html={details} />
         </div>
@@ -81,37 +83,31 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
       btn.addEventListener('click', () => {
         const card = btn.closest('.card');
         if (!card) return;
-        const isExpanded = card.classList.toggle('expanded');
-        btn.setAttribute('aria-expanded', String(isExpanded));
-        btn.innerHTML = isExpanded ? 'Close &#9662;' : 'Details &#9656;';
+        const expanded = card.classList.toggle('expanded');
+        btn.setAttribute('aria-expanded', String(expanded));
+        // inert keeps the collapsed panel's links out of the tab order + AT tree.
+        const panel = card.querySelector('.card-expand');
+        if (panel) panel.toggleAttribute('inert', !expanded);
       });
     });
   });
 </script>
 
 <style>
+  /* Uses the global .card + .card--link (border + glow hover). Only card-local
+     structure/overrides live here; they're scoped (0,2,0) so they win cleanly. */
   .card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
     padding: var(--space-md) var(--space-lg);
-    transition:
-      border-color 0.25s ease,
-      box-shadow 0.25s ease;
   }
 
-  .card:hover {
-    border-color: var(--color-accent);
-    box-shadow: 0 4px 20px rgba(255, 102, 0, 0.08);
-  }
-
-  /* Live projects get an accent edge so it's obvious they're clickable. */
-  .card--live {
+  /* Live projects get an accent spine so it reads as clickable. Compound so it
+     beats the global .card deterministically. */
+  .card.card--live {
     position: relative;
     overflow: hidden;
   }
 
-  .card--live::before {
+  .card.card--live::before {
     content: '';
     position: absolute;
     left: 0;
@@ -121,10 +117,6 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
     background: var(--color-accent);
   }
 
-  .card--live:hover {
-    box-shadow: 0 4px 24px rgba(255, 102, 0, 0.14);
-  }
-
   .card-head {
     display: flex;
     align-items: center;
@@ -132,23 +124,24 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
     gap: var(--space-md);
   }
 
-  .card-head h3 {
+  .card-title {
     margin: 0;
+    font-size: 1.2rem; /* pin: UA default h2 is 1.5em */
   }
 
-  h3 a {
+  .card-title a {
     font-family: var(--font-display);
     color: var(--color-text);
     text-decoration: none;
-    transition: color 0.2s ease;
+    transition: color var(--dur-fast) var(--ease);
   }
 
-  h3 a::after {
+  .card-title a::after {
     content: ' \2192';
-    transition: color 0.2s ease;
+    transition: color var(--dur-fast) var(--ease);
   }
 
-  h3 a:hover {
+  .card-title a:hover {
     color: var(--color-accent);
   }
 
@@ -157,7 +150,7 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
     color: var(--color-text);
   }
 
-  /* "Live" badge with a pulsing dot */
+  /* "Live" badge — square chip (was a 100px pill) with a pulsing dot. */
   .live-badge {
     display: inline-flex;
     align-items: center;
@@ -169,7 +162,7 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
     text-transform: uppercase;
     color: var(--color-accent);
     border: 1px solid var(--color-accent);
-    border-radius: 100px;
+    border-radius: var(--radius-sm);
     padding: 0.25em 0.7em;
     white-space: nowrap;
   }
@@ -179,24 +172,14 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
     height: 6px;
     border-radius: 50%;
     background: var(--color-accent);
-    box-shadow: 0 0 0 0 rgba(255, 102, 0, 0.6);
-    animation: livepulse 2.2s ease-out infinite;
+    animation: livepulse 2.2s var(--ease-out) infinite;
   }
 
-  @keyframes livepulse {
-    0% {
-      box-shadow: 0 0 0 0 rgba(255, 102, 0, 0.55);
-    }
-    70% {
-      box-shadow: 0 0 0 7px rgba(255, 102, 0, 0);
-    }
-    100% {
-      box-shadow: 0 0 0 0 rgba(255, 102, 0, 0);
-    }
-  }
-
+  /* Body copy in reading color (was metadata gray); capped for line length (M1). */
   .description {
-    color: var(--color-muted);
+    color: var(--color-text);
+    font-size: 0.95rem;
+    max-width: 65ch;
     margin: var(--space-sm) 0;
   }
 
@@ -207,24 +190,6 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
     flex-wrap: wrap;
     gap: var(--space-md);
     margin-top: var(--space-sm);
-  }
-
-  .tags {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-sm);
-  }
-
-  .tags li {
-    font-size: 0.75rem;
-    padding: 0.25em 0.6em;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-    color: var(--color-muted);
-    letter-spacing: 0.02em;
   }
 
   .card-actions {
@@ -242,13 +207,13 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
     font-family: var(--font-display);
     font-size: 0.75rem;
     padding: 0.3em 0.9em;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     white-space: nowrap;
     text-decoration: none;
     transition:
-      background-color 0.2s ease,
-      border-color 0.2s ease;
+      background-color var(--dur-fast) var(--ease),
+      border-color var(--dur-fast) var(--ease);
   }
 
   .visit-btn:hover {
@@ -269,13 +234,13 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
     font-family: var(--font-display);
     font-size: 0.75rem;
     padding: 0.3em 0.8em;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
     transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+      background-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease);
   }
 
   .details-btn:hover {
@@ -288,11 +253,22 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
     outline-offset: 2px;
   }
 
+  /* Chevron rotates 90° on expand instead of swapping the button's innerHTML
+     (which teleported the glyph and nudged the button width). */
+  .chev {
+    display: inline-block;
+    transition: transform var(--dur-fast) var(--ease);
+  }
+
+  .card.expanded .chev {
+    transform: rotate(90deg);
+  }
+
   /* Expand animation */
   .card-expand {
     display: grid;
     grid-template-rows: 0fr;
-    transition: grid-template-rows 0.35s ease;
+    transition: grid-template-rows var(--dur-slow) var(--ease);
   }
 
   .card.expanded .card-expand {
@@ -307,6 +283,12 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
     padding-top: var(--space-md);
     margin-top: var(--space-md);
     border-top: 1px solid var(--color-border);
+    opacity: 0;
+    transition: opacity var(--dur-med) var(--ease) 0.1s;
+  }
+
+  .card.expanded .expand-content {
+    opacity: 1;
   }
 
   /* Detail content styles */
@@ -314,6 +296,7 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
     color: var(--color-text);
     font-size: 0.95rem;
     line-height: 1.6;
+    max-width: 65ch;
     margin: 0 0 var(--space-md);
   }
 
@@ -327,9 +310,10 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
   }
 
   .expand-content :global(.highlights li) {
-    color: var(--color-muted);
+    color: var(--color-text);
     font-size: 0.875rem;
     line-height: 1.55;
+    max-width: 65ch;
     padding-left: 1em;
     position: relative;
   }
@@ -360,7 +344,9 @@ const visitLabel = isExternal ? 'Visit site' : 'Open live';
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .card-expand {
+    .card-expand,
+    .chev,
+    .expand-content {
       transition: none;
     }
     .live-badge .dot {
