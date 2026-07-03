@@ -10,14 +10,26 @@ CADDY_CONFIG="/etc/caddy/Caddyfile"
 
 case "${1:-status}" in
   on)
+    [ -f "$SITE_CONFIG" ] && cp "$SITE_CONFIG" "$SITE_CONFIG.bak"
     cp "$APP_DIR/deploy/Caddyfile.maintenance" "$SITE_CONFIG"
-    caddy validate --config "$CADDY_CONFIG"
+    if ! caddy validate --config "$CADDY_CONFIG"; then
+      [ -f "$SITE_CONFIG.bak" ] && mv "$SITE_CONFIG.bak" "$SITE_CONFIG"
+      echo "ERROR: caddy validate failed; previous config restored." >&2
+      exit 1
+    fi
+    rm -f "$SITE_CONFIG.bak"
     systemctl reload caddy
     echo "Maintenance mode ON — n8than.dev now shows maintenance page"
     ;;
   off)
+    [ -f "$SITE_CONFIG" ] && cp "$SITE_CONFIG" "$SITE_CONFIG.bak"
     cp "$APP_DIR/deploy/Caddyfile" "$SITE_CONFIG"
-    caddy validate --config "$CADDY_CONFIG"
+    if ! caddy validate --config "$CADDY_CONFIG"; then
+      [ -f "$SITE_CONFIG.bak" ] && mv "$SITE_CONFIG.bak" "$SITE_CONFIG"
+      echo "ERROR: caddy validate failed; previous config restored." >&2
+      exit 1
+    fi
+    rm -f "$SITE_CONFIG.bak"
     systemctl reload caddy
     echo "Maintenance mode OFF — n8than.dev is live"
     ;;

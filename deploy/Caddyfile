@@ -1,11 +1,36 @@
+# --- Repo-owned security headers (WS1). Deferred: applies at response-write on
+# --- every path that runs a route (incl. redir and handle_errors).
+# --- NEVER put Cache-Control in this block (deferred ops stomp immediate ones).
+(n8than_headers) {
+	header {
+		defer
+		-Server
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+	}
+}
+
+# Strict CSP for the static site only (WS9). /seedsearch keeps its own relaxed policy.
+# INTERIM value — after frontend ships assetsInlineLimit:0, drop 'unsafe-inline' from
+# script-src; fonts are self-hosted, so the Google Fonts hosts here are dead allowances
+# kept only until the CSP flip lands (they can be removed with the script-src tightening).
+(n8than_csp_site) {
+	header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self'"
+}
+
+# Single-hop http -> https apex for both hosts (WS6). ACME HTTP-01 is handled
+# internally by Caddy before these routes, so cert issuance is unaffected.
+http://n8than.dev, http://www.n8than.dev {
+	header -Server
+	redir https://n8than.dev{uri} permanent
+}
+
 n8than.dev {
-	encode gzip
-	# security_headers snippet is defined in the box's main /etc/caddy/Caddyfile
-	import security_headers
-	# CSP now ENFORCED (n8than.dev only). img-src allows https: for SeedSearch product CDNs.
-	# 'unsafe-inline' is required: Astro + the SeedSearch demo both ship inline scripts/styles.
-	# TODO: drop 'unsafe-inline' from script-src (deferred) — also needs the proxied SeedSearch inline script covered (nonce/hash).
-	header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self'"
+	encode zstd gzip
+	import n8than_headers
 
 	# Live climate slice — proxied from the Pi's own web over Tailscale (the Pi holds the live
 	# local DB since the BLE cutover; the box's local Postgres is stale).
@@ -14,11 +39,9 @@ n8than.dev {
 		reverse_proxy https://growtent.taile16d94.ts.net {
 			header_up Host growtent.taile16d94.ts.net
 			header_down -Vary
+			header_down -Via
 		}
-		header {
-			-Server
-			Cache-Control "public, max-age=5"
-		}
+		header Cache-Control "public, max-age=5"
 	}
 
 	# Tent shoutbox (anonymous chat) — GET ?limit=… + POST.
@@ -27,39 +50,42 @@ n8than.dev {
 		request_body {
 			max_size 16KB
 		}
+		# WS8: browsers always send Origin on POST; blocks casual cross-site abuse.
+		# Trivially spoofable by curl — real enforcement is the backend per-IP limiter.
+		@cross_origin_post {
+			method POST
+			not header Origin https://n8than.dev
+		}
+		respond @cross_origin_post 403
 		reverse_proxy https://growtent.taile16d94.ts.net {
 			header_up Host growtent.taile16d94.ts.net
 			# Overwrite (not append) X-Forwarded-For with the real client so the
-			# backend's per-IP rate-limit + daily cap can't be spoofed by a
-			# client-supplied X-Forwarded-For header.
+			# backend's per-IP rate-limit + daily cap can't be spoofed.
 			header_up X-Forwarded-For {remote_host}
 			header_down -Vary
+			header_down -Via
 		}
-		header {
-			-Server
-			Cache-Control "no-store"
-		}
+		header Cache-Control "no-store"
 	}
 
 	# Live tent camera (MJPEG) — same Pi web over Tailscale; concurrency-capped at the Pi.
-	# flush_interval -1 disables response buffering so the multipart stream flows frame-by-frame.
 	handle /api/grow/cam/stream {
 		rewrite * /api/public/cam/stream
 		reverse_proxy https://growtent.taile16d94.ts.net {
 			header_up Host growtent.taile16d94.ts.net
 			flush_interval -1
 			header_down -Vary
+			header_down -Via
 		}
-		header -Server
 	}
 
-	# SeedSearch semantic search demo (API + page) -> sdseed-search service
+	# SeedSearch demo — relaxed CSP (inline script + external product-image CDNs).
 	handle /seedsearch {
 		redir * /seedsearch/ permanent
 	}
 	handle_path /seedsearch/* {
 		reverse_proxy 127.0.0.1:3002
-		header -Server
+		header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'"
 	}
 	# Back-compat: the demo used to live at /sdsb — redirect old links.
 	handle /sdsb {
@@ -69,21 +95,45 @@ n8than.dev {
 		redir * /seedsearch/ permanent
 	}
 
+	# Static site (WS2: served from the atomic release symlink)
 	handle {
-		root * /var/www/n8than.dev/dist
+		root * /var/www/n8than.dev/current
+		import n8than_csp_site
+
+		# WS3 cache matrix — all immediate set-ops, document order = precedence
+		# (default first, specific overrides after). No deletions in these blocks.
+		header Cache-Control "no-cache"
+		@hashed path /_astro/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		@static path *.ico *.svg *.png *.jpg *.jpeg *.webp *.avif *.woff2 *.ttf *.otf
+		header @static Cache-Control "public, max-age=86400"
+		@resume path /resume.pdf
+		header @resume Cache-Control "public, max-age=3600, must-revalidate"
+
 		file_server
-		header {
-			-Server
-			Cache-Control "public, max-age=3600"
+	}
+
+	# WS4: styled 404 + non-empty other errors, with full security headers.
+	handle_errors {
+		import n8than_headers
+		import n8than_csp_site
+		@404 expression {err.status_code} == 404
+		handle @404 {
+			root * /var/www/n8than.dev/current
+			rewrite * /404.html
+			header Cache-Control "no-cache"
+			file_server
 		}
-		@assets path_regexp \.(js|css|jpg|jpeg|png|gif|svg|ico|woff2?|ttf|otf|webp|avif)$
-		header @assets Cache-Control "public, max-age=31536000, immutable"
+		handle {
+			header Cache-Control "no-store"
+			respond "{err.status_code} {err.status_text}"
+		}
 	}
 }
 
-# www -> apex redirect (also lets Caddy issue a cert for www, so HSTS includeSubDomains is safe).
-# The security_headers snippet is defined in the box's main /etc/caddy/Caddyfile.
+# www -> apex (https). Block retained so Caddy manages the www certificate,
+# keeping HSTS includeSubDomains safe.
 www.n8than.dev {
-	import security_headers
+	import n8than_headers
 	redir https://n8than.dev{uri} permanent
 }

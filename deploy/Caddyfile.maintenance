@@ -1,6 +1,6 @@
 n8than.dev {
 	root * /var/www/n8than.dev/deploy
-	encode gzip
+	encode zstd gzip
 
 	rewrite * /maintenance.html
 	file_server

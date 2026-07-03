@@ -1,5 +1,8 @@
 # build output
 dist/
+# server-only atomic-release artifacts (created by deploy.yml on the box)
+/releases/
+/current
 # generated types
 .astro/
 # brainstorming visual companion

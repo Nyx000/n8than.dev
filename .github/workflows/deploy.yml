@@ -20,20 +20,40 @@ jobs:
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
           script: |
+            set -euo pipefail
             export BUN_INSTALL="$HOME/.bun"
             export PATH="$BUN_INSTALL/bin:$PATH"
 
             cd /var/www/n8than.dev
             git pull origin main
             bun install --frozen-lockfile
+
+            # Build into ./dist (NOT served — Caddy serves ./current)
             bun run build
 
-            # Skip Caddy reload if maintenance mode is active
+            # Publish: copy to a timestamped release, flip symlink atomically
+            REL="releases/$(date +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD)"
+            mkdir -p releases
+            cp -a dist "$REL"
+            ln -s "$REL" current.tmp && mv -Tf current.tmp current
+            echo "Published $REL"
+
+            # Prune: keep the 3 newest releases for rollback
+            ls -1dt releases/* | tail -n +4 | xargs -r rm -rf
+
+            # Caddy config: staged validate-then-install (skip in maintenance mode)
             if grep -q "maintenance.html" /etc/caddy/sites/n8than.dev 2>/dev/null; then
               echo "Maintenance mode active — skipping Caddy config update"
             else
-              cp deploy/Caddyfile /etc/caddy/sites/n8than.dev
-              caddy validate --config /etc/caddy/Caddyfile
+              SITE=/etc/caddy/sites/n8than.dev
+              [ -f "$SITE" ] && cp "$SITE" "$SITE.bak"
+              cp deploy/Caddyfile "$SITE"
+              if ! caddy validate --config /etc/caddy/Caddyfile; then
+                [ -f "$SITE.bak" ] && mv "$SITE.bak" "$SITE"
+                echo "ERROR: caddy validate failed; previous config restored" >&2
+                exit 1
+              fi
+              rm -f "$SITE.bak"
               systemctl reload caddy
             fi
 

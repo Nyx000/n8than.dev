@@ -30,18 +30,33 @@ bun install --frozen-lockfile
 echo "=== Building ==="
 bun run build
 
+# Bootstrap the atomic-release layout Caddy serves from (/var/www/n8than.dev/current).
+echo "=== Bootstrapping release symlink ==="
+mkdir -p releases
+cp -a dist releases/initial
+ln -s releases/initial current.tmp && mv -Tf current.tmp current
+
 echo "=== Setting up Caddy site config ==="
 mkdir -p /etc/caddy/sites
-cp deploy/Caddyfile /etc/caddy/sites/n8than.dev
 
-# Ensure main Caddyfile imports site configs
-if ! grep -q 'import /etc/caddy/sites/\*' /etc/caddy/Caddyfile 2>/dev/null; then
-  echo 'import /etc/caddy/sites/*' > /etc/caddy/Caddyfile
-  echo "Updated /etc/caddy/Caddyfile to import site configs."
-  echo "WARNING: If cafenightclub config was in /etc/caddy/Caddyfile, move it to /etc/caddy/sites/cafenightclub.com"
+# Ensure the main Caddyfile imports site configs — APPEND, never truncate (a `>`
+# here would wipe the box's security_headers snippet and cafenightclub's import).
+touch /etc/caddy/Caddyfile
+if ! grep -qE '^\s*import /etc/caddy/sites/\*' /etc/caddy/Caddyfile; then
+  printf '\nimport /etc/caddy/sites/*\n' >> /etc/caddy/Caddyfile
+  echo "Appended sites import to /etc/caddy/Caddyfile."
 fi
 
-caddy validate --config /etc/caddy/Caddyfile
+# Staged install: back up, install, validate the assembled config, restore on failure.
+SITE=/etc/caddy/sites/n8than.dev
+[ -f "$SITE" ] && cp "$SITE" "$SITE.bak"
+cp deploy/Caddyfile "$SITE"
+if ! caddy validate --config /etc/caddy/Caddyfile; then
+  [ -f "$SITE.bak" ] && mv "$SITE.bak" "$SITE"
+  echo "ERROR: caddy validate failed; previous site config restored." >&2
+  exit 1
+fi
+rm -f "$SITE.bak"
 systemctl reload caddy
 
 echo ""
