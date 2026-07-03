@@ -26,6 +26,7 @@ body {
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
   /* Spacing scale */
+  --space-xs: 0.25rem; /* used in about.astro; was undefined → declaration dropped */
   --space-sm: 0.5rem;
   --space-md: 1rem;
   --space-lg: 2rem;

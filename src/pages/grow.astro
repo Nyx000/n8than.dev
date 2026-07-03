@@ -704,6 +704,15 @@ const defs: Record<string, Record<string, string>> = {
     }
   }
 
+  /* ≤374px: the four-up readout can't shrink below its min-content (~224px) in the
+     ~180px of usable width → the whole page scrolls sideways. Reflow to 2×2 so each
+     reading keeps its room. Placed after the ≤719 block so it wins on narrow phones. */
+  @media (max-width: 374px) {
+    .readout {
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-sm) var(--space-sm);
+    }
+  }
 </style>
 <style is:global>
   /* ============================================================
@@ -1092,6 +1101,7 @@ const defs: Record<string, Record<string, string>> = {
   // overlay) and 'error' fires if it's offline or at the viewer cap (show overlay, retry with a
   // cache-busting param). src is set AFTER the listeners attach so the first event can't be missed.
   let camRetry: number | undefined;
+  let camFsCleanup: (() => void) | undefined;
   function setupCam() {
     const cam = document.getElementById('grow-cam') as HTMLImageElement | null;
     const overlay = document.getElementById('grow-cam-offline');
@@ -1177,9 +1187,28 @@ const defs: Record<string, Record<string, string>> = {
     frame.addEventListener('keydown', (e) => {
       if ((e as KeyboardEvent).key === 'Escape' && pseudoOn()) exit();
     });
+    // Document-level listeners outlive the swapped-out DOM, so remove any pair a
+    // previous /grow visit registered before adding this visit's — otherwise they
+    // accumulate one stale closure per navigation.
+    camFsCleanup?.();
     document.addEventListener('fullscreenchange', sync);
     document.addEventListener('webkitfullscreenchange', sync as EventListener);
+    camFsCleanup = () => {
+      document.removeEventListener('fullscreenchange', sync);
+      document.removeEventListener('webkitfullscreenchange', sync as EventListener);
+    };
     sync();
+  }
+
+  // Tear down camera side effects when leaving /grow: cancel a pending retry (it would
+  // otherwise set src on a detached <img>) and drop the document fullscreen listeners.
+  function stopCam() {
+    if (camRetry != null) {
+      clearTimeout(camRetry);
+      camRetry = undefined;
+    }
+    camFsCleanup?.();
+    camFsCleanup = undefined;
   }
 
   // ===== TENT CHATTER (anonymous shoutbox) =====
@@ -1397,6 +1426,10 @@ const defs: Record<string, Record<string, string>> = {
   // when the tab is hidden.
   document.addEventListener('astro:page-load', () => {
     if (document.getElementById('grow-root')) {
+      // The page DOM (incl. an empty #chatter-log) is rebuilt on every nav, but this
+      // Set is module-scoped and survives — so without resetting it, every id is
+      // "already seen" and the fresh log never repopulates until a hard reload.
+      chatterSeen = new Set();
       start();
       setupCam();
       setupCamFullscreen();
@@ -1405,6 +1438,7 @@ const defs: Record<string, Record<string, string>> = {
     } else {
       stop();
       stopChatter();
+      stopCam();
     }
   });
 

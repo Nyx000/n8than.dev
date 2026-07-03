@@ -14,9 +14,19 @@ import Grain from '../components/Grain.astro';
     <div class="hero-inner stagger">
       <h1 class="hero-name">๖ۣۜNathan</h1>
       <div class="cmdline">
-        <span class="cmdline-prompt">#</span><span class="cmdline-text"></span><span
-          class="cmdline-cursor"
-          aria-hidden="true"></span>
+        <span class="cmdline-line">
+          <span class="cmdline-prompt">#</span><span class="cmdline-text"></span><span
+            class="cmdline-cursor"
+            aria-hidden="true"></span>
+        </span>
+        <!-- Invisible sizer: holds the longest command so the box reserves its width
+             (desktop) or wrapped height (mobile) without any JS measurement. Keep in
+             sync with the longest string in `commands` below. -->
+        <span class="cmdline-line cmdline-sizer" aria-hidden="true">
+          <span class="cmdline-prompt">#</span><span
+            >npx tsx -e 'console.log("Making computers do what I want.")'</span
+          ><span class="cmdline-cursor"></span>
+        </span>
       </div>
       <nav class="hero-links">
         <a class="resume-link" href="/resume.pdf" target="_blank" rel="noopener noreferrer"
@@ -53,14 +63,7 @@ import Grain from '../components/Grain.astro';
         'npx tsx -e \'console.log("Making computers do what I want.")\'',
       ];
 
-      const cmdline = document.querySelector('.cmdline') as HTMLElement;
-
-      // Lock width to longest command so the box doesn't resize while typing
-      const longest = commands.reduce((a, b) => (a.length > b.length ? a : b));
-      el.textContent = longest;
-      cmdline.style.width = cmdline.scrollWidth + 'px';
-      el.textContent = '';
-
+      // Box width/height is reserved by the CSS `.cmdline-sizer`, so no JS measuring.
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       if (prefersReducedMotion) {
@@ -151,12 +154,12 @@ import Grain from '../components/Grain.astro';
     margin-bottom: var(--space-sm);
   }
 
+  /* Inline-grid stack: the visible line and the invisible sizer share one cell, so the
+     box is always as wide (and, when wrapped, as tall) as the longest command — the
+     typed line can never make it grow or the following links shift. */
   .cmdline {
-    display: flex;
-    align-items: center;
-    white-space: nowrap;
+    display: inline-grid;
     max-width: 100%;
-    overflow: hidden;
     font-family: var(--font-display);
     font-size: clamp(0.85rem, 1.4vw, 0.95rem);
     color: var(--color-muted);
@@ -164,6 +167,31 @@ import Grain from '../components/Grain.astro';
     padding: 0.4em 0.8em;
     border-radius: 3px;
     margin-bottom: var(--space-lg);
+  }
+
+  .cmdline-line {
+    grid-area: 1 / 1;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .cmdline-sizer {
+    visibility: hidden;
+  }
+
+  .cmdline-sizer .cmdline-cursor {
+    animation: none;
+  }
+
+  /* On phones the longest command can't fit on one line; let it wrap. The sizer wraps
+     identically, so it reserves the tallest command's height and nothing below jumps. */
+  @media (max-width: 640px) {
+    .cmdline-line {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
   }
 
   .cmdline-prompt {

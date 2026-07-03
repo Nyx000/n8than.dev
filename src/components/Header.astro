@@ -31,6 +31,7 @@ function isActive(href: string): boolean {
   .site-header {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
+    column-gap: var(--space-lg); /* guarantees space between brand and nav; kills the ~600-700px zero-gap crowding */
     align-items: center;
     padding: var(--space-md) var(--space-lg);
     width: 100%;
@@ -77,7 +78,15 @@ function isActive(href: string): boolean {
     font-weight: 600;
   }
 
-  @media (max-width: 600px) {
+  /* Shrink the nav before it can crowd the brand, buying room down to the stack point. */
+  @media (max-width: 760px) {
+    nav a {
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+    }
+  }
+
+  @media (max-width: 640px) {
     .site-header {
       grid-template-columns: 1fr;
       justify-items: start;
