@@ -1262,6 +1262,15 @@ const defs: Record<string, Record<string, string>> = {
 </style>
 
 <script>
+  import {
+    ruleLine,
+    whyLine,
+    detailLines,
+    phaseBadge,
+    type PublicEquipment,
+    type EquipmentSensors,
+  } from '../lib/grow-equipment';
+
   interface PublicSensor {
     tempF: number | null;
     rh: number | null;
@@ -1282,6 +1291,10 @@ const defs: Record<string, Record<string, string>> = {
     spark?: Record<'canopy' | 'lower' | 'room', SparkPoint[]>;
     // Backend addition (grow repo, ships independently); rendered only once present.
     targets?: { vpdLow: number; vpdHigh: number };
+    // Equipment slice (grow repo ships it first; optional so an older API is tolerated).
+    equipment?: PublicEquipment[];
+    lightPhase?: 'day' | 'night' | null;
+    nextPhaseChange?: number | null;
   }
 
   // 5s matches the API's max-age=5 cache; the sensor cadence is slower (~1/min), so this
@@ -1356,6 +1369,113 @@ const defs: Record<string, Record<string, string>> = {
     line.setAttribute('points', pts.join(' '));
   }
 
+  // ===== EQUIPMENT =====
+  let equipOpenKey: string | null = null; // survives re-renders so the open row stays open
+
+  function equipRow(item: PublicEquipment, sensors: EquipmentSensors): HTMLLIElement {
+    const li = document.createElement('li');
+    li.className = 'equip-row';
+    li.dataset.key = item.key;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'equip-line';
+    btn.setAttribute('aria-expanded', String(equipOpenKey === item.key));
+
+    const dot = document.createElement('span');
+    dot.className = `equip-dot is-${item.state}`;
+    const name = document.createElement('span');
+    name.className = 'equip-name';
+    name.textContent = item.label;
+    const state = document.createElement('span');
+    state.className = `equip-state is-${item.state}`;
+    state.textContent = item.state === 'unknown' ? '—' : item.state.toUpperCase();
+    const rule = document.createElement('span');
+    rule.className = 'equip-rule';
+    rule.textContent = ruleLine(item);
+    const chev = document.createElement('span');
+    chev.className = 'equip-chev';
+    chev.setAttribute('aria-hidden', 'true');
+    chev.textContent = '▾';
+    btn.append(dot, name, state, rule, chev);
+    li.append(btn);
+
+    const detail = document.createElement('div');
+    detail.className = 'equip-detail';
+    detail.hidden = equipOpenKey !== item.key;
+    const why = whyLine(item, sensors);
+    if (why) {
+      const p = document.createElement('p');
+      p.className = 'equip-why';
+      p.textContent = why;
+      detail.append(p);
+    }
+    const facts = detailLines(item);
+    if (facts.length) {
+      const ul = document.createElement('ul');
+      ul.className = 'equip-facts';
+      for (const f of facts) {
+        const fi = document.createElement('li');
+        fi.textContent = f;
+        ul.append(fi);
+      }
+      detail.append(ul);
+    }
+    li.append(detail);
+
+    btn.addEventListener('click', () => {
+      equipOpenKey = equipOpenKey === item.key ? null : item.key;
+      const list = document.getElementById('equip-list');
+      if (!list) return;
+      for (const row of list.querySelectorAll<HTMLLIElement>('.equip-row')) {
+        const open = equipOpenKey != null && row.dataset.key === equipOpenKey;
+        row.querySelector('.equip-line')?.setAttribute('aria-expanded', String(open));
+        const det = row.querySelector<HTMLElement>('.equip-detail');
+        if (det) det.hidden = !open;
+      }
+    });
+
+    return li;
+  }
+
+  function renderEquipment(d: PublicLive) {
+    const list = document.getElementById('equip-list');
+    if (!list) return;
+    if (!d.equipment || d.equipment.length === 0) {
+      list.textContent = '';
+      const li = document.createElement('li');
+      li.className = 'equip-sys';
+      li.textContent = 'equipment status unavailable';
+      list.append(li);
+      return;
+    }
+    const canopy = d.sensors.canopy;
+    const sensors: EquipmentSensors = {
+      canopyRh: canopy?.rh ?? null,
+      canopyTempF: canopy?.tempF ?? null,
+      canopyVpd: canopy?.vpdKpa ?? null,
+    };
+    list.textContent = '';
+    for (const item of d.equipment) list.append(equipRow(item, sensors));
+  }
+
+  // ===== NIGHT THEME =====
+  function applyPhase(d: PublicLive) {
+    const phase = d.lightPhase ?? null;
+    const html = document.documentElement;
+    if (phase === 'night') html.dataset.growPhase = 'night';
+    else delete html.dataset.growPhase; // day / unknown → default palette
+
+    const badge = document.getElementById('grow-phase-badge');
+    if (badge) {
+      const text = phaseBadge(phase, d.nextPhaseChange ?? null);
+      badge.textContent = text ?? '';
+      badge.hidden = text == null;
+    }
+    const camNote = document.getElementById('grow-cam-night');
+    if (camNote) camNote.hidden = phase !== 'night';
+  }
+
   function fmtAge(sec: number): string {
     if (sec < 60) return `${sec}s`;
     const m = Math.floor(sec / 60);
@@ -1392,6 +1512,8 @@ const defs: Record<string, Record<string, string>> = {
         renderSpark('lower', d.spark.lower);
         renderSpark('room', d.spark.room);
       }
+      renderEquipment(d);
+      applyPhase(d);
       root.classList.remove('offline');
       root.classList.toggle('stale', d.freshness === 'stale');
       if (d.freshness === 'live') setPill('live', 'LIVE');
@@ -1751,6 +1873,7 @@ const defs: Record<string, Record<string, string>> = {
       // Set is module-scoped and survives — so without resetting it, every id is
       // "already seen" and the fresh log never repopulates until a hard reload.
       chatterSeen = new Set();
+      equipOpenKey = null;
       start();
       setupCam();
       setupCamFullscreen();
@@ -1760,6 +1883,7 @@ const defs: Record<string, Record<string, string>> = {
       stop();
       stopChatter();
       stopCam();
+      delete document.documentElement.dataset.growPhase; // night palette must not leak to other pages
     }
   });
 
