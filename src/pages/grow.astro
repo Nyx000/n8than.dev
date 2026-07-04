@@ -1554,14 +1554,7 @@ const defs: Record<string, Record<string, string>> = {
   // Stable per-nick colour from a warm CRT-phosphor palette (named users pop;
   // anon stays dim). Deterministic hash so the same nick is always the same hue.
   const NICK_COLORS = [
-    '#ff8a3d',
-    '#ffb05c',
-    '#e0a83c',
-    '#ff7e6b',
-    '#d99a4e',
-    '#ffcf87',
-    '#f0915e',
-    '#caa46a',
+    '#ff8a3d', '#ffb05c', '#e0a83c', '#ff7e6b', '#d99a4e', '#ffcf87', '#f0915e', '#caa46a',
   ];
   function nickColor(name: string): string {
     let h = 0;
