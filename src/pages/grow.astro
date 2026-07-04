@@ -51,6 +51,7 @@ const defs: Record<string, Record<string, string>> = {
       <h1 class="section-heading">Grow Tent Telemetry</h1>
       <span id="grow-pill" class="pill is-connecting">CONNECTING</span>
       <span id="grow-updated" class="updated"></span>
+      <span id="grow-phase-badge" class="phase-badge" hidden></span>
     </div>
     <p class="intro">
       Live readings from a self-built monitoring stack running on this same server: a controller in
@@ -111,6 +112,16 @@ const defs: Record<string, Record<string, string>> = {
       }
     </div>
 
+    <article class="card equip-card" id="grow-equip">
+      <header class="card-head equip-head">
+        <h2 class="probe-name">EQUIPMENT</h2>
+        <span class="probe-note">what's running — tap a row for the why</span>
+      </header>
+      <ul class="equip-list" id="equip-list">
+        <li class="equip-sys">connecting…</li>
+      </ul>
+    </article>
+
     <article class="card cam-card">
       <header class="card-head">
         <h2 class="probe-name">TENT CAMERA</h2>
@@ -122,6 +133,9 @@ const defs: Record<string, Record<string, string>> = {
           connecting to camera…
         </div>
         <div id="grow-cam-offline" class="cam-overlay" hidden>camera offline · retrying…</div>
+        <div id="grow-cam-night" class="cam-night-note" hidden>
+          🌙 lights out — it's meant to be dark in there
+        </div>
         <button
           id="grow-cam-fs"
           class="cam-fs-btn"
@@ -652,6 +666,42 @@ const defs: Record<string, Record<string, string>> = {
     border-radius: 0;
   }
 
+  .equip-card {
+    margin-bottom: var(--space-lg);
+  }
+
+  .equip-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+  }
+
+  .phase-badge {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-warn);
+    white-space: nowrap;
+  }
+
+  .cam-night-note {
+    position: absolute;
+    left: 0.6rem;
+    bottom: 0.6rem;
+    z-index: 2;
+    padding: 0.3em 0.6em;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--color-muted);
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 5px;
+  }
+
+  .cam-night-note[hidden] {
+    display: none;
+  }
+
   /* Phone: the whole page is one viewport with the camera as the hero. Each zone collapses
      from a 2×2 card into a single tight row — the label on the left, its four readings inline
      — so all three zones stack into a short strip. The intro prose, per-zone notes, and the
@@ -738,6 +788,16 @@ const defs: Record<string, Record<string, string>> = {
       flex: 1;
       min-height: 58svh; /* svh: excludes mobile URL bar so the feed doesn't overflow */
       aspect-ratio: auto;
+    }
+
+    .equip-card {
+      order: 1;
+      margin-bottom: 0;
+      margin-top: var(--space-md);
+    }
+
+    .chatter-card {
+      order: 2;
     }
   }
 
@@ -1040,6 +1100,165 @@ const defs: Record<string, Record<string, string>> = {
       font-size: 0.85rem;
     }
   }
+
+  /* ============================================================
+     EQUIPMENT — JS-created rows (global scope like the chatter log).
+     One tappable line per device; expanded detail below it.
+     ============================================================ */
+  .equip-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .equip-row + .equip-row {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .equip-line {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap; /* the rule sentence WRAPS — never truncates */
+    gap: 0.25rem 0.6rem;
+    width: 100%;
+    padding: 0.55rem 0.2rem;
+    font: inherit;
+    text-align: left;
+    color: var(--color-text);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .equip-line:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .equip-dot {
+    flex: none;
+    width: 0.55em;
+    height: 0.55em;
+    border-radius: 50%;
+    background: var(--color-muted);
+    align-self: center;
+  }
+
+  .equip-dot.is-on {
+    background: var(--color-accent);
+    box-shadow: 0 0 6px rgba(255, 102, 0, 0.6);
+  }
+
+  .equip-dot.is-off {
+    background: #3a3a40;
+  }
+
+  .equip-name {
+    flex: none;
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    letter-spacing: 0.06em;
+  }
+
+  .equip-state {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    padding: 0.1em 0.5em;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+    color: var(--color-muted);
+  }
+
+  .equip-state.is-on {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  .equip-rule {
+    flex: 1 1 14rem;
+    min-width: 0;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+  }
+
+  .equip-chev {
+    flex: none;
+    margin-left: auto;
+    color: var(--color-muted);
+    transition: transform 0.2s ease;
+  }
+
+  .equip-line[aria-expanded='true'] .equip-chev {
+    transform: rotate(180deg);
+  }
+
+  .equip-detail {
+    padding: 0 0.2rem 0.7rem 1.35rem;
+    font-size: 0.82rem;
+  }
+
+  .equip-why {
+    margin: 0 0 0.35rem;
+    color: var(--color-text);
+  }
+
+  .equip-facts {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted);
+  }
+
+  .equip-facts li + li {
+    margin-top: 0.15rem;
+  }
+
+  .equip-sys {
+    padding: 0.55rem 0.2rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    font-style: italic;
+  }
+
+  /* Stale/offline dims equipment like the sensor values */
+  #grow-root.stale .equip-dot,
+  #grow-root.stale .equip-state,
+  #grow-root.offline .equip-dot,
+  #grow-root.offline .equip-state {
+    opacity: 0.55;
+  }
+
+  /* ============================================================
+     NIGHT THEME — lights-off in the tent dims the whole page a step
+     and warms/softens the accent. Driven by JS setting
+     data-grow-phase="night" on <html>; day is the default palette.
+     ============================================================ */
+  html[data-grow-phase='night'] {
+    --color-bg: #060606;
+    --color-surface: #0d0c0b;
+    --color-border: #1a1917;
+    --color-accent: #c96a1a;
+    --color-accent-hover: #db8438;
+    --color-text: #c2bcb0;
+    --color-muted: #7d7d84;
+  }
+
+  html[data-grow-phase] body {
+    transition:
+      background-color 1s ease,
+      color 1s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html[data-grow-phase] body {
+      transition: none;
+    }
+  }
 </style>
 
 <script>
@@ -1335,7 +1554,14 @@ const defs: Record<string, Record<string, string>> = {
   // Stable per-nick colour from a warm CRT-phosphor palette (named users pop;
   // anon stays dim). Deterministic hash so the same nick is always the same hue.
   const NICK_COLORS = [
-    '#ff8a3d', '#ffb05c', '#e0a83c', '#ff7e6b', '#d99a4e', '#ffcf87', '#f0915e', '#caa46a',
+    '#ff8a3d',
+    '#ffb05c',
+    '#e0a83c',
+    '#ff7e6b',
+    '#d99a4e',
+    '#ffcf87',
+    '#f0915e',
+    '#caa46a',
   ];
   function nickColor(name: string): string {
     let h = 0;
