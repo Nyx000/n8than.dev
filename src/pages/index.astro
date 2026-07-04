@@ -32,7 +32,13 @@ const personSchema = {
   <section class="hero">
     <CitadelHero />
     <div class="hero-inner stagger">
-      <h1 class="hero-name"><span class="clan-tag" aria-hidden="true">๖ۣۜ</span>Nathan</h1>
+      <h1 class="hero-name">
+        <span class="hero-name-fx" aria-hidden="true"
+          ><span class="hero-prompt">~/</span><span class="hero-glitch" data-text="nathan"
+            >nathan</span
+          ></span
+        ><span class="sr-only">Nathan</span>
+      </h1>
       <p class="hero-tagline">
         software engineer, san diego. i build software people actually use.
       </p>
@@ -99,11 +105,10 @@ const personSchema = {
 
       // Box size is reserved by the CSS `.cmdline-sizer`, so no JS measuring.
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const alreadyPlayed = sessionStorage.getItem('hero-typed');
 
-      // Finite flavour: once seen (this session) or under reduced-motion, skip
-      // straight to the parked final command with an idle-blinking cursor.
-      if (prefersReducedMotion || alreadyPlayed) {
+      // Under reduced-motion, skip the animation and rest on the final command
+      // with an idle-blinking cursor.
+      if (prefersReducedMotion) {
         el.textContent = parked;
         return;
       }
@@ -139,21 +144,81 @@ const personSchema = {
           done();
         }
       }
+      // Continuous loop: type a command, hold, erase, advance (wrapping back to the
+      // first), forever — no parking.
       function next() {
         type(commands[ci], 0, () => {
-          if (ci === commands.length - 1) {
-            sessionStorage.setItem('hero-typed', '1'); // parked; done for the session
-            return;
-          }
           timer = setTimeout(() => {
             erase(commands[ci], commands[ci].length, () => {
-              ci += 1;
+              ci = (ci + 1) % commands.length;
               timer = setTimeout(next, 150);
             });
           }, 1400);
         });
       }
       timer = setTimeout(next, 700);
+    });
+  </script>
+
+  <script>
+    declare global {
+      interface Window {
+        __heroGlitchCleanup?: () => void;
+      }
+    }
+    document.addEventListener('astro:page-load', () => {
+      const el = document.querySelector<HTMLElement>('.hero-glitch');
+      if (!el) return;
+
+      // Motion opt-out: leave the resting name untouched, schedule nothing.
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      if (window.__heroGlitchCleanup) window.__heroGlitchCleanup();
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      window.__heroGlitchCleanup = () => {
+        if (timer) clearTimeout(timer);
+        timer = null;
+      };
+
+      const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+      const pct = (x: number) => `${Math.round(x * 100)}%`;
+      // A thin horizontal band somewhere in the upper ~⅔, 8–30% tall.
+      const band = (): [string, string] => {
+        const top = Math.random() * 0.55;
+        const h = 0.08 + Math.random() * 0.22;
+        return [pct(top), pct(Math.max(0, 1 - top - h))];
+      };
+
+      // One burst: randomise offset direction/size + the four slice bands, then
+      // restart the two channel animations by toggling the class (reflow between).
+      function burst() {
+        const mag = rnd(1, 3).toFixed(1);
+        el!.style.setProperty('--g-dx', `${Math.random() < 0.5 ? '-' : ''}${mag}px`);
+        const keys = [
+          ['--g-t1', '--g-b1'],
+          ['--g-t2', '--g-b2'],
+          ['--g-t3', '--g-b3'],
+          ['--g-t4', '--g-b4'],
+        ];
+        for (const [t, b] of keys) {
+          const [top, bot] = band();
+          el!.style.setProperty(t, top);
+          el!.style.setProperty(b, bot);
+        }
+        el!.classList.remove('is-glitching');
+        void el!.offsetWidth; // force reflow so the animation re-triggers
+        el!.classList.add('is-glitching');
+      }
+
+      // Calm cadence: a burst every ~5.5–9s, gap re-rolled each time so there's no
+      // detectable loop point.
+      function schedule() {
+        timer = setTimeout(() => {
+          burst();
+          schedule();
+        }, rnd(5500, 9000));
+      }
+      schedule();
     });
   </script>
 </BaseLayout>
@@ -184,13 +249,85 @@ const personSchema = {
     color: var(--color-accent);
     line-height: 1.05;
     margin-bottom: var(--space-sm);
+    /* Keep "~/nathan" intact — browsers otherwise treat the slash as a break
+       opportunity and can drop "nathan" to its own line on narrow viewports. */
+    white-space: nowrap;
   }
 
-  /* Decorative clan glyphs isolated + shrunk so screen readers just say "Nathan". */
-  .clan-tag {
-    font-size: 0.5em;
-    opacity: 0.55;
-    vertical-align: 0.55em;
+  /* ~/ shell prompt: a muted anchor before the name, in place of the old clan glyph.
+     The whole visual (prompt + glitch name) is aria-hidden; screen readers read the
+     plain "Nathan" from the adjacent .sr-only span. */
+  .hero-prompt {
+    color: var(--color-muted);
+    opacity: 0.7;
+  }
+
+  /* Occasional RGB-split "signal glitch" on the name — a terminal-native flourish
+     replacing the clan flourish. The base name stays fully legible; two offset colour
+     channels flash in short bursts scheduled by JS (randomised gap/offset/bands, so it
+     never visibly loops). Slices mask against --color-bg. Disabled under reduced motion. */
+  .hero-glitch {
+    position: relative;
+    display: inline-block;
+  }
+
+  .hero-glitch::before,
+  .hero-glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    background: var(--color-bg);
+    clip-path: inset(0 0 100% 0); /* fully hidden until a burst */
+    pointer-events: none;
+    will-change: transform, clip-path;
+  }
+
+  .hero-glitch::before {
+    color: #00e6d6; /* cyan channel */
+  }
+
+  .hero-glitch::after {
+    color: #ff2e63; /* magenta channel */
+  }
+
+  .hero-glitch.is-glitching::before {
+    animation: hero-glitch-a 0.24s steps(2) forwards;
+  }
+
+  .hero-glitch.is-glitching::after {
+    animation: hero-glitch-b 0.24s steps(2) forwards;
+  }
+
+  /* Band positions and offset are set per-burst as custom props by the scheduler;
+     the fallbacks keep a sane shape if the script never runs. */
+  @keyframes hero-glitch-a {
+    0% {
+      clip-path: inset(var(--g-t1, 10%) 0 var(--g-b1, 60%) 0);
+      transform: translateX(calc(var(--g-dx, 2px) * -1));
+    }
+    45% {
+      clip-path: inset(var(--g-t2, 40%) 0 var(--g-b2, 35%) 0);
+      transform: translateX(var(--g-dx, 2px));
+    }
+    100% {
+      clip-path: inset(0 0 100% 0);
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes hero-glitch-b {
+    0% {
+      clip-path: inset(var(--g-t3, 55%) 0 var(--g-b3, 18%) 0);
+      transform: translateX(var(--g-dx, 2px));
+    }
+    45% {
+      clip-path: inset(var(--g-t4, 25%) 0 var(--g-b4, 50%) 0);
+      transform: translateX(calc(var(--g-dx, 2px) * -1));
+    }
+    100% {
+      clip-path: inset(0 0 100% 0);
+      transform: translateX(0);
+    }
   }
 
   /* Static message under the name — the real headline (the cmdline is flavour). */
@@ -241,6 +378,9 @@ const personSchema = {
     .cmdline-line {
       white-space: pre-wrap;
       overflow-wrap: anywhere;
+      /* When the command wraps to two lines, top-align so the # prompt sits on the
+         first line instead of floating vertically centred against the block. */
+      align-items: flex-start;
     }
   }
 
@@ -365,6 +505,13 @@ const personSchema = {
   @media (prefers-reduced-motion: reduce) {
     .cmdline-cursor {
       animation: none;
+    }
+
+    /* No glitch under reduced motion — the resting orange name is the whole show.
+       The scheduler also bails on this query, so the channels never fire. */
+    .hero-glitch::before,
+    .hero-glitch::after {
+      display: none;
     }
   }
 
