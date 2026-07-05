@@ -52,6 +52,7 @@ const defs: Record<string, Record<string, string>> = {
       <span id="grow-pill" class="pill is-connecting">CONNECTING</span>
       <span id="grow-updated" class="updated"></span>
       <span id="grow-phase-badge" class="phase-badge" hidden></span>
+      <span id="grow-season-badge" class="phase-badge" hidden></span>
     </div>
     <p class="intro">
       Live readings from a self-built monitoring stack running on this same server: a controller in
@@ -1267,9 +1268,17 @@ const defs: Record<string, Record<string, string>> = {
     whyLine,
     detailLines,
     phaseBadge,
+    noticeLine,
     type PublicEquipment,
     type EquipmentSensors,
   } from '../lib/grow-equipment';
+
+  // Public seasonal-hint sprinkle. Mirrors growtent web/lib/public-weather.ts EXACTLY
+  // (the repos share no code) — no numbers, no place name, no coordinates.
+  interface PublicNotice {
+    conditions: 'warm_spell' | 'humid_spell' | 'nominal' | null;
+    note: string | null;
+  }
 
   interface PublicSensor {
     tempF: number | null;
@@ -1295,6 +1304,9 @@ const defs: Record<string, Record<string, string>> = {
     equipment?: PublicEquipment[];
     lightPhase?: 'day' | 'night' | null;
     nextPhaseChange?: number | null;
+    // Seasonal-hint sprinkle (grow repo ships it independently; optional so an older
+    // API is tolerated). null/absent → no badge.
+    notice?: PublicNotice | null;
   }
 
   // 5s matches the API's max-age=5 cache; the sensor cadence is slower (~1/min), so this
@@ -1476,6 +1488,16 @@ const defs: Record<string, Record<string, string>> = {
     if (camNote) camNote.hidden = phase !== 'night';
   }
 
+  // ===== SEASONAL NOTICE =====
+  // Compact chip only — never the full curated sentence, never location/temps.
+  function applyNotice(d: PublicLive) {
+    const badge = document.getElementById('grow-season-badge');
+    if (!badge) return;
+    const label = noticeLine(d.notice);
+    badge.textContent = label ?? '';
+    badge.hidden = label == null;
+  }
+
   function fmtAge(sec: number): string {
     if (sec < 60) return `${sec}s`;
     const m = Math.floor(sec / 60);
@@ -1514,6 +1536,7 @@ const defs: Record<string, Record<string, string>> = {
       }
       renderEquipment(d);
       applyPhase(d);
+      applyNotice(d);
       root.classList.remove('offline');
       root.classList.toggle('stale', d.freshness === 'stale');
       if (d.freshness === 'live') setPill('live', 'LIVE');

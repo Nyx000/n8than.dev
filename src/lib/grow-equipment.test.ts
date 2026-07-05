@@ -5,7 +5,9 @@ import {
   whyLine,
   detailLines,
   phaseBadge,
+  noticeLine,
   type PublicEquipment,
+  type PublicNotice,
 } from './grow-equipment';
 
 const eq = (over: Partial<PublicEquipment>): PublicEquipment => ({
@@ -117,5 +119,45 @@ describe('phaseBadge', () => {
     expect(phaseBadge('day', 123)).toBeNull();
     expect(phaseBadge(null, null)).toBeNull();
     expect(phaseBadge('night', null)).toBe('🌙 lights off');
+  });
+});
+
+describe('noticeLine', () => {
+  const notice = (over: Partial<PublicNotice>): PublicNotice => ({
+    conditions: null,
+    note: null,
+    ...over,
+  });
+
+  it('warm spell → sun badge', () => {
+    const label = noticeLine(
+      notice({ conditions: 'warm_spell', note: 'Seasonal warm spell — daytime VPD running high, within plan' }),
+    );
+    expect(label).toBe('☀️ warm spell');
+  });
+
+  it('humid spell → droplet badge', () => {
+    const label = noticeLine(
+      notice({ conditions: 'humid_spell', note: 'Seasonal humid spell — humidity elevated, within plan' }),
+    );
+    expect(label).toBe('💧 humid spell');
+  });
+
+  it('null when note is absent, even if conditions is set', () => {
+    expect(noticeLine(notice({ conditions: 'warm_spell', note: null }))).toBeNull();
+    expect(noticeLine(notice({ conditions: 'nominal', note: null }))).toBeNull();
+  });
+
+  it('null when notice itself is absent', () => {
+    expect(noticeLine(null)).toBeNull();
+    expect(noticeLine(undefined)).toBeNull();
+  });
+
+  it('never leaks a place name or coordinate — only the curated label', () => {
+    const label = noticeLine(
+      notice({ conditions: 'warm_spell', note: 'Seasonal warm spell — daytime VPD running high, within plan' }),
+    );
+    expect(label).not.toMatch(/\d/); // no numbers (temps, coords)
+    expect(label).not.toMatch(/tent|room|canopy|lat|lon/i); // no place/location leakage
   });
 });

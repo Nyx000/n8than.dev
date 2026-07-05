@@ -168,3 +168,20 @@ export function phaseBadge(
   });
   return `🌙 lights off · back on at ${at}`;
 }
+
+// The public seasonal-hint sprinkle (grow repo ships it independently; optional so an
+// older API is tolerated). Mirrors growtent web/lib/public-weather.ts EXACTLY — no
+// numbers, no place name, no coordinates. `note` null = show nothing.
+export interface PublicNotice {
+  conditions: 'warm_spell' | 'humid_spell' | 'nominal' | null;
+  note: string | null;
+}
+
+// Compact seasonal badge label for the header, or null to hide. Uses `note`'s
+// presence as the show/hide gate (never the raw note text — this is a public page).
+export function noticeLine(notice?: PublicNotice | null): string | null {
+  if (!notice || !notice.note) return null;
+  if (notice.conditions === 'warm_spell') return '☀️ warm spell';
+  if (notice.conditions === 'humid_spell') return '💧 humid spell';
+  return null;
+}
