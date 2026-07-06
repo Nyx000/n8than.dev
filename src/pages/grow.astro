@@ -498,6 +498,13 @@ const defs: Record<string, Record<string, string>> = {
 
   .cam-card {
     margin-bottom: var(--space-lg);
+    /* Lift the live plant feed above the site-wide CRT scanline overlay (body::after, z-index 9 in
+       global.css) so the camera image reads clean — the rest of the site keeps its scanlines. The
+       card already carries a persistent transform from the .stagger fadeUp (animation-fill: both),
+       and position:relative makes the z-index apply at every width. The header is in normal flow
+       (no sticky/fixed), so sitting above the scanlines can't cause it to overlap anything. */
+    position: relative;
+    z-index: 11;
   }
 
   /* On wide screens, let the camera break out of the 64rem text column to fill more of the
