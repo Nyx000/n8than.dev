@@ -1627,14 +1627,14 @@ const defs: Record<string, Record<string, string>> = {
           /* fall through to the CSS overlay */
         }
       }
-      frame.classList.add('cam-pseudo-fs');
+      frame!.classList.add('cam-pseudo-fs');
       void lockLandscape();
       sync();
     }
 
     function exit() {
       if (nativeOn()) (d.exitFullscreen || d.webkitExitFullscreen)?.call(document);
-      if (pseudoOn()) frame.classList.remove('cam-pseudo-fs');
+      if (pseudoOn()) frame!.classList.remove('cam-pseudo-fs');
       unlockOrientation();
       sync();
     }
