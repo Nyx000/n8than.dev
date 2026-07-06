@@ -1,21 +1,8 @@
-// Pure prose formatting for the public EQUIPMENT card. Mirrors the growtent
-// /api/grow/live payload shapes (the repos share no code — keep in sync with
-// growtent web/lib/public-equipment.ts).
-
-export type PublicRule =
-  | { kind: 'schedule'; onMin: number; offMin: number }
-  | { kind: 'auto'; tempHighF?: number; rhHigh?: number; tempLowF?: number; rhLow?: number }
-  | { kind: 'vpd'; high?: number; low?: number; target?: number }
-  | { kind: 'cycle'; onSec: number; offSec: number }
-  | { kind: 'always_on' }
-  | { kind: 'manual' };
-
-export interface PublicEquipment {
-  key: 'light' | 'exhaust' | 'humidifier' | 'circulation';
-  label: string;
-  state: 'on' | 'off' | 'unknown';
-  rule: PublicRule | null;
-}
+// Pure prose formatting for the public EQUIPMENT card. The wire-contract types come from the
+// generated mirror of growtent's canonical contract (growtent-public-contract.ts) — a rename on
+// either side now fails a typecheck / `contract:check` instead of drifting silently.
+import type { PublicRule, PublicEquipment, PublicNotice } from './growtent-public-contract';
+export type { PublicRule, PublicEquipment, PublicNotice } from './growtent-public-contract';
 
 export interface EquipmentSensors {
   canopyRh: number | null;
@@ -169,14 +156,8 @@ export function phaseBadge(
   return `🌙 lights off · back on at ${at}`;
 }
 
-// The public seasonal-hint sprinkle (grow repo ships it independently; optional so an
-// older API is tolerated). Mirrors growtent web/lib/public-weather.ts EXACTLY — no
-// numbers, no place name, no coordinates. `note` null = show nothing.
-export interface PublicNotice {
-  conditions: 'warm_spell' | 'humid_spell' | 'nominal' | null;
-  note: string | null;
-}
-
+// The public seasonal-hint sprinkle (grow repo ships it independently; optional so an older API
+// is tolerated). PublicNotice comes from the generated contract mirror above.
 // Compact seasonal badge label for the header, or null to hide. Uses `note`'s
 // presence as the show/hide gate (never the raw note text — this is a public page).
 export function noticeLine(notice?: PublicNotice | null): string | null {

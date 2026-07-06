@@ -1274,20 +1274,9 @@ const defs: Record<string, Record<string, string>> = {
     type PublicEquipment,
     type EquipmentSensors,
   } from '../lib/grow-equipment';
+  // Wire-contract types from the generated mirror of growtent's canonical public contract.
+  import type { PublicNotice, PublicSensor } from '../lib/growtent-public-contract';
 
-  // Public seasonal-hint sprinkle. Mirrors growtent web/lib/public-weather.ts EXACTLY
-  // (the repos share no code) — no numbers, no place name, no coordinates.
-  interface PublicNotice {
-    conditions: 'warm_spell' | 'humid_spell' | 'nominal' | null;
-    note: string | null;
-  }
-
-  interface PublicSensor {
-    tempF: number | null;
-    rh: number | null;
-    vpdKpa: number | null;
-    dewF: number | null;
-  }
   interface SparkPoint {
     t: number;
     tempF: number;
