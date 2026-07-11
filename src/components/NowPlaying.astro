@@ -83,6 +83,9 @@
       iframe = document.createElement('iframe');
       iframe.title = 'spotify player';
       iframe.width = '100%';
+      // Height is set in CSS (responsive), not here: on touch/narrow the embed renders a taller
+      // card that a fixed 152 clips → Spotify draws its own scrollbars. CSS gives mobile the
+      // 80px compact strip and desktop the 152px card. This attr is only a pre-CSS fallback.
       iframe.height = '152';
       iframe.style.border = '0';
       iframe.setAttribute('loading', 'lazy');
@@ -288,6 +291,23 @@
 
   .np-embed {
     margin-top: 0.35em;
+  }
+
+  /* :global() because the iframe is created in JS and never gets Astro's scope attribute.
+     Height drives the embed's layout: 152 = full horizontal card (desktop), 80 = compact
+     strip (mobile). A fixed 152 on touch/narrow renders a taller card that clips → Spotify
+     scrollbars; the compact strip fits cleanly down to ~280px. */
+  .np-embed :global(iframe) {
+    display: block;
+    width: 100%;
+    height: 152px;
+    border: 0;
+  }
+
+  @media (max-width: 640px) {
+    .np-embed :global(iframe) {
+      height: 80px;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
