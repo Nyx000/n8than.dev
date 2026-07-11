@@ -333,7 +333,8 @@
       if (debounceTimer != null) clearTimeout(debounceTimer);
       const text = q.value.trim();
       if (text.length < 2) {
-        renderResults([]);
+        searchInflight?.abort();
+        searchInflight = null;
         const list = $('jb-results');
         if (list) list.textContent = '';
         return;
@@ -377,6 +378,10 @@
     lastResults = [];
     pending = null;
     logSeen = new Set();
+    if (debounceTimer != null) clearTimeout(debounceTimer);
+    debounceTimer = undefined;
+    searchInflight?.abort();
+    searchInflight = null;
     $('jb-toggle')?.addEventListener('click', () => setOpen(!open));
     root.addEventListener('keydown', (e) => {
       if ((e as KeyboardEvent).key === 'Escape' && open) {
