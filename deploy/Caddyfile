@@ -31,9 +31,11 @@
 # `<script type="module">` survives in dist — astro.config assetsInlineLimit:0 forces
 # every bundled script to a hashed /_astro file); Flip B dropped the Google Fonts hosts
 # (fonts are self-hosted via @fontsource). `style-src 'unsafe-inline'` stays on purpose
-# (Astro inlineStylesheets:auto + ClientRouter fallback styles).
+# (Astro inlineStylesheets:auto + ClientRouter fallback styles). frame-src admits the
+# Spotify now-playing embed (open.spotify.com); img-src admits Spotify's album-art
+# CDNs (i.scdn.co, *.spotifycdn.com).
 (n8than_csp_site) {
-	header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; media-src 'self' blob:; worker-src blob:; connect-src 'self'"
+	header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; frame-src https://open.spotify.com; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://i.scdn.co https://*.spotifycdn.com; media-src 'self' blob:; worker-src blob:; connect-src 'self'"
 }
 
 # Single-hop http -> https apex for both hosts (WS6). ACME HTTP-01 is handled
@@ -92,6 +94,18 @@ n8than.dev {
 			header_down -Vary
 			header_down -Via
 		}
+	}
+
+	# Spotify now-playing — proxied from the growtent web on Hetzner (it owns the token;
+	# a 10s server-side memo there bounds Spotify calls regardless of visitor count).
+	handle /api/spotify/now-playing {
+		rewrite * /api/public/spotify/now-playing
+		reverse_proxy https://growtent.taile16d94.ts.net {
+			header_up Host growtent.taile16d94.ts.net
+			header_down -Vary
+			header_down -Via
+		}
+		header Cache-Control "public, max-age=5"
 	}
 
 	# Live tent camera (HLS) — same Pi edge over Tailscale, re-targets its /api/cam/hls/* routes.
