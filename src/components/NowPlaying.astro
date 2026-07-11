@@ -300,6 +300,9 @@
   .np-embed :global(iframe) {
     display: block;
     width: 100%;
+    /* Cap the card width so it reads as a compact player, not a full-bleed banner on wide/4k
+       screens. Stays >300px (Spotify's scrollbar floor); shrinks to 100% on narrow columns. */
+    max-width: 420px;
     height: 152px;
     border: 0;
   }
