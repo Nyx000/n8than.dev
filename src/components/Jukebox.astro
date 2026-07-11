@@ -1,0 +1,658 @@
+---
+// Jukebox drawer — collapsed terminal line under the now-playing widget. Expanding reveals
+// search → y/n confirm → request, the pseudonymous public log, and the playlist link.
+// Lazy: no fetch, no polling, no JS work until first expand. Chatter idiom throughout;
+// DOM via textContent only (shoutbox XSS posture).
+---
+
+<div class="jb" id="jb-root">
+  <p class="jb-line">
+    <span class="jb-prompt" aria-hidden="true">#</span>
+    <button class="jb-toggle" id="jb-toggle" aria-expanded="false" aria-controls="jb-panel">
+      jukebox — request a track ▸
+    </button>
+  </p>
+  <div class="jb-panel" id="jb-panel">
+    <form class="jb-form" id="jb-form" autocomplete="off">
+      <input
+        id="jb-q"
+        class="jb-input"
+        type="search"
+        maxlength="100"
+        placeholder="search track…"
+        autocomplete="off"
+        aria-label="search for a track"
+      />
+      <input
+        id="jb-hp"
+        class="jb-hp"
+        name="website"
+        type="text"
+        tabindex="-1"
+        autocomplete="off"
+        aria-hidden="true"
+      />
+    </form>
+    <ol class="jb-results" id="jb-results" aria-label="search results"></ol>
+    <div class="jb-confirm" id="jb-confirm" hidden>
+      <span class="jb-confirm-text" id="jb-confirm-text"></span>
+      <button class="jb-yes" id="jb-yes" type="button">y</button>
+      <button class="jb-no" id="jb-no" type="button">n</button>
+    </div>
+    <p class="jb-status" id="jb-status" role="status" aria-live="polite"></p>
+    <ol class="jb-log" id="jb-log" role="log" aria-live="polite" aria-label="recent requests"></ol>
+    <p class="jb-playlist">
+      <a id="jb-playlist-link" href="#" target="_blank" rel="noopener noreferrer"
+        >→ open the request playlist on spotify<span class="sr-only"> (opens in new tab)</span></a
+      >
+    </p>
+    <noscript>
+      <p class="jb-status">
+        // js required to request a track — the playlist link above still works
+      </p>
+    </noscript>
+  </div>
+</div>
+
+<script>
+  import type {
+    PublicTrack,
+    PublicSongRequest,
+    PublicRequestResult,
+  } from '../lib/growtent-public-contract';
+
+  const LOG_POLL_MS = 25_000;
+  const DEBOUNCE_MS = 350;
+  const PLAYLIST_URL = 'https://open.spotify.com/playlist/14VVBlicXzaT9hI3i0mk4v';
+
+  let open = false;
+  let initialized = false;
+  let logTimer: number | undefined;
+  let debounceTimer: number | undefined;
+  let lastResults: PublicTrack[] = [];
+  let pending: PublicTrack | null = null;
+  let logSeen = new Set<number>();
+  let searchInflight: AbortController | null = null;
+
+  const $ = (id: string) => document.getElementById(id);
+
+  function setStatus(msg: string, isError = false) {
+    const el = $('jb-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.toggle('is-error', isError);
+  }
+
+  function clockTime(iso: string): string {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '--:--';
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+
+  // Same hash-to-hue trick as the tent chatter, over the pseudonym.
+  const NICK_COLORS = [
+    '#ff8a3d',
+    '#ffb05c',
+    '#e0a83c',
+    '#ff7e6b',
+    '#d99a4e',
+    '#ffcf87',
+    '#f0915e',
+    '#caa46a',
+  ];
+  function nickColor(name: string): string {
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    return NICK_COLORS[h % NICK_COLORS.length];
+  }
+
+  function explicitChip(): HTMLSpanElement {
+    const e = document.createElement('span');
+    e.className = 'jb-explicit';
+    e.textContent = 'E';
+    e.setAttribute('aria-label', 'explicit');
+    e.title = 'explicit';
+    return e;
+  }
+
+  function logLine(r: PublicSongRequest): HTMLLIElement {
+    const li = document.createElement('li');
+    li.className = 'jb-log-line';
+    li.dataset.id = String(r.id);
+    const t = document.createElement('time');
+    t.className = 'jb-time';
+    t.dateTime = r.createdAt;
+    t.textContent = clockTime(r.createdAt);
+    li.append(t);
+    const n = document.createElement('span');
+    n.className = 'jb-nick';
+    n.textContent = `<${r.pseudonym}>`;
+    n.style.color = nickColor(r.pseudonym);
+    li.append(n);
+    const msg = document.createElement('span');
+    msg.className = 'jb-msg';
+    msg.textContent = ` requested "${r.trackName.toLowerCase()}" — ${r.artists.toLowerCase()}`;
+    li.append(msg);
+    if (r.explicit) li.append(explicitChip());
+    if (r.queuedLive) {
+      const q = document.createElement('span');
+      q.className = 'jb-queued';
+      q.textContent = '· queued live';
+      li.append(q);
+    }
+    return li;
+  }
+
+  async function loadLog() {
+    try {
+      const res = await fetch('/api/spotify/requests?limit=10', { cache: 'no-store' });
+      if (!res.ok) throw new Error(String(res.status));
+      const items = (await res.json()) as PublicSongRequest[];
+      const log = $('jb-log');
+      if (!log) return;
+      if (!items.length && !log.querySelector('.jb-log-line')) {
+        log.textContent = '';
+        const li = document.createElement('li');
+        li.className = 'jb-sys';
+        li.textContent = '*** no requests yet — be the first';
+        log.append(li);
+        return;
+      }
+      log.querySelector('.jb-sys')?.remove();
+      // newest-first from the API; append-only oldest→newest so new rows land at the bottom.
+      for (let i = items.length - 1; i >= 0; i--) {
+        const r = items[i];
+        if (!logSeen.has(r.id)) {
+          log.append(logLine(r));
+          logSeen.add(r.id);
+        }
+      }
+    } catch {
+      /* silent — the log is ambient */
+    }
+  }
+
+  function startLog() {
+    stopLog();
+    void loadLog();
+    logTimer = window.setInterval(loadLog, LOG_POLL_MS);
+  }
+  function stopLog() {
+    if (logTimer != null) clearInterval(logTimer);
+    logTimer = undefined;
+  }
+
+  function resultRow(t: PublicTrack): HTMLLIElement {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'jb-result';
+    if (t.albumArtUrl) {
+      const img = document.createElement('img');
+      img.className = 'jb-art';
+      img.src = t.albumArtUrl;
+      img.alt = '';
+      img.width = 36;
+      img.height = 36;
+      img.loading = 'lazy';
+      btn.append(img);
+    }
+    const stack = document.createElement('span');
+    stack.className = 'jb-result-text';
+    const name = document.createElement('span');
+    name.className = 'jb-result-name';
+    name.textContent = t.name.toLowerCase();
+    const artists = document.createElement('span');
+    artists.className = 'jb-result-artists';
+    artists.textContent = t.artists.toLowerCase();
+    stack.append(name, artists);
+    btn.append(stack);
+    if (t.explicit) btn.append(explicitChip());
+    btn.addEventListener('click', () => showConfirm(t));
+    li.append(btn);
+    return li;
+  }
+
+  function renderResults(items: PublicTrack[]) {
+    const list = $('jb-results');
+    if (!list) return;
+    list.textContent = '';
+    if (!items.length) {
+      const li = document.createElement('li');
+      li.className = 'jb-sys';
+      li.textContent = '// nothing found';
+      list.append(li);
+      return;
+    }
+    for (const t of items) list.append(resultRow(t));
+  }
+
+  function showConfirm(t: PublicTrack) {
+    pending = t;
+    const c = $('jb-confirm');
+    const ct = $('jb-confirm-text');
+    const list = $('jb-results');
+    if (list) list.textContent = '';
+    if (ct)
+      ct.textContent = `request "${t.name.toLowerCase()}" — ${t.artists.toLowerCase()}? [y/n]`;
+    if (c) c.hidden = false;
+    ($('jb-yes') as HTMLButtonElement | null)?.focus();
+  }
+
+  function hideConfirm(restoreResults: boolean) {
+    const c = $('jb-confirm');
+    if (c) c.hidden = true;
+    pending = null;
+    if (restoreResults) renderResults(lastResults);
+  }
+
+  async function submitRequest() {
+    if (!pending) return;
+    const track = pending;
+    hideConfirm(false);
+    setStatus('transmitting…');
+    const yes = $('jb-yes') as HTMLButtonElement | null;
+    if (yes) yes.disabled = true;
+    try {
+      const hp = $('jb-hp') as HTMLInputElement | null;
+      const res = await fetch('/api/spotify/request', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ trackId: track.id, website: hp ? hp.value : '' }),
+      });
+      if (res.status === 201) {
+        const d = (await res.json()) as PublicRequestResult;
+        setStatus(
+          d.request.queuedLive
+            ? 'queued ✓ — added to the playlist · dropped into the live queue'
+            : 'queued ✓ — added to the playlist',
+        );
+        const log = $('jb-log');
+        if (log && !logSeen.has(d.request.id)) {
+          log.querySelector('.jb-sys')?.remove();
+          log.append(logLine(d.request));
+          logSeen.add(d.request.id);
+        }
+      } else if (res.status === 200) {
+        setStatus('already on the list — nice pick');
+      } else if (res.status === 422) {
+        setStatus('no explicit tracks, sorry', true);
+      } else if (res.status === 429) {
+        const d = (await res.json().catch(() => ({}))) as { error?: string };
+        setStatus(
+          d.error === 'daily limit reached'
+            ? 'daily limit reached — try tomorrow'
+            : 'slow down — try again in a bit',
+          true,
+        );
+      } else if (res.status === 400 || res.status === 403) {
+        const d = (await res.json().catch(() => ({}))) as { error?: string };
+        setStatus(d.error || "that didn't go through", true);
+      } else {
+        throw new Error(String(res.status));
+      }
+    } catch {
+      setStatus("couldn't send — try again", true);
+    } finally {
+      if (yes) yes.disabled = false;
+    }
+  }
+
+  async function runSearch(q: string) {
+    searchInflight?.abort();
+    const ctrl = new AbortController();
+    searchInflight = ctrl;
+    $('jb-root')?.classList.add('is-searching');
+    try {
+      const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(q)}`, {
+        cache: 'no-store',
+        signal: ctrl.signal,
+      });
+      if (res.status === 429) {
+        setStatus('search rate limited — one sec', true);
+        return;
+      }
+      if (!res.ok) throw new Error(String(res.status));
+      lastResults = (await res.json()) as PublicTrack[];
+      setStatus('');
+      hideConfirm(false);
+      renderResults(lastResults);
+    } catch (err) {
+      if ((err as Error)?.name !== 'AbortError') setStatus('search unavailable — try again', true);
+    } finally {
+      if (searchInflight === ctrl) searchInflight = null;
+      $('jb-root')?.classList.remove('is-searching');
+    }
+  }
+
+  function initDrawer() {
+    if (initialized) return;
+    initialized = true;
+    const q = $('jb-q') as HTMLInputElement | null;
+    q?.addEventListener('input', () => {
+      if (debounceTimer != null) clearTimeout(debounceTimer);
+      const text = q.value.trim();
+      if (text.length < 2) {
+        renderResults([]);
+        const list = $('jb-results');
+        if (list) list.textContent = '';
+        return;
+      }
+      debounceTimer = window.setTimeout(() => void runSearch(text), DEBOUNCE_MS);
+    });
+    $('jb-form')?.addEventListener('submit', (e) => e.preventDefault());
+    $('jb-yes')?.addEventListener('click', () => void submitRequest());
+    $('jb-no')?.addEventListener('click', () => hideConfirm(true));
+    const link = $('jb-playlist-link') as HTMLAnchorElement | null;
+    if (link) link.href = PLAYLIST_URL;
+  }
+
+  function setOpen(on: boolean) {
+    open = on;
+    const panel = $('jb-panel');
+    const btn = $('jb-toggle');
+    panel?.classList.toggle('is-open', on);
+    if (btn) {
+      btn.setAttribute('aria-expanded', String(on));
+      btn.textContent = on ? 'jukebox — request a track ▾' : 'jukebox — request a track ▸';
+    }
+    if (on) {
+      initDrawer();
+      startLog();
+      ($('jb-q') as HTMLInputElement | null)?.focus();
+    } else {
+      stopLog();
+    }
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    const root = $('jb-root');
+    if (!root) {
+      stopLog();
+      return;
+    }
+    // Fresh DOM after ClientRouter nav — reset the module state that mirrors it.
+    open = false;
+    initialized = false;
+    lastResults = [];
+    pending = null;
+    logSeen = new Set();
+    $('jb-toggle')?.addEventListener('click', () => setOpen(!open));
+    root.addEventListener('keydown', (e) => {
+      if ((e as KeyboardEvent).key === 'Escape' && open) {
+        setOpen(false);
+        ($('jb-toggle') as HTMLElement | null)?.focus();
+      }
+    });
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (!$('jb-root')) return;
+    if (document.hidden) stopLog();
+    else if (open) startLog();
+  });
+</script>
+
+<style>
+  .jb {
+    margin-bottom: var(--space-lg);
+  }
+
+  .jb-line {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    font-family: var(--font-display);
+    font-size: clamp(0.85rem, 1.4vw, 0.95rem);
+  }
+
+  .jb-prompt {
+    color: var(--color-muted);
+    opacity: 0.7;
+  }
+
+  .jb-toggle {
+    font: inherit;
+    color: var(--color-muted);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: color var(--dur-fast) ease;
+  }
+
+  .jb-toggle:hover,
+  .jb-toggle:focus-visible {
+    color: var(--color-accent);
+  }
+
+  .jb-panel {
+    overflow: hidden;
+    max-height: 0;
+    visibility: hidden;
+    transition:
+      max-height var(--dur-slow) ease,
+      visibility 0s linear var(--dur-slow);
+  }
+
+  .jb-panel.is-open {
+    max-height: 560px;
+    visibility: visible;
+    transition: max-height var(--dur-slow) ease;
+  }
+
+  .jb-form {
+    margin-top: 0.5em;
+  }
+
+  .jb-input {
+    width: 100%;
+    max-width: 28rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--color-text);
+    background: #0b0907;
+    border: 1px solid #241c14;
+    border-radius: var(--radius-sm);
+    padding: 0.45em 0.7em;
+  }
+
+  .jb-input:focus-visible {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+
+  /* Honeypot: offscreen but not display:none (bots that skip hidden fields still fill it). */
+  .jb-hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+
+  .jb-results {
+    list-style: none;
+    margin: 0.5em 0 0;
+    padding: 0;
+    max-width: 28rem;
+  }
+
+  .jb-result {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    width: 100%;
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--color-text);
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 0.35em 0.4em;
+    cursor: pointer;
+  }
+
+  .jb-result:hover,
+  .jb-result:focus-visible {
+    background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  }
+
+  .jb-art {
+    flex-shrink: 0;
+    border-radius: 2px;
+  }
+
+  .jb-result-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .jb-result-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .jb-result-artists {
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .jb-explicit {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--color-muted);
+    border: 1px solid var(--color-border);
+    border-radius: 2px;
+    padding: 0 0.3em;
+    line-height: 1.4;
+  }
+
+  .jb-confirm {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    margin-top: 0.5em;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--color-text);
+  }
+
+  .jb-yes,
+  .jb-no {
+    font: inherit;
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.1em 0.7em;
+    cursor: pointer;
+  }
+
+  .jb-yes {
+    color: var(--color-accent);
+    border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+  }
+
+  .jb-no {
+    color: var(--color-muted);
+  }
+
+  .jb-yes:hover,
+  .jb-yes:focus-visible {
+    color: var(--color-accent-hover);
+  }
+
+  .jb-status {
+    margin: 0.5em 0 0;
+    min-height: 1.2em;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted);
+  }
+
+  .jb-status.is-error {
+    color: #ff5a5a; /* chatter's local CRT error red — deliberately not --color-danger */
+  }
+
+  .jb-log {
+    list-style: none;
+    margin: 0.6em 0 0;
+    padding: 0.5em 0.7em;
+    max-width: 34rem;
+    max-height: 12em;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    background: #0b0907;
+    border: 1px solid #241c14;
+    border-radius: var(--radius-sm);
+  }
+
+  .jb-log-line {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5em;
+    line-height: 1.7;
+    min-width: 0;
+  }
+
+  .jb-time {
+    flex-shrink: 0;
+    color: var(--color-muted);
+    opacity: 0.7;
+  }
+
+  .jb-nick {
+    flex-shrink: 0;
+  }
+
+  .jb-msg {
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .jb-queued {
+    flex-shrink: 0;
+    color: var(--color-accent);
+    opacity: 0.8;
+  }
+
+  .jb-sys {
+    color: var(--color-muted);
+    opacity: 0.8;
+  }
+
+  .jb-playlist {
+    margin: 0.6em 0 0;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+  }
+
+  .jb-playlist a {
+    color: var(--color-muted);
+    text-decoration: none;
+    transition: color var(--dur-fast) ease;
+  }
+
+  .jb-playlist a:hover,
+  .jb-playlist a:focus-visible {
+    color: var(--color-accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .jb-panel,
+    .jb-panel.is-open {
+      transition: none;
+    }
+  }
+</style>

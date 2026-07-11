@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import CitadelHero from '../components/CitadelHero.astro';
 import Grain from '../components/Grain.astro';
 import NowPlaying from '../components/NowPlaying.astro';
+import Jukebox from '../components/Jukebox.astro';
 
 const personSchema = {
   '@context': 'https://schema.org',
@@ -60,6 +61,7 @@ const personSchema = {
         </span>
       </div>
       <NowPlaying />
+      <Jukebox />
       <nav class="hero-links" aria-label="Primary">
         <a class="resume-link" href="/resume.pdf" target="_blank" rel="noopener noreferrer">
           résumé <span class="link-meta">— one pdf, no scrolling required</span>
@@ -215,10 +217,13 @@ const personSchema = {
       // Calm cadence: a burst every ~5.5–9s, gap re-rolled each time so there's no
       // detectable loop point.
       function schedule() {
-        timer = setTimeout(() => {
-          burst();
-          schedule();
-        }, rnd(5500, 9000));
+        timer = setTimeout(
+          () => {
+            burst();
+            schedule();
+          },
+          rnd(5500, 9000),
+        );
       }
       schedule();
     });
