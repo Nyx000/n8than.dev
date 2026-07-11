@@ -8,32 +8,23 @@
 ---
 
 <div class="np" id="np-root">
-  <div class="np-grid">
-    <p class="np-line">
-      <span class="np-prompt" aria-hidden="true">♪</span>
-      <span class="np-text" id="np-text" aria-live="polite">spotify ~ connecting…</span>
-      <button
-        class="np-toggle"
-        id="np-toggle"
-        aria-expanded="false"
-        aria-controls="np-panel"
-        disabled
-      >
-        ▸ player
-      </button>
-    </p>
-    <!-- Invisible sizer: reserves the widest plausible line so state swaps never shift the
-         menu below — same trick as .cmdline-sizer. Longer titles ellipsize instead. -->
-    <p class="np-line np-sizer" aria-hidden="true">
-      <span class="np-prompt">♪</span>
-      <span class="np-text"
-        >spotify ~ playing "a title about as long as titles sensibly get" — some longer artist name</span
-      >
-      <button class="np-toggle" tabindex="-1">▸ player</button>
-    </p>
-  </div>
+  <p class="np-line">
+    <span class="np-prompt" aria-hidden="true">♪</span>
+    <span class="np-text" id="np-text" aria-live="polite">spotify ~ connecting…</span>
+    <button
+      class="np-toggle"
+      id="np-toggle"
+      aria-expanded="false"
+      aria-controls="np-panel"
+      disabled
+    >
+      ▸ player
+    </button>
+  </p>
   <div class="np-panel" id="np-panel">
     <div class="np-embed" id="np-embed"></div>
+    <!-- Jukebox composes in here from Header (<NowPlaying><Jukebox /></NowPlaying>). -->
+    <slot />
   </div>
 </div>
 
@@ -47,6 +38,9 @@
   let trackId: string | null = null;
   let expanded = false;
   let iframeCurrent = false; // iframe src matches trackId
+  // Click-outside listener lives on `document` (persists across ClientRouter navs),
+  // so it must be removed before each re-registration or it would leak duplicates.
+  let docClickHandler: ((e: MouseEvent) => void) | null = null;
 
   const $ = (id: string) => document.getElementById(id);
 
@@ -59,10 +53,10 @@
 
   function setIdle() {
     setText('spotify ~ quiet for now');
-    const btn = $('np-toggle') as HTMLButtonElement | null;
-    if (btn) btn.disabled = true;
+    // is-idle both restyles the line and (via CSS) hides the empty .np-embed so an
+    // open dropdown shows the jukebox only. The toggle stays enabled and the drawer
+    // stays open if the visitor had it open — jukebox must be reachable while quiet.
     $('np-root')?.classList.add('is-idle');
-    if (expanded) setExpanded(false);
     // Owner directive: going idle must silence the embed — remove the iframe outright
     // (hiding keeps its audio alive). Manual visitor collapse still only hides.
     $('np-embed')?.replaceChildren();
@@ -113,8 +107,6 @@
     }
     $('np-root')?.classList.remove('is-idle');
     setText(`spotify ~ playing "${d.track.name.toLowerCase()}" — ${d.track.artists.toLowerCase()}`);
-    const btn = $('np-toggle') as HTMLButtonElement | null;
-    if (btn) btn.disabled = false;
     if (d.track.id !== trackId) {
       trackId = d.track.id;
       iframeCurrent = false;
@@ -156,6 +148,12 @@
   }
 
   document.addEventListener('astro:page-load', () => {
+    // Remove any click-outside listener from the previous page before we bail or
+    // re-register — document persists across ClientRouter navs, its handler doesn't.
+    if (docClickHandler) {
+      document.removeEventListener('click', docClickHandler);
+      docClickHandler = null;
+    }
     const root = $('np-root');
     if (!root) {
       stop();
@@ -167,6 +165,9 @@
     trackId = null;
     failures = 0;
     inflight = false;
+    // Enable the toggle now that JS is live — the drawer is reachable immediately
+    // (and stays reachable while spotify is quiet), no longer gated on playback.
+    ($('np-toggle') as HTMLButtonElement | null)?.removeAttribute('disabled');
     $('np-toggle')?.addEventListener('click', () => setExpanded(!expanded));
     root.addEventListener('keydown', (e) => {
       if ((e as KeyboardEvent).key === 'Escape' && expanded) {
@@ -174,6 +175,16 @@
         ($('np-toggle') as HTMLElement | null)?.focus();
       }
     });
+    // Click anywhere outside the widget closes the dropdown. The toggle's own click
+    // fires first (bubbling), so opening/closing via the button never self-cancels:
+    // on open the target is inside np-root (no close); on close `expanded` is already
+    // false here (early return).
+    docClickHandler = (e: MouseEvent) => {
+      if (!expanded) return;
+      const r = $('np-root');
+      if (r && !r.contains(e.target as Node)) setExpanded(false);
+    };
+    document.addEventListener('click', docClickHandler);
     if (!document.hidden) start();
   });
 
@@ -186,32 +197,19 @@
 
 <style>
   .np {
-    margin-bottom: var(--space-lg);
-    max-width: 100%;
-  }
-
-  /* Visible line and invisible sizer share one grid cell (cmdline trick): the box is always
-     as wide as the sizer, so connecting → playing → idle never nudges the menu below. */
-  .np-grid {
-    display: inline-grid;
     max-width: 100%;
   }
 
   .np-line {
-    grid-area: 1 / 1;
     display: flex;
     align-items: center;
     gap: 0.5em;
     margin: 0;
     min-width: 0;
     font-family: var(--font-display);
-    font-size: clamp(0.85rem, 1.4vw, 0.95rem);
+    font-size: 0.85rem; /* fixed header size — no vw clamp; the sizer trick is gone */
     color: var(--color-muted);
     white-space: nowrap;
-  }
-
-  .np-sizer {
-    visibility: hidden;
   }
 
   .np-prompt {
@@ -223,7 +221,12 @@
     color: var(--color-muted);
   }
 
+  /* Header truncation: cap the width and ellipsize long titles. min-width: 0 lets the
+     flex item shrink below its content on narrow headers so the ellipsis actually kicks
+     in (max-width alone only caps the upper bound). */
   .np-text {
+    min-width: 0;
+    max-width: clamp(14rem, 26vw, 24rem);
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -254,25 +257,51 @@
     cursor: default;
   }
 
-  /* Expand: animated max-height; visibility keeps collapsed content out of the a11y tree.
-     Reduced motion snaps. */
+  /* Dropdown: anchored to .site-header (the nearest positioned ancestor — .hdr-music is
+     deliberately not positioned), so top: 100% sits flush under the header's bottom border
+     with no air gap; right inset matches the header's padding so the panel's right edge
+     lines up with the widget above it. Its own internal scroll (max-height + overflow-y)
+     holds the embed + jukebox. z-index 60 clears the hero grain (#grain, z-index 10) and
+     the CRT scanline overlay (body::after, z-index 9). visibility keeps the collapsed
+     panel out of the a11y tree and non-interactive; the opacity/transform fade is polish. */
   .np-panel {
-    overflow: hidden;
-    max-height: 0;
+    position: absolute;
+    top: 100%;
+    right: var(--space-lg);
+    width: min(420px, calc(100vw - 2 * var(--space-md)));
+    max-height: min(70vh, 560px);
+    overflow-y: auto;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-top: none; /* the header's own border-bottom reads as this panel's top edge */
+    padding: var(--space-sm) var(--space-md);
+    z-index: 60;
     visibility: hidden;
+    opacity: 0;
+    transform: translateY(-4px);
     transition:
-      max-height var(--dur-slow) ease,
-      visibility 0s linear var(--dur-slow);
+      opacity var(--dur-fast) ease,
+      transform var(--dur-fast) ease,
+      visibility 0s linear var(--dur-fast);
   }
 
   .np-panel.is-open {
-    max-height: 240px;
     visibility: visible;
-    transition: max-height var(--dur-slow) ease;
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity var(--dur-fast) ease,
+      transform var(--dur-fast) ease;
   }
 
   .np-embed {
     margin-top: 0.35em;
+  }
+
+  /* Idle: the embed iframe was destroyed (audio silenced), so hide its empty box and let
+     the dropdown show the jukebox only. */
+  .np.is-idle .np-embed {
+    display: none;
   }
 
   /* :global() because the iframe is created in JS and never gets Astro's scope attribute.
@@ -302,6 +331,15 @@
   @media (max-width: 640px) {
     .np-line {
       font-size: 0.8rem;
+    }
+
+    /* Stacked header: .hdr-music is a full-width row, so the dropdown spans the header
+       edge-to-edge (left/right:0) instead of the capped desktop width. It drops below
+       the widget's own row (top:100%), clear of the stacked nav above. */
+    .np-panel {
+      left: 0;
+      right: 0;
+      width: auto;
     }
   }
 </style>
