@@ -212,7 +212,7 @@
         ($('np-toggle') as HTMLElement | null)?.focus();
       }
     });
-    start();
+    if (!document.hidden) start();
   });
 
   document.addEventListener('visibilitychange', () => {
