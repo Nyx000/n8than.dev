@@ -285,16 +285,11 @@
     /* Cap the card width so it reads as a compact player, not a full-bleed banner on wide/4k
        screens. Stays >300px (Spotify's scrollbar floor); shrinks to 100% on narrow columns. */
     max-width: 420px;
-    /* 114px = the 152 card trimmed 25% — keeps the full row (art, title, progress, controls)
-       but thinner. Mobile stays at the 80px strip (already Spotify's minimal layout). */
-    height: 114px;
+    /* 80px is the card's exact natural height at this width — the full row (art, title,
+       progress, controls) fills it with no gap. Taller values leave Spotify's own background
+       showing below the card (a white strip); shorter clips it. */
+    height: 80px;
     border: 0;
-  }
-
-  @media (max-width: 640px) {
-    .np-embed :global(iframe) {
-      height: 80px;
-    }
   }
 
   @media (prefers-reduced-motion: reduce) {
