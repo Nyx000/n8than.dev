@@ -1589,28 +1589,29 @@ const defs: Record<string, Record<string, string>> = {
       camRetry = undefined;
     }
 
-    // Safari / iOS: native HLS, no library.
-    if (cam.canPlayType('application/vnd.apple.mpegurl')) {
-      cam.src = url;
-      cam.addEventListener('error', showOffline);
-      cam.play().catch(() => {});
-      return;
-    }
-    // Everyone else: hls.js (dynamic import, Astro-bundled).
+    // Prefer hls.js wherever MSE is available (Chrome/Firefox/Edge). Chrome's canPlayType LIES
+    // ("maybe") about native HLS but cannot actually decode a raw .m3u8, so hls.js MUST win there;
+    // native HLS (cam.src = m3u8) is only the fallback for Safari/iOS, where MSE-based hls.js isn't
+    // supported. (Checking native first breaks Chrome — a black, never-loading video.)
     import('hls.js')
       .then(({ default: HlsCtor }) => {
-        if (!HlsCtor.isSupported()) {
+        if (HlsCtor.isSupported()) {
+          const hls = new HlsCtor({ lowLatencyMode: true, liveSyncDurationCount: 3, backBufferLength: 0 });
+          camHls = hls;
+          hls.on(HlsCtor.Events.ERROR, (_evt, data) => {
+            if (data.fatal) showOffline();
+          });
+          hls.loadSource(url);
+          hls.attachMedia(cam);
+          cam.play().catch(() => {});
+        } else if (cam.canPlayType('application/vnd.apple.mpegurl')) {
+          // Safari / iOS: native HLS, no library.
+          cam.src = url;
+          cam.addEventListener('error', showOffline);
+          cam.play().catch(() => {});
+        } else {
           showOffline();
-          return;
         }
-        const hls = new HlsCtor({ lowLatencyMode: true, liveSyncDurationCount: 3, backBufferLength: 0 });
-        camHls = hls;
-        hls.on(HlsCtor.Events.ERROR, (_evt, data) => {
-          if (data.fatal) showOffline();
-        });
-        hls.loadSource(url);
-        hls.attachMedia(cam);
-        cam.play().catch(() => {});
       })
       .catch(showOffline);
   }
