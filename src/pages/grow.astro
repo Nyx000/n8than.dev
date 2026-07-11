@@ -123,7 +123,7 @@ const defs: Record<string, Record<string, string>> = {
         <h2 class="probe-name">TENT CAMERA</h2>
       </header>
       <div class="cam-frame">
-        <img id="grow-cam" class="cam-img" alt="live tent camera" />
+        <video id="grow-cam" class="cam-img" muted autoplay playsinline aria-label="live tent camera"></video>
         <div id="grow-cam-loading" class="cam-overlay cam-loading">
           <span class="cam-spinner" aria-hidden="true"></span>
           connecting to camera…
@@ -1554,30 +1554,65 @@ const defs: Record<string, Record<string, string>> = {
     timer = window.setInterval(tick, POLL_MS);
   }
 
-  // Live MJPEG camera. The stream never "ends", so 'load' fires on the first frame (hide the
-  // overlay) and 'error' fires if it's offline or at the viewer cap (show overlay, retry with a
-  // cache-busting param). src is set AFTER the listeners attach so the first event can't be missed.
+  // Live H.264 HLS camera. hls.js drives playback everywhere except Safari/iOS, which plays the
+  // .m3u8 natively. 'playing' fires once frames are actually flowing (hide the overlay); a fatal
+  // hls.js error or a native <video> error rebuilds the whole player after a delay.
+  import type Hls from 'hls.js';
   let camRetry: number | undefined;
   let camFsCleanup: (() => void) | undefined;
+  let camHls: Hls | null = null;
   function setupCam() {
-    const cam = document.getElementById('grow-cam') as HTMLImageElement | null;
+    const cam = document.getElementById('grow-cam') as HTMLVideoElement | null;
     const overlay = document.getElementById('grow-cam-offline');
     const loading = document.getElementById('grow-cam-loading');
     if (!cam || !overlay) return;
-    cam.addEventListener('load', () => {
-      overlay.hidden = true;
-      if (loading) loading.hidden = true;
-    });
-    cam.addEventListener('error', () => {
-      // First connect failed (or the feed dropped): drop the spinner, show the retry notice.
+    const url = '/api/grow/cam/hls/stream.m3u8';
+
+    const showOffline = () => {
       if (loading) loading.hidden = true;
       overlay.hidden = false;
       if (camRetry != null) clearTimeout(camRetry);
-      camRetry = window.setTimeout(() => {
-        cam.src = `/api/grow/cam/stream?t=${Date.now()}`;
-      }, 5000);
+      camRetry = window.setTimeout(setupCam, 5000); // rebuild the player on failure
+    };
+    cam.addEventListener('playing', () => {
+      overlay.hidden = true;
+      if (loading) loading.hidden = true;
     });
-    cam.src = '/api/grow/cam/stream';
+
+    // SPA re-nav: tear down any previous instance first.
+    if (camHls) {
+      camHls.destroy();
+      camHls = null;
+    }
+    if (camRetry != null) {
+      clearTimeout(camRetry);
+      camRetry = undefined;
+    }
+
+    // Safari / iOS: native HLS, no library.
+    if (cam.canPlayType('application/vnd.apple.mpegurl')) {
+      cam.src = url;
+      cam.addEventListener('error', showOffline);
+      cam.play().catch(() => {});
+      return;
+    }
+    // Everyone else: hls.js (dynamic import, Astro-bundled).
+    import('hls.js')
+      .then(({ default: HlsCtor }) => {
+        if (!HlsCtor.isSupported()) {
+          showOffline();
+          return;
+        }
+        const hls = new HlsCtor({ lowLatencyMode: true, liveSyncDurationCount: 3, backBufferLength: 0 });
+        camHls = hls;
+        hls.on(HlsCtor.Events.ERROR, (_evt, data) => {
+          if (data.fatal) showOffline();
+        });
+        hls.loadSource(url);
+        hls.attachMedia(cam);
+        cam.play().catch(() => {});
+      })
+      .catch(showOffline);
   }
 
   // Fullscreen the camera. Native Fullscreen API where available (desktop, Android) — with a
@@ -1657,9 +1692,14 @@ const defs: Record<string, Record<string, string>> = {
     sync();
   }
 
-  // Tear down camera side effects when leaving /grow: cancel a pending retry (it would
-  // otherwise set src on a detached <img>) and drop the document fullscreen listeners.
+  // Tear down camera side effects when leaving /grow: destroy any live hls.js instance, cancel
+  // a pending retry (it would otherwise set src on a detached <video>), and drop the document
+  // fullscreen listeners.
   function stopCam() {
+    if (camHls) {
+      camHls.destroy();
+      camHls = null;
+    }
     if (camRetry != null) {
       clearTimeout(camRetry);
       camRetry = undefined;
