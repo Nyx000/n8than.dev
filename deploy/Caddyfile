@@ -109,6 +109,51 @@ n8than.dev {
 		# No Cache-Control stamp here: the route sets it per-status (max-age=5 on 200, no-store on 503) and a handle-level header would override the 503's no-store.
 	}
 
+	# Jukebox search proxy — per-IP limited at the backend (XFF pinned so it can't be spoofed).
+	handle /api/spotify/search {
+		rewrite * /api/public/spotify/search
+		reverse_proxy https://growtent.taile16d94.ts.net {
+			header_up Host growtent.taile16d94.ts.net
+			header_up X-Forwarded-For {remote_host}
+			header_down -Vary
+			header_down -Via
+		}
+		header Cache-Control "no-store"
+	}
+
+	# Jukebox song request — anonymous public write (playlist add + conditional live queue).
+	# Same posture as the shoutbox POST: Origin check + pinned XFF + body cap; the real
+	# enforcement is the backend limiter stack.
+	handle /api/spotify/request {
+		rewrite * /api/public/spotify/request
+		request_body {
+			max_size 2KB
+		}
+		@cross_origin_post {
+			method POST
+			not header Origin https://n8than.dev
+		}
+		respond @cross_origin_post 403
+		reverse_proxy https://growtent.taile16d94.ts.net {
+			header_up Host growtent.taile16d94.ts.net
+			header_up X-Forwarded-For {remote_host}
+			header_down -Vary
+			header_down -Via
+		}
+		header Cache-Control "no-store"
+	}
+
+	# Jukebox public request log (pseudonymous — never carries ip hashes).
+	handle /api/spotify/requests {
+		rewrite * /api/public/spotify/requests
+		reverse_proxy https://growtent.taile16d94.ts.net {
+			header_up Host growtent.taile16d94.ts.net
+			header_down -Vary
+			header_down -Via
+		}
+		header Cache-Control "no-store"
+	}
+
 	# Live tent camera (HLS) — same Pi edge over Tailscale, re-targets its /api/cam/hls/* routes.
 	handle_path /api/grow/cam/hls/* {
 		# Strip the /api/grow/cam/hls prefix, then re-target the edge's HLS routes
