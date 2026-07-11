@@ -33,9 +33,6 @@
     </p>
   </div>
   <div class="np-panel" id="np-panel">
-    <p class="np-privacy" id="np-privacy" hidden>
-      # opening spotify's player — this loads their embed and may set spotify cookies
-    </p>
     <div class="np-embed" id="np-embed"></div>
   </div>
 </div>
@@ -50,7 +47,6 @@
   let trackId: string | null = null;
   let expanded = false;
   let iframeCurrent = false; // iframe src matches trackId
-  let privacyShown = false;
 
   const $ = (id: string) => document.getElementById(id);
 
@@ -106,11 +102,6 @@
       btn.textContent = on ? '▾ close' : '▸ player';
     }
     if (on) {
-      if (!privacyShown) {
-        const p = $('np-privacy');
-        if (p) p.hidden = false;
-        privacyShown = true;
-      }
       if (!iframeCurrent) loadEmbed();
     }
   }
@@ -173,7 +164,6 @@
     // Fresh DOM after a ClientRouter nav — reset module state that mirrors it.
     expanded = false;
     iframeCurrent = false;
-    privacyShown = false;
     trackId = null;
     failures = 0;
     inflight = false;
@@ -281,14 +271,6 @@
     transition: max-height var(--dur-slow) ease;
   }
 
-  .np-privacy {
-    margin: 0.35em 0 0;
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--color-muted);
-    opacity: 0.8;
-  }
-
   .np-embed {
     margin-top: 0.35em;
   }
@@ -303,7 +285,9 @@
     /* Cap the card width so it reads as a compact player, not a full-bleed banner on wide/4k
        screens. Stays >300px (Spotify's scrollbar floor); shrinks to 100% on narrow columns. */
     max-width: 420px;
-    height: 152px;
+    /* 114px = the 152 card trimmed 25% — keeps the full row (art, title, progress, controls)
+       but thinner. Mobile stays at the 80px strip (already Spotify's minimal layout). */
+    height: 114px;
     border: 0;
   }
 
