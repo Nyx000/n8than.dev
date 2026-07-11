@@ -243,7 +243,17 @@
     const c = $('jb-confirm');
     if (c) c.hidden = true;
     pending = null;
-    if (restoreResults) renderResults(lastResults);
+    if (restoreResults) {
+      // Only repaint cached results if the query they came from is still in the box —
+      // pressing n after clearing the input must not resurrect a stale list.
+      const q = $('jb-q') as HTMLInputElement | null;
+      if (q && q.value.trim().length >= 2) {
+        renderResults(lastResults);
+      } else {
+        const list = $('jb-results');
+        if (list) list.textContent = '';
+      }
+    }
   }
 
   async function submitRequest() {
@@ -273,6 +283,12 @@
           log.append(logLine(d.request));
           logSeen.add(d.request.id);
         }
+        // Transaction done — reset the search so the drawer returns to its resting state.
+        const q = $('jb-q') as HTMLInputElement | null;
+        if (q) q.value = '';
+        lastResults = [];
+        const list = $('jb-results');
+        if (list) list.textContent = '';
       } else if (res.status === 200) {
         setStatus('already on the list — nice pick');
       } else if (res.status === 422) {
@@ -484,7 +500,10 @@
     max-width: 28rem;
   }
 
-  .jb-result {
+  /* Result rows and log lines are built at RUNTIME (createElement) — they never receive
+     Astro's scoping class, so their rules must be :global() under a scoped static parent
+     (the <ol>s from the template). Without this they render as raw UA button/list styles. */
+  .jb-results :global(.jb-result) {
     display: flex;
     align-items: center;
     gap: 0.6em;
@@ -500,29 +519,29 @@
     cursor: pointer;
   }
 
-  .jb-result:hover,
-  .jb-result:focus-visible {
+  .jb-results :global(.jb-result:hover),
+  .jb-results :global(.jb-result:focus-visible) {
     background: color-mix(in srgb, var(--color-accent) 8%, transparent);
   }
 
-  .jb-art {
+  .jb-results :global(.jb-art) {
     flex-shrink: 0;
     border-radius: 2px;
   }
 
-  .jb-result-text {
+  .jb-results :global(.jb-result-text) {
     display: flex;
     flex-direction: column;
     min-width: 0;
   }
 
-  .jb-result-name {
+  .jb-results :global(.jb-result-name) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .jb-result-artists {
+  .jb-results :global(.jb-result-artists) {
     color: var(--color-muted);
     font-size: 0.72rem;
     overflow: hidden;
@@ -530,7 +549,7 @@
     white-space: nowrap;
   }
 
-  .jb-explicit {
+  .jb-panel :global(.jb-explicit) {
     flex-shrink: 0;
     font-family: var(--font-mono);
     font-size: 0.62rem;
@@ -549,6 +568,12 @@
     font-family: var(--font-mono);
     font-size: 0.8rem;
     color: var(--color-text);
+  }
+
+  /* Authored display:flex above beats the UA sheet's [hidden] { display:none } — without
+     this guard the y/n row stays visible while "hidden". */
+  .jb-confirm[hidden] {
+    display: none;
   }
 
   .jb-yes,
@@ -601,7 +626,8 @@
     border-radius: var(--radius-sm);
   }
 
-  .jb-log-line {
+  /* Log lines are runtime-created too — same :global() treatment as the result rows. */
+  .jb-log :global(.jb-log-line) {
     display: flex;
     align-items: baseline;
     gap: 0.5em;
@@ -609,30 +635,30 @@
     min-width: 0;
   }
 
-  .jb-time {
+  .jb-log :global(.jb-time) {
     flex-shrink: 0;
     color: var(--color-muted);
     opacity: 0.7;
   }
 
-  .jb-nick {
+  .jb-log :global(.jb-nick) {
     flex-shrink: 0;
   }
 
-  .jb-msg {
+  .jb-log :global(.jb-msg) {
     color: var(--color-text);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .jb-queued {
+  .jb-log :global(.jb-queued) {
     flex-shrink: 0;
     color: var(--color-accent);
     opacity: 0.8;
   }
 
-  .jb-sys {
+  .jb-panel :global(.jb-sys) {
     color: var(--color-muted);
     opacity: 0.8;
   }
