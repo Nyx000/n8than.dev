@@ -33,7 +33,8 @@
 # (fonts are self-hosted via @fontsource). `style-src 'unsafe-inline'` stays on purpose
 # (Astro inlineStylesheets:auto + ClientRouter fallback styles). frame-src admits the
 # Spotify now-playing embed (open.spotify.com); img-src admits Spotify's album-art
-# CDNs (i.scdn.co, *.spotifycdn.com).
+# CDNs (i.scdn.co, *.spotifycdn.com) — forward-looking for Phase 2 (jukebox art
+# thumbnails), since Phase 1's embed only needs frame-src.
 (n8than_csp_site) {
 	header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; frame-src https://open.spotify.com; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://i.scdn.co https://*.spotifycdn.com; media-src 'self' blob:; worker-src blob:; connect-src 'self'"
 }
@@ -105,7 +106,7 @@ n8than.dev {
 			header_down -Vary
 			header_down -Via
 		}
-		header Cache-Control "public, max-age=5"
+		# No Cache-Control stamp here: the route sets it per-status (max-age=5 on 200, no-store on 503) and a handle-level header would override the 503's no-store.
 	}
 
 	# Live tent camera (HLS) — same Pi edge over Tailscale, re-targets its /api/cam/hls/* routes.

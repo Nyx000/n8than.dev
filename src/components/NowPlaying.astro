@@ -48,6 +48,7 @@
   const POLL_MS = 15_000;
   let timer: number | undefined;
   let failures = 0;
+  let inflight = false;
   let trackId: string | null = null;
   let expanded = false;
   let iframeCurrent = false; // iframe src matches trackId
@@ -171,14 +172,24 @@
 
   async function tick() {
     if (!$('np-root')) return;
+    if (inflight) return;
+    inflight = true;
+    const ctrl = new AbortController();
+    const kill = window.setTimeout(() => ctrl.abort(), 10_000);
     try {
-      const res = await fetch('/api/spotify/now-playing', { cache: 'no-store' });
+      const res = await fetch('/api/spotify/now-playing', {
+        cache: 'no-store',
+        signal: ctrl.signal,
+      });
       if (!res.ok) throw new Error(String(res.status));
       failures = 0;
       render((await res.json()) as PublicNowPlaying);
     } catch {
       failures += 1;
       if (failures >= 2) setIdle(); // silent: errors look exactly like idle
+    } finally {
+      clearTimeout(kill);
+      inflight = false;
     }
   }
 
@@ -205,6 +216,7 @@
     trackId = null;
     failures = 0;
     last = null;
+    inflight = false;
     $('np-toggle')?.addEventListener('click', () => setExpanded(!expanded));
     root.addEventListener('keydown', (e) => {
       if ((e as KeyboardEvent).key === 'Escape' && expanded) {
