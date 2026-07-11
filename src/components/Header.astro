@@ -38,6 +38,11 @@ function isActive(href: string): boolean {
 <style>
   .site-header {
     position: relative; /* dropdown anchor for the header music widget */
+    /* Astro's transition:animate="none" still assigns a view-transition-name, which makes
+       the header a stacking context — the .np-panel's own z-index can't escape it. Lift the
+       whole header above the hero canvas (z auto) but below #grain (z 10) / scanlines (z 9)
+       so the film-grain overlay still covers the dropdown. */
+    z-index: 5;
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     column-gap: var(--space-lg); /* guarantees space between brand and nav; kills the ~600-700px zero-gap crowding */
