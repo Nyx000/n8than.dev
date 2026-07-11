@@ -3,6 +3,8 @@
 // above it). States: connecting → playing/idle; errors render exactly like idle (silent).
 // Click expands the official Spotify embed, which loads ONLY on first expand — zero Spotify
 // requests/cookies until the visitor opts in.
+// Owner privacy: no live playback position is ever shown (the API never returns one), and
+// going idle destroys the embed iframe outright — hiding it alone would leave audio playing.
 ---
 
 <div class="np" id="np-root">
@@ -34,10 +36,6 @@
     <p class="np-privacy" id="np-privacy" hidden>
       # opening spotify's player — this loads their embed and may set spotify cookies
     </p>
-    <div class="np-progress" id="np-progress" hidden aria-hidden="true">
-      <span class="np-time" id="np-time"></span>
-      <span class="np-bar"><span class="np-bar-fill" id="np-bar-fill"></span></span>
-    </div>
     <div class="np-embed" id="np-embed"></div>
   </div>
 </div>
@@ -53,7 +51,6 @@
   let expanded = false;
   let iframeCurrent = false; // iframe src matches trackId
   let privacyShown = false;
-  let last: PublicNowPlaying | null = null;
 
   const $ = (id: string) => document.getElementById(id);
 
@@ -70,44 +67,11 @@
     if (btn) btn.disabled = true;
     $('np-root')?.classList.add('is-idle');
     if (expanded) setExpanded(false);
+    // Owner directive: going idle must silence the embed — remove the iframe outright
+    // (hiding keeps its audio alive). Manual visitor collapse still only hides.
+    $('np-embed')?.replaceChildren();
+    iframeCurrent = false;
     trackId = null;
-    last = null;
-  }
-
-  function fmtMs(ms: number): string {
-    const s = Math.max(0, Math.floor(ms / 1000));
-    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  }
-
-  // Progress lives OUTSIDE the aria-live span (aria-hidden) so it never chatters.
-  // The bar animates via one long linear width transition the browser advances for
-  // free; each poll restarts it from the corrected position. Reduced-motion → numbers only.
-  function renderProgress(d: PublicNowPlaying) {
-    const wrap = $('np-progress');
-    const fill = $('np-bar-fill') as HTMLElement | null;
-    const time = $('np-time');
-    if (!wrap || !fill || !time) return;
-    if (
-      !expanded ||
-      !d.isPlaying ||
-      d.progressMs == null ||
-      d.durationMs == null ||
-      d.durationMs <= 0
-    ) {
-      wrap.hidden = true;
-      return;
-    }
-    wrap.hidden = false;
-    const elapsed = Math.min(d.progressMs + (Date.now() - d.fetchedAt), d.durationMs);
-    time.textContent = `${fmtMs(elapsed)} / ${fmtMs(d.durationMs)}`;
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    fill.style.transition = 'none';
-    fill.style.width = `${(elapsed / d.durationMs) * 100}%`;
-    if (!reduce) {
-      void fill.offsetWidth; // reflow so the new transition restarts cleanly
-      fill.style.transition = `width ${Math.max(0, d.durationMs - elapsed)}ms linear`;
-      fill.style.width = '100%';
-    }
   }
 
   function loadEmbed() {
@@ -145,10 +109,6 @@
         privacyShown = true;
       }
       if (!iframeCurrent) loadEmbed();
-      if (last) renderProgress(last);
-    } else {
-      const wrap = $('np-progress');
-      if (wrap) wrap.hidden = true;
     }
   }
 
@@ -157,7 +117,6 @@
       setIdle();
       return;
     }
-    last = d;
     $('np-root')?.classList.remove('is-idle');
     setText(`spotify ~ playing "${d.track.name.toLowerCase()}" — ${d.track.artists.toLowerCase()}`);
     const btn = $('np-toggle') as HTMLButtonElement | null;
@@ -167,7 +126,6 @@
       iframeCurrent = false;
       if (expanded) loadEmbed(); // track changed while open → swap in place
     }
-    renderProgress(d);
   }
 
   async function tick() {
@@ -215,7 +173,6 @@
     privacyShown = false;
     trackId = null;
     failures = 0;
-    last = null;
     inflight = false;
     $('np-toggle')?.addEventListener('click', () => setExpanded(!expanded));
     root.addEventListener('keydown', (e) => {
@@ -327,36 +284,6 @@
     font-size: 0.75rem;
     color: var(--color-muted);
     opacity: 0.8;
-  }
-
-  .np-progress {
-    display: flex;
-    align-items: center;
-    gap: 0.75em;
-    margin: 0.5em 0 0.35em;
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--color-muted);
-  }
-
-  .np-time {
-    flex-shrink: 0;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .np-bar {
-    flex: 1;
-    height: 3px;
-    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-
-  .np-bar-fill {
-    display: block;
-    height: 100%;
-    width: 0;
-    background: var(--color-accent);
   }
 
   .np-embed {

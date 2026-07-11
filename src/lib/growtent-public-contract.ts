@@ -94,13 +94,34 @@ export interface PublicTrack {
   durationMs: number
 }
 
-// The /api/public/spotify/now-playing response. `fetchedAt` = server epoch ms when Spotify
-// was last actually queried (the widget extrapolates progress between polls from it).
+// The /api/public/spotify/now-playing response. `fetchedAt` = server epoch ms of the last
+// real Spotify query; live playback position is deliberately never exposed.
 // Nothing playing (Spotify 204, ads, podcasts) → isPlaying=false, track=null.
 export interface PublicNowPlaying {
   isPlaying: boolean
   track: PublicTrack | null
-  progressMs: number | null
-  durationMs: number | null
   fetchedAt: number
+}
+
+// ——— Spotify jukebox (public song requests on n8than.dev) ———
+
+// One public request-log row. `pseudonym` is derived server-side from the salted ip hash —
+// the hash itself NEVER crosses this boundary. `queuedLive` = it also landed in the owner's
+// live queue at request time.
+export interface PublicSongRequest {
+  id: number
+  pseudonym: string
+  trackName: string
+  artists: string
+  albumArtUrl: string | null
+  explicit: boolean
+  queuedLive: boolean
+  createdAt: string
+}
+
+// POST /api/public/spotify/request result. 201 → deduped=false (fresh add);
+// 200 → deduped=true and `request` is the existing row for that track.
+export interface PublicRequestResult {
+  request: PublicSongRequest
+  deduped: boolean
 }
