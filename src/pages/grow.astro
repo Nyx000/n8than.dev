@@ -1561,6 +1561,7 @@ const defs: Record<string, Record<string, string>> = {
   let camRetry: number | undefined;
   let camFsCleanup: (() => void) | undefined;
   let camHls: Hls | null = null;
+  let camIO: IntersectionObserver | null = null;
   function setupCam() {
     const cam = document.getElementById('grow-cam') as HTMLVideoElement | null;
     const overlay = document.getElementById('grow-cam-offline');
@@ -1572,51 +1573,80 @@ const defs: Record<string, Record<string, string>> = {
       if (loading) loading.hidden = true;
       overlay.hidden = false;
       if (camRetry != null) clearTimeout(camRetry);
-      camRetry = window.setTimeout(setupCam, 5000); // rebuild the player on failure
+      camRetry = window.setTimeout(build, 5000); // rebuild the player on failure
     };
     cam.addEventListener('playing', () => {
       overlay.hidden = true;
       if (loading) loading.hidden = true;
     });
+    cam.addEventListener('error', showOffline); // native-HLS (Safari) load failures
 
-    // SPA re-nav: tear down any previous instance first.
-    if (camHls) {
-      camHls.destroy();
-      camHls = null;
-    }
-    if (camRetry != null) {
-      clearTimeout(camRetry);
-      camRetry = undefined;
-    }
+    const teardown = () => {
+      if (camHls) {
+        camHls.destroy();
+        camHls = null;
+      }
+      if (cam.getAttribute('src')) {
+        cam.removeAttribute('src');
+        cam.load();
+      }
+      if (camRetry != null) {
+        clearTimeout(camRetry);
+        camRetry = undefined;
+      }
+    };
 
-    // Prefer hls.js wherever MSE is available (Chrome/Firefox/Edge). Chrome's canPlayType LIES
-    // ("maybe") about native HLS but cannot actually decode a raw .m3u8, so hls.js MUST win there;
-    // native HLS (cam.src = m3u8) is only the fallback for Safari/iOS, where MSE-based hls.js isn't
-    // supported. (Checking native first breaks Chrome — a black, never-loading video.)
-    import('hls.js')
-      .then(({ default: HlsCtor }) => {
-        if (HlsCtor.isSupported()) {
-          // NOT low-latency: this is standard ~2s-segment live HLS (no EXT-X-PART / SERVER-CONTROL).
-          // lowLatencyMode:true made hls.js re-poll the manifest forever and never load a segment
-          // (black video); keep it false so it loads segments normally.
-          const hls = new HlsCtor({ lowLatencyMode: false, backBufferLength: 0 });
-          camHls = hls;
-          hls.on(HlsCtor.Events.ERROR, (_evt, data) => {
-            if (data.fatal) showOffline();
-          });
-          hls.loadSource(url);
-          hls.attachMedia(cam);
-          cam.play().catch(() => {});
-        } else if (cam.canPlayType('application/vnd.apple.mpegurl')) {
-          // Safari / iOS: native HLS, no library.
-          cam.src = url;
-          cam.addEventListener('error', showOffline);
-          cam.play().catch(() => {});
-        } else {
-          showOffline();
-        }
-      })
-      .catch(showOffline);
+    // Build the player. This MUST run while the cam is on-screen: a below-the-fold <video> won't
+    // reliably open its MediaSource, and Chrome pauses off-screen muted autoplay — building there
+    // leaves a stuck/black video that does NOT recover on scroll. Only the IntersectionObserver below
+    // calls it, when the cam is actually visible. Prefer hls.js wherever MSE is available; Chrome's
+    // canPlayType LIES ("maybe") about native HLS but can't decode a raw .m3u8, so native HLS is only
+    // the Safari/iOS fallback.
+    const build = () => {
+      teardown();
+      import('hls.js')
+        .then(({ default: HlsCtor }) => {
+          if (HlsCtor.isSupported()) {
+            // NOT low-latency (standard ~2s-segment live HLS): lowLatencyMode:true made hls.js
+            // re-poll the manifest forever and never load a segment.
+            const hls = new HlsCtor({ lowLatencyMode: false, backBufferLength: 0 });
+            camHls = hls;
+            hls.on(HlsCtor.Events.ERROR, (_evt, data) => {
+              if (data.fatal) showOffline();
+            });
+            hls.loadSource(url);
+            hls.attachMedia(cam);
+            cam.play().catch(() => {});
+          } else if (cam.canPlayType('application/vnd.apple.mpegurl')) {
+            cam.src = url; // Safari / iOS: native HLS, no library
+            cam.play().catch(() => {});
+          } else {
+            showOffline();
+          }
+        })
+        .catch(showOffline);
+    };
+
+    // Stream only while the cam is on-screen: fixes the below-the-fold MediaSource/autoplay stall and
+    // stops the Pi's viewer-gated HLS when nobody is looking. Rebuild fresh on re-entry so every build
+    // runs while visible; tear down on exit.
+    teardown();
+    if ('IntersectionObserver' in window) {
+      camIO?.disconnect();
+      camIO = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) {
+            if (!camHls && !cam.getAttribute('src')) build();
+          } else {
+            teardown();
+          }
+        },
+        { threshold: 0.1 },
+      );
+      camIO.observe(cam);
+    } else {
+      build();
+    }
   }
 
   // Fullscreen the camera. Native Fullscreen API where available (desktop, Android) — with a
@@ -1700,6 +1730,8 @@ const defs: Record<string, Record<string, string>> = {
   // a pending retry (it would otherwise set src on a detached <video>), and drop the document
   // fullscreen listeners.
   function stopCam() {
+    camIO?.disconnect();
+    camIO = null;
     if (camHls) {
       camHls.destroy();
       camHls = null;
