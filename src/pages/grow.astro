@@ -1596,7 +1596,10 @@ const defs: Record<string, Record<string, string>> = {
     import('hls.js')
       .then(({ default: HlsCtor }) => {
         if (HlsCtor.isSupported()) {
-          const hls = new HlsCtor({ lowLatencyMode: true, liveSyncDurationCount: 3, backBufferLength: 0 });
+          // NOT low-latency: this is standard ~2s-segment live HLS (no EXT-X-PART / SERVER-CONTROL).
+          // lowLatencyMode:true made hls.js re-poll the manifest forever and never load a segment
+          // (black video); keep it false so it loads segments normally.
+          const hls = new HlsCtor({ lowLatencyMode: false, backBufferLength: 0 });
           camHls = hls;
           hls.on(HlsCtor.Events.ERROR, (_evt, data) => {
             if (data.fatal) showOffline();
