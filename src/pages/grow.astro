@@ -153,6 +153,26 @@ const defs: Record<string, Record<string, string>> = {
           </svg>
         </button>
       </div>
+      {/* Public digital PTZ. Hidden until a probe home() on load comes back allowed (200) —
+          a 403 (CAM_PTZ_PUBLIC=off) leaves it hidden. Sits below the frame, not overlaid on
+          it, so it doesn't compete with the fullscreen button or fight touch scroll on mobile. */}
+      <div id="grow-ptz" class="cam-ptz" hidden aria-label="Camera controls">
+        <div class="cam-ptz-pad">
+          {/* Axis mapping is provisional: tilt/pan sign convention is only confirmed live on the
+              box (Step 5, out of scope here). If a control feels inverted, swap that button's
+              data-ptz value (e.g. tilt:+ <-> tilt:-) — nothing else depends on the mapping. */}
+          <button type="button" class="cam-ptz-btn cam-ptz-up" data-ptz="tilt:+" aria-label="Tilt up">↑</button>
+          <button type="button" class="cam-ptz-btn cam-ptz-left" data-ptz="pan:-" aria-label="Pan left">←</button>
+          <button type="button" class="cam-ptz-btn cam-ptz-home" data-ptz="home" aria-label="Return to home framing">⊙</button>
+          <button type="button" class="cam-ptz-btn cam-ptz-right" data-ptz="pan:+" aria-label="Pan right">→</button>
+          <button type="button" class="cam-ptz-btn cam-ptz-down" data-ptz="tilt:-" aria-label="Tilt down">↓</button>
+        </div>
+        <div class="cam-ptz-zoom">
+          <button type="button" class="cam-ptz-btn" data-ptz="zoom:-" aria-label="Zoom out">−</button>
+          <button type="button" class="cam-ptz-btn" data-ptz="zoom:+" aria-label="Zoom in">+</button>
+        </div>
+        <span class="cam-ptz-hint" id="grow-ptz-hint" hidden>moving… (takes a few seconds)</span>
+      </div>
     </article>
 
     <article class="card chatter-card" id="grow-chatter">
@@ -667,6 +687,100 @@ const defs: Record<string, Record<string, string>> = {
     height: 100vh;
     aspect-ratio: auto;
     border-radius: 0;
+  }
+
+  /* Public digital PTZ — compact D-pad + zoom row below the camera frame. [hidden] until the
+     setup probe confirms the kill switch is on; touch targets stay >=40px per-button. */
+  .cam-ptz {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    margin-top: var(--space-sm);
+  }
+
+  .cam-ptz[hidden] {
+    display: none;
+  }
+
+  .cam-ptz-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 2.75rem);
+    grid-template-rows: repeat(3, 2.75rem);
+    gap: 0.3rem;
+  }
+
+  .cam-ptz-up {
+    grid-area: 1 / 2;
+  }
+  .cam-ptz-left {
+    grid-area: 2 / 1;
+  }
+  .cam-ptz-home {
+    grid-area: 2 / 2;
+  }
+  .cam-ptz-right {
+    grid-area: 2 / 3;
+  }
+  .cam-ptz-down {
+    grid-area: 3 / 2;
+  }
+
+  .cam-ptz-zoom {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .cam-ptz-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    padding: 0;
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    line-height: 1;
+    color: var(--color-accent);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .cam-ptz-btn:hover {
+    background: var(--color-accent);
+    color: #0b0907;
+  }
+
+  .cam-ptz-btn:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .cam-ptz-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+    background: transparent;
+    color: var(--color-accent);
+  }
+
+  .cam-ptz-hint {
+    flex-basis: 100%;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--color-muted);
+  }
+
+  .cam-ptz-hint[hidden] {
+    display: none;
   }
 
   .equip-card {
@@ -1649,6 +1763,65 @@ const defs: Record<string, Record<string, string>> = {
     }
   }
 
+  // Public digital PTZ. The cluster starts `hidden` in markup; a probe home() below reveals it
+  // only once the request actually lands (200) — a 403 (edge kill switch CAM_PTZ_PUBLIC=off)
+  // leaves it hidden. Debounced (~700ms) so one impatient viewer can't spam the shared camera's
+  // actuator; a 429 (edge rate-limit) surfaces as a brief "slow down" on the hint instead of a
+  // silent no-op.
+  function setupPtz() {
+    const maybeCluster = document.getElementById('grow-ptz');
+    const hint = document.getElementById('grow-ptz-hint');
+    if (!maybeCluster) return;
+    const cluster: HTMLElement = maybeCluster; // narrowed once — closures below don't retain the null-check
+    let busy = false;
+
+    async function send(cmd: string) {
+      if (busy) return;
+      busy = true;
+      const buttons = cluster.querySelectorAll<HTMLButtonElement>('button');
+      buttons.forEach((b) => (b.disabled = true));
+      if (hint) {
+        hint.textContent = 'moving… (takes a few seconds)';
+        hint.hidden = false;
+      }
+      // axis/dir for a nudge (e.g. "tilt:+"), or the home action — mirrors the edge's
+      // parsePtzCommand body shape ({axis,dir} | {action:'home'}).
+      const body =
+        cmd === 'home' ? { action: 'home' } : { axis: cmd.split(':')[0], dir: cmd.split(':')[1] };
+      try {
+        const res = await fetch('/api/grow/cam/ptz', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (res.status === 403) {
+          cluster.hidden = true; // kill switch off — stay hidden
+          return;
+        }
+        if (res.status === 429 && hint) {
+          hint.textContent = 'slow down…';
+          setTimeout(() => {
+            if (hint.textContent === 'slow down…') hint.textContent = 'moving… (takes a few seconds)';
+          }, 1500);
+        }
+        if (res.ok) cluster.hidden = false;
+      } catch {
+        /* transient network blip — leave the cluster's visibility as-is */
+      } finally {
+        setTimeout(() => {
+          busy = false;
+          buttons.forEach((b) => (b.disabled = false));
+          if (hint && hint.textContent?.startsWith('moving')) hint.hidden = true;
+        }, 700); // debounce so one impatient viewer can't spam the shared camera
+      }
+    }
+
+    cluster.querySelectorAll<HTMLButtonElement>('button[data-ptz]').forEach((b) => {
+      b.addEventListener('click', () => void send(b.dataset.ptz ?? ''));
+    });
+    void send('home'); // reveal-via-probe: 200 shows the cluster, 403 keeps it hidden
+  }
+
   // Fullscreen the camera. Native Fullscreen API where available (desktop, Android) — with a
   // best-effort landscape lock on mobile so it auto-rotates to fill the screen. iPhone Safari
   // has no element fullscreen for an <img>, so we fall back to a CSS fixed-overlay that fills
@@ -1967,6 +2140,7 @@ const defs: Record<string, Record<string, string>> = {
       start();
       setupCam();
       setupCamFullscreen();
+      setupPtz();
       setupChatterForm();
       startChatter();
     } else {
