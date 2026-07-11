@@ -80,3 +80,27 @@ export interface PublicNotice {
 export interface PublicLivePayload extends PublicLive, PublicEquipmentSlice {
   notice: PublicNotice
 }
+
+// ——— Spotify now-playing (public homepage widget on n8than.dev) ———
+
+// One track, projected for public display. `artists` is pre-joined ("a, b") for rendering.
+export interface PublicTrack {
+  id: string
+  name: string
+  artists: string
+  albumArtUrl: string | null
+  explicit: boolean
+  uri: string
+  durationMs: number
+}
+
+// The /api/public/spotify/now-playing response. `fetchedAt` = server epoch ms when Spotify
+// was last actually queried (the widget extrapolates progress between polls from it).
+// Nothing playing (Spotify 204, ads, podcasts) → isPlaying=false, track=null.
+export interface PublicNowPlaying {
+  isPlaying: boolean
+  track: PublicTrack | null
+  progressMs: number | null
+  durationMs: number | null
+  fetchedAt: number
+}
