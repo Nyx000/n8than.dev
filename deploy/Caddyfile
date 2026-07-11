@@ -33,7 +33,7 @@
 # (fonts are self-hosted via @fontsource). `style-src 'unsafe-inline'` stays on purpose
 # (Astro inlineStylesheets:auto + ClientRouter fallback styles).
 (n8than_csp_site) {
-	header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'"
+	header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; media-src 'self' blob:; worker-src blob:; connect-src 'self'"
 }
 
 # Single-hop http -> https apex for both hosts (WS6). ACME HTTP-01 is handled
@@ -89,6 +89,18 @@ n8than.dev {
 		reverse_proxy https://growtent.taile16d94.ts.net {
 			header_up Host growtent.taile16d94.ts.net
 			flush_interval -1
+			header_down -Vary
+			header_down -Via
+		}
+	}
+
+	# Live tent camera (HLS) — same Pi edge over Tailscale, re-targets its /api/cam/hls/* routes.
+	handle_path /api/grow/cam/hls/* {
+		# Strip the /api/grow/cam/hls prefix, then re-target the edge's HLS routes
+		# (/api/cam/hls/stream.m3u8, /api/cam/hls/segN.ts). No flush_interval: HLS bodies are finite.
+		rewrite * /api/cam/hls{http.request.uri.path}
+		reverse_proxy https://growtent.taile16d94.ts.net {
+			header_up Host growtent.taile16d94.ts.net
 			header_down -Vary
 			header_down -Via
 		}
