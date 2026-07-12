@@ -8,19 +8,21 @@
 ---
 
 <div class="np" id="np-root">
-  <p class="np-line">
-    <span class="np-prompt" aria-hidden="true">♪</span>
-    <span class="np-text" id="np-text" aria-live="polite">spotify ~ connecting…</span>
-    <button
-      class="np-toggle"
-      id="np-toggle"
-      aria-expanded="false"
-      aria-controls="np-panel"
-      disabled
-    >
-      ▸ player
-    </button>
-  </p>
+  <!-- The whole line is the dropdown trigger: spotify glyph + bare `"title" — artist`
+       (no text prefix, no separate button — the glyph's breathing glow is the affordance).
+       Long titles clip under a right fade mask; hover/focus slides the text left to
+       reveal the rest (JS measures the overflow). -->
+  <button class="np-line" id="np-toggle" aria-expanded="false" aria-controls="np-panel" aria-label="spotify player" disabled>
+    <svg class="np-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        fill="currentColor"
+        d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.42 1.56-.299.421-1.02.599-1.56.3z"
+      ></path>
+    </svg>
+    <span class="np-scroll">
+      <span class="np-text" id="np-text" aria-live="polite"></span>
+    </span>
+  </button>
   <div class="np-panel" id="np-panel">
     <!-- Jukebox composes in here from Header (<NowPlaying><Jukebox /></NowPlaying>).
          Owner wants it first: request line on top, player embed below. -->
@@ -53,7 +55,7 @@
   }
 
   function setIdle() {
-    setText('spotify ~ quiet for now');
+    setText(''); // glyph-only when quiet — the muted icon IS the idle state
     // is-idle both restyles the line and (via CSS) hides the empty .np-embed so an
     // open dropdown shows the jukebox only. The toggle stays enabled and the drawer
     // stays open if the visitor had it open — jukebox must be reachable while quiet.
@@ -92,10 +94,7 @@
     const panel = $('np-panel');
     const btn = $('np-toggle');
     panel?.classList.toggle('is-open', on);
-    if (btn) {
-      btn.setAttribute('aria-expanded', String(on));
-      btn.textContent = on ? '▾ close' : '▸ player';
-    }
+    if (btn) btn.setAttribute('aria-expanded', String(on));
     if (on) {
       if (!iframeCurrent) loadEmbed();
     }
@@ -107,7 +106,7 @@
       return;
     }
     $('np-root')?.classList.remove('is-idle');
-    setText(`spotify ~ playing "${d.track.name.toLowerCase()}" — ${d.track.artists.toLowerCase()}`);
+    setText(`"${d.track.name.toLowerCase()}" — ${d.track.artists.toLowerCase()}`);
     if (d.track.id !== trackId) {
       trackId = d.track.id;
       iframeCurrent = false;
@@ -170,6 +169,33 @@
     // (and stays reachable while spotify is quiet), no longer gated on playback.
     ($('np-toggle') as HTMLButtonElement | null)?.removeAttribute('disabled');
     $('np-toggle')?.addEventListener('click', () => setExpanded(!expanded));
+    // Hover/focus reveal: when the title is clipped, slide it left just far enough to
+    // show the tail (plus the fade-mask width), at a constant px/s so long titles don't
+    // whip past. Leave/blur eases it back. Reduced motion keeps the clipped view.
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const slide = () => {
+        const t = $('np-text');
+        const wrap = t?.parentElement;
+        if (!t || !wrap) return;
+        const overflow = t.scrollWidth - wrap.clientWidth;
+        if (overflow > 4) {
+          t.style.transitionDuration = `${Math.max(0.6, overflow / 40)}s`;
+          t.style.transform = `translateX(${-overflow}px)`;
+        }
+      };
+      const slideBack = () => {
+        const t = $('np-text');
+        if (t) {
+          t.style.transitionDuration = '0.4s';
+          t.style.transform = '';
+        }
+      };
+      const btn = $('np-toggle');
+      btn?.addEventListener('mouseenter', slide);
+      btn?.addEventListener('mouseleave', slideBack);
+      btn?.addEventListener('focus', slide);
+      btn?.addEventListener('blur', slideBack);
+    }
     root.addEventListener('keydown', (e) => {
       if ((e as KeyboardEvent).key === 'Escape' && expanded) {
         setExpanded(false);
@@ -201,86 +227,94 @@
     max-width: 100%;
   }
 
+  /* The line IS the button now: reset button chrome, keep the terminal type. Packs right
+     inside the stretched grid cell so text can only shrink/ellipsize, never spill left
+     over the nav (justify-self: end on the cell caused exactly that overflow). */
   .np-line {
     display: flex;
     justify-content: flex-end; /* pack right inside the stretched grid cell */
     align-items: center;
-    gap: 0.5em;
+    gap: 0.55em;
+    width: 100%;
     margin: 0;
+    padding: 0.15em 0;
     min-width: 0;
     font-family: var(--font-display);
     font-size: 0.85rem; /* fixed header size — no vw clamp; the sizer trick is gone */
     color: var(--color-muted);
     white-space: nowrap;
-  }
-
-  .np-prompt {
-    color: var(--color-accent);
-    opacity: 0.7;
-  }
-
-  .np.is-idle .np-prompt {
-    color: var(--color-muted);
-  }
-
-  /* Header truncation: ellipsize long titles into whatever the grid cell actually grants.
-     No hard minimum — a rem floor here made the line overflow LEFT over the nav links on
-     mid-width windows (the grid track can't shrink the text below its floor, and the line
-     is right-anchored, so the spill collides with ABOUT). flex: 1 1 auto + min-width: 0
-     lets the text take exactly the free space and shrink to nothing before overlapping. */
-  .np-text {
-    flex: 0 1 auto; /* shrink-only: no grow, so short titles hug the button on the right */
-    min-width: 0;
-    max-width: 24rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .np-toggle {
-    flex-shrink: 0;
-    font: inherit;
-    color: var(--color-accent);
     background: none;
-    border: 1px solid color-mix(in srgb, var(--color-accent) 15%, transparent);
-    border-radius: 3px;
-    padding: 0.1em 0.5em;
+    border: none;
     cursor: pointer;
-    /* Clickability affordance without a hover: a soft breathing orange glow. Static things
-       don't pulse — anything that gently animates reads as "live", and paired with the
-       border + pointer cursor it says "control", not "decoration". */
-    text-shadow: 0 0 6px color-mix(in srgb, var(--color-accent) 45%, transparent);
-    animation: np-toggle-breathe 2.6s ease-in-out infinite alternate;
-    transition:
-      color var(--dur-fast) ease,
-      border-color var(--dur-fast) ease,
-      box-shadow var(--dur-fast) ease;
+    text-align: right;
   }
 
-  @keyframes np-toggle-breathe {
+  .np-line:disabled {
+    cursor: default;
+  }
+
+  .np-line:focus-visible {
+    outline: 1px solid color-mix(in srgb, var(--color-accent) 50%, transparent);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  .np-line:hover:not(:disabled) {
+    color: var(--color-text);
+  }
+
+  /* The spotify glyph is the trigger's face: accent-colored with a breathing glow while
+     playing (motion = "live control", static = decoration — that's the no-hover
+     clickability affordance), muted and still when idle or before JS wakes up. */
+  .np-glyph {
+    flex-shrink: 0;
+    width: 1.15em;
+    height: 1.15em;
+    color: var(--color-accent);
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-accent) 45%, transparent));
+    animation: np-glyph-breathe 2.6s ease-in-out infinite alternate;
+    transition: color var(--dur-fast) ease;
+  }
+
+  @keyframes np-glyph-breathe {
     from {
-      text-shadow: 0 0 2px color-mix(in srgb, var(--color-accent) 25%, transparent);
-      box-shadow: 0 0 2px color-mix(in srgb, var(--color-accent) 8%, transparent);
+      filter: drop-shadow(0 0 1px color-mix(in srgb, var(--color-accent) 25%, transparent));
     }
     to {
-      text-shadow: 0 0 9px color-mix(in srgb, var(--color-accent) 65%, transparent);
-      box-shadow: 0 0 7px color-mix(in srgb, var(--color-accent) 22%, transparent);
+      filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-accent) 75%, transparent));
     }
   }
 
-  .np-toggle:hover:not(:disabled),
-  .np-toggle:focus-visible {
+  .np-line:hover:not(:disabled) .np-glyph,
+  .np-line:focus-visible .np-glyph {
     color: var(--color-accent-hover);
-    border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
-    box-shadow: 0 0 9px color-mix(in srgb, var(--color-accent) 35%, transparent);
   }
 
-  .np-toggle:disabled {
+  .np.is-idle .np-glyph,
+  .np-line:disabled .np-glyph {
     color: var(--color-muted);
-    opacity: 0.4;
-    cursor: default;
+    opacity: 0.7;
     animation: none;
-    text-shadow: none;
-    box-shadow: none;
+    filter: none;
+  }
+
+  /* Clip window for the title. Right-edge fade instead of an ellipsis — the hover slide
+     needs the tail to emerge smoothly, and a hard "…" would sit frozen mid-slide. The
+     text's own right padding keeps short (unclipped) titles out of the fade zone. */
+  .np-scroll {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 26rem;
+    overflow: hidden;
+    mask-image: linear-gradient(to right, black calc(100% - 14px), transparent);
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 14px), transparent);
+  }
+
+  .np-text {
+    display: inline-block;
+    padding-right: 14px;
+    transition-property: transform;
+    transition-timing-function: linear;
   }
 
   /* Dropdown: anchored to .site-header (the nearest positioned ancestor — .hdr-music is
@@ -353,9 +387,14 @@
       transition: none;
     }
 
-    /* Keep the static glow (it's the affordance), just stop the breathing. */
-    .np-toggle {
+    /* Keep the static glow (it's the affordance), just stop the breathing and the
+       hover slide (the JS also skips registering the slide handlers). */
+    .np-glyph {
       animation: none;
+    }
+
+    .np-text {
+      transition: none;
     }
   }
 
