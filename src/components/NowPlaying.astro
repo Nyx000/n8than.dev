@@ -42,11 +42,27 @@
   let expanded = false;
   let iframeCurrent = false; // iframe src matches trackId
   let embedTimer: number | undefined; // deferred embed injection (post-open-transition)
+  let preconnected = false; // hover-intent TLS warmup fired for this page
   // Click-outside listener lives on `document` (persists across ClientRouter navs),
   // so it must be removed before each re-registration or it would leak duplicates.
   let docClickHandler: ((e: MouseEvent) => void) | null = null;
 
   const $ = (id: string) => document.getElementById(id);
+
+  // Hover = intent: warm the DNS+TLS handshake to Spotify's hosts before the click, so
+  // the embed's real load starts on a hot connection (~a few hundred ms saved). This is
+  // connection setup ONLY — no request, no cookies, no content — so the "nothing loads
+  // from Spotify until the visitor clicks" privacy posture holds.
+  function preconnect() {
+    if (preconnected) return;
+    preconnected = true;
+    for (const href of ['https://open.spotify.com', 'https://i.scdn.co']) {
+      const l = document.createElement('link');
+      l.rel = 'preconnect';
+      l.href = href;
+      document.head.appendChild(l);
+    }
+  }
 
   // Diff-before-write: aria-live only announces when the string actually changes,
   // so a same-track poll produces zero SR announcements.
@@ -192,8 +208,14 @@
     inflight = false;
     // Enable the toggle now that JS is live — the drawer is reachable immediately
     // (and stays reachable while spotify is quiet), no longer gated on playback.
+    // ClientRouter may replace <head> children on nav — cheap to re-arm the warmup.
+    preconnected = false;
     ($('np-toggle') as HTMLButtonElement | null)?.removeAttribute('disabled');
     $('np-toggle')?.addEventListener('click', () => setExpanded(!expanded));
+    // First touch of the trigger (any input modality) warms the Spotify connection.
+    $('np-toggle')?.addEventListener('mouseenter', preconnect, { once: true });
+    $('np-toggle')?.addEventListener('focus', preconnect, { once: true });
+    $('np-toggle')?.addEventListener('touchstart', preconnect, { once: true, passive: true });
     // Hover/focus reveal: when the title is clipped, slide it left just far enough to
     // show the tail (plus the fade-mask width), at a constant px/s so long titles don't
     // whip past. Leave/blur eases it back. Reduced motion keeps the clipped view.
