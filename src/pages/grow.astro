@@ -1723,7 +1723,12 @@ const defs: Record<string, Record<string, string>> = {
           if (HlsCtor.isSupported()) {
             // NOT low-latency (standard ~2s-segment live HLS): lowLatencyMode:true made hls.js
             // re-poll the manifest forever and never load a segment.
-            const hls = new HlsCtor({ lowLatencyMode: false, backBufferLength: 0 });
+            // liveSyncDurationCount: 2 (hls.js default is 3) — the source segments are ~2s each
+            // (camera GOP-floored, can't shrink without re-encoding on the Pi), so this targets
+            // ~4s behind the live edge instead of ~6s, shaving ~2s of glass-to-glass latency.
+            // Left above 1 deliberately: the Pi's USB-2 bus is shared with the BT dongle, so a
+            // 1-segment margin risks stalling on brief bus contention.
+            const hls = new HlsCtor({ lowLatencyMode: false, backBufferLength: 0, liveSyncDurationCount: 2 });
             camHls = hls;
             hls.on(HlsCtor.Events.ERROR, (_evt, data) => {
               if (data.fatal) showOffline();
