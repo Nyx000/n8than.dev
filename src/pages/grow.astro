@@ -168,8 +168,17 @@ const defs: Record<string, Record<string, string>> = {
           <button type="button" class="cam-ptz-btn cam-ptz-down" data-ptz="tilt:-" aria-label="Tilt down">↓</button>
         </div>
         <div class="cam-ptz-zoom">
+          <span class="cam-ptz-cap" aria-hidden="true">zoom</span>
           <button type="button" class="cam-ptz-btn" data-ptz="zoom:-" aria-label="Zoom out">−</button>
           <button type="button" class="cam-ptz-btn" data-ptz="zoom:+" aria-label="Zoom in">+</button>
+        </div>
+        {/* Focus rides the same nudge envelope as pan/tilt/zoom — the C200's autofocus is a no-op
+            while the H.264 stream holds the device, so a manual −/+ dial is the only live-adjustable
+            focus. Returns to the sharp baseline on home / auto-return alongside the framing. */}
+        <div class="cam-ptz-focus">
+          <span class="cam-ptz-cap" aria-hidden="true">focus</span>
+          <button type="button" class="cam-ptz-btn" data-ptz="focus:-" aria-label="Focus nearer">−</button>
+          <button type="button" class="cam-ptz-btn" data-ptz="focus:+" aria-label="Focus farther">+</button>
         </div>
         <span class="cam-ptz-hint" id="grow-ptz-hint" hidden>moving… (takes a few seconds)</span>
       </div>
@@ -727,10 +736,21 @@ const defs: Record<string, Record<string, string>> = {
     grid-area: 3 / 2;
   }
 
-  .cam-ptz-zoom {
+  .cam-ptz-zoom,
+  .cam-ptz-focus {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 0.3rem;
+  }
+
+  /* Small caption so the two visually-identical −/+ columns (zoom, focus) are distinguishable. */
+  .cam-ptz-cap {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
   }
 
   .cam-ptz-btn {
