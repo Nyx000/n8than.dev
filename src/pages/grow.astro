@@ -152,6 +152,17 @@ const defs: Record<string, Record<string, string>> = {
             ></path>
           </svg>
         </button>
+        {/* Quality indicator + on-demand HD. The feed defaults to 1080p ("Full HD") to stay light;
+            the "⇧ HD" button requests a shared 1440p window (all viewers, ~10 min, auto-reverts).
+            [hidden] until the first /quality poll answers; the HD button hides on a 403 (kill switch
+            off). Switching resolution restarts the Pi's ffmpeg, so the player is rebuilt on any
+            observed mode change. */}
+        <div id="grow-cam-quality" class="cam-quality" hidden>
+          <span id="grow-cam-quality-badge" class="cam-quality-badge">
+            <span class="cam-quality-dot" aria-hidden="true"></span><span id="grow-cam-quality-label">Full HD</span>
+          </span>
+          <button id="grow-cam-hd-btn" type="button" class="cam-quality-hd" aria-label="Watch in HD (1440p)">⇧ HD</button>
+        </div>
       </div>
       {/* Public digital PTZ. Hidden until a probe home() on load comes back allowed (200) —
           a 403 (CAM_PTZ_PUBLIC=off) leaves it hidden. Sits below the frame, not overlaid on
@@ -609,6 +620,73 @@ const defs: Record<string, Record<string, string>> = {
       border-top-color: var(--color-accent);
       opacity: 0.6;
     }
+  }
+
+  /* Quality indicator + on-demand HD, top-left of the frame (fullscreen sits top-right). */
+  .cam-quality {
+    position: absolute;
+    top: 0.6rem;
+    left: 0.6rem;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .cam-quality[hidden] {
+    display: none;
+  }
+  .cam-quality-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+    white-space: nowrap;
+  }
+  .cam-quality-dot {
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 50%;
+    background: #ff5a4d; /* live dot */
+  }
+  /* HD active: accent-tint the badge so the upgrade reads at a glance. */
+  .cam-quality.is-hd .cam-quality-badge {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  .cam-quality-hd {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.04em;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 5px;
+    cursor: pointer;
+    opacity: 0.85;
+    transition:
+      background 0.2s ease,
+      opacity 0.2s ease;
+  }
+  .cam-quality-hd:hover {
+    background: rgba(0, 0, 0, 0.72);
+    opacity: 1;
+  }
+  .cam-quality-hd:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  .cam-quality-hd[hidden] {
+    display: none;
   }
 
   .cam-fs-btn {
@@ -1676,6 +1754,15 @@ const defs: Record<string, Record<string, string>> = {
   let camFsCleanup: (() => void) | undefined;
   let camHls: Hls | null = null;
   let camIO: IntersectionObserver | null = null;
+  // Set by setupCam so setupQuality can rebuild the player when the stream resolution changes under
+  // it (HD toggle restarts the Pi's ffmpeg). camVisible gates the rebuild: never build off-screen.
+  let camVisible = false;
+  let camRebuild: (() => void) | null = null;
+  // Quality poll + countdown timers, module-scoped so re-init (astro:page-load re-runs setupQuality)
+  // clears the old pair before making a new one, and leaving /grow can stop them — otherwise the poll
+  // would keep fetching forever on other pages and stack a new interval per navigation.
+  let qualityPollTimer: number | undefined;
+  let qualityTickTimer: number | undefined;
   function setupCam() {
     const cam = document.getElementById('grow-cam') as HTMLVideoElement | null;
     const overlay = document.getElementById('grow-cam-offline');
@@ -1746,6 +1833,13 @@ const defs: Record<string, Record<string, string>> = {
         .catch(showOffline);
     };
 
+    // Rebuild hook for setupQuality: on a resolution change (HD toggle restarts ffmpeg), tear the
+    // player down and rebuild it — but only while on-screen, honoring the build-while-visible rule.
+    camRebuild = () => {
+      teardown();
+      if (camVisible) build();
+    };
+
     // Stream only while the cam is on-screen: fixes the below-the-fold MediaSource/autoplay stall and
     // stops the Pi's viewer-gated HLS when nobody is looking. Rebuild fresh on re-entry so every build
     // runs while visible; tear down on exit.
@@ -1754,7 +1848,8 @@ const defs: Record<string, Record<string, string>> = {
       camIO?.disconnect();
       camIO = new IntersectionObserver(
         (entries) => {
-          if (entries.some((e) => e.isIntersecting)) {
+          camVisible = entries.some((e) => e.isIntersecting);
+          if (camVisible) {
             if (!camHls && !cam.getAttribute('src')) build();
           } else {
             teardown();
@@ -1764,8 +1859,101 @@ const defs: Record<string, Record<string, string>> = {
       );
       camIO.observe(cam);
     } else {
+      camVisible = true;
       build();
     }
+  }
+
+  // Public HD quality toggle. GET /quality drives the badge + countdown; the "⇧ HD" button POSTs a
+  // request for the shared 1440p window (all viewers, ~10 min, auto-reverts to 1080p). Because
+  // switching resolution restarts the Pi's ffmpeg, whenever the observed mode flips — this viewer's
+  // click, another viewer's request, or the auto-revert — the player is rebuilt to pick up the
+  // new-resolution segments. A 403 (edge kill switch off) hides the HD button; the badge stays.
+  function setupQuality() {
+    const wrap = document.getElementById('grow-cam-quality');
+    const label = document.getElementById('grow-cam-quality-label');
+    const btn = document.getElementById('grow-cam-hd-btn') as HTMLButtonElement | null;
+    if (!wrap || !label || !btn) return;
+
+    if (qualityPollTimer != null) clearInterval(qualityPollTimer);
+    if (qualityTickTimer != null) clearInterval(qualityTickTimer);
+
+    let mode: 'sd' | 'hd' = 'sd';
+    let remaining = 0; // seconds left in the HD window (local countdown, resynced by polling)
+    let lastMode: 'sd' | 'hd' | null = null;
+
+    const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    const render = () => {
+      wrap.classList.toggle('is-hd', mode === 'hd');
+      label.textContent = mode === 'hd' ? `HD · ${fmt(Math.max(0, remaining))}` : 'Full HD';
+    };
+
+    // Apply an observed {mode, secondsRemaining}. Rebuild the player only when the mode actually
+    // flips AFTER the first read (the segment resolution changed under it).
+    const apply = (next: 'sd' | 'hd', secs: number) => {
+      const flipped = lastMode !== null && next !== mode;
+      mode = next;
+      remaining = secs;
+      lastMode = next;
+      render();
+      if (flipped && camRebuild) camRebuild();
+    };
+
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/grow/cam/hls/quality', { cache: 'no-store' });
+        if (!res.ok) return;
+        const j = await res.json();
+        if (j && (j.mode === 'sd' || j.mode === 'hd')) {
+          wrap.hidden = false;
+          apply(j.mode, Number(j.secondsRemaining) || 0);
+        }
+      } catch {
+        /* transient — keep last state */
+      }
+    };
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/grow/cam/hls/hd', { method: 'POST' });
+        if (res.status === 403) {
+          btn.hidden = true; // kill switch off — no HD, keep the badge
+          return;
+        }
+        if (res.status === 429) {
+          btn.title = 'slow down…';
+          window.setTimeout(() => (btn.title = ''), 1500);
+          return;
+        }
+        if (res.ok) {
+          const j = await res.json();
+          // Immediate feedback: flip the badge to HD + countdown now. If this was the sd->hd
+          // transition the Pi is restarting ffmpeg (~5s), so rebuild the player after a beat to pick
+          // up 1440p; if it was already HD (an extend) the rebuild is a harmless brief reload we skip.
+          const wasSd = mode === 'sd';
+          mode = 'hd';
+          remaining = Number(j.secondsRemaining) || 600;
+          lastMode = 'hd';
+          render();
+          if (wasSd) window.setTimeout(() => camRebuild && camRebuild(), 6000);
+        }
+      } catch {
+        /* ignore transient */
+      } finally {
+        window.setTimeout(() => (btn.disabled = false), 800);
+      }
+    });
+
+    render();
+    qualityTickTimer = window.setInterval(() => {
+      if (mode === 'hd' && remaining > 0) {
+        remaining -= 1;
+        render();
+      }
+    }, 1000);
+    void poll();
+    qualityPollTimer = window.setInterval(poll, 15000);
   }
 
   // Public digital PTZ. The cluster starts `hidden` in markup; a probe home() below reveals it
@@ -2148,6 +2336,7 @@ const defs: Record<string, Record<string, string>> = {
       start();
       setupCam();
       setupCamFullscreen();
+      setupQuality();
       setupPtz();
       setupChatterForm();
       startChatter();
@@ -2155,6 +2344,8 @@ const defs: Record<string, Record<string, string>> = {
       stop();
       stopChatter();
       stopCam();
+      if (qualityPollTimer != null) clearInterval(qualityPollTimer); // stop the quality poll off /grow
+      if (qualityTickTimer != null) clearInterval(qualityTickTimer);
       delete document.documentElement.dataset.growPhase; // night palette must not leak to other pages
     }
   });
