@@ -1804,7 +1804,10 @@ const defs: Record<string, Record<string, string>> = {
             if (hint.textContent === 'slow down…') hint.textContent = 'moving… (takes a few seconds)';
           }, 1500);
         }
-        if (res.ok) cluster.hidden = false;
+        // Any non-403 response means PTZ is enabled → reveal. A 409 (no producer streaming yet —
+        // the common case at page load, since HLS is viewer-gated), 429, or 503 must NOT keep the
+        // cluster hidden; only the kill-switch 403 (handled above) does.
+        cluster.hidden = false;
       } catch {
         /* transient network blip — leave the cluster's visibility as-is */
       } finally {
@@ -1819,7 +1822,7 @@ const defs: Record<string, Record<string, string>> = {
     cluster.querySelectorAll<HTMLButtonElement>('button[data-ptz]').forEach((b) => {
       b.addEventListener('click', () => void send(b.dataset.ptz ?? ''));
     });
-    void send('home'); // reveal-via-probe: 200 shows the cluster, 403 keeps it hidden
+    void send('home'); // reveal-via-probe: any non-403 shows the cluster; only 403 (kill switch) keeps it hidden
   }
 
   // Fullscreen the camera. Native Fullscreen API where available (desktop, Android) — with a
