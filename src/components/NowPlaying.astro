@@ -22,9 +22,10 @@
     </button>
   </p>
   <div class="np-panel" id="np-panel">
-    <div class="np-embed" id="np-embed"></div>
-    <!-- Jukebox composes in here from Header (<NowPlaying><Jukebox /></NowPlaying>). -->
+    <!-- Jukebox composes in here from Header (<NowPlaying><Jukebox /></NowPlaying>).
+         Owner wants it first: request line on top, player embed below. -->
     <slot />
+    <div class="np-embed" id="np-embed"></div>
   </div>
 </div>
 
@@ -221,12 +222,15 @@
     color: var(--color-muted);
   }
 
-  /* Header truncation: cap the width and ellipsize long titles. min-width: 0 lets the
-     flex item shrink below its content on narrow headers so the ellipsis actually kicks
-     in (max-width alone only caps the upper bound). */
+  /* Header truncation: ellipsize long titles into whatever the grid cell actually grants.
+     No hard minimum — a rem floor here made the line overflow LEFT over the nav links on
+     mid-width windows (the grid track can't shrink the text below its floor, and the line
+     is right-anchored, so the spill collides with ABOUT). flex: 1 1 auto + min-width: 0
+     lets the text take exactly the free space and shrink to nothing before overlapping. */
   .np-text {
+    flex: 1 1 auto;
     min-width: 0;
-    max-width: clamp(14rem, 26vw, 24rem);
+    max-width: 24rem;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -240,28 +244,49 @@
     border-radius: 3px;
     padding: 0.1em 0.5em;
     cursor: pointer;
+    /* Clickability affordance without a hover: a soft breathing orange glow. Static things
+       don't pulse — anything that gently animates reads as "live", and paired with the
+       border + pointer cursor it says "control", not "decoration". */
+    text-shadow: 0 0 6px color-mix(in srgb, var(--color-accent) 45%, transparent);
+    animation: np-toggle-breathe 2.6s ease-in-out infinite alternate;
     transition:
       color var(--dur-fast) ease,
-      border-color var(--dur-fast) ease;
+      border-color var(--dur-fast) ease,
+      box-shadow var(--dur-fast) ease;
+  }
+
+  @keyframes np-toggle-breathe {
+    from {
+      text-shadow: 0 0 2px color-mix(in srgb, var(--color-accent) 25%, transparent);
+      box-shadow: 0 0 2px color-mix(in srgb, var(--color-accent) 8%, transparent);
+    }
+    to {
+      text-shadow: 0 0 9px color-mix(in srgb, var(--color-accent) 65%, transparent);
+      box-shadow: 0 0 7px color-mix(in srgb, var(--color-accent) 22%, transparent);
+    }
   }
 
   .np-toggle:hover:not(:disabled),
   .np-toggle:focus-visible {
     color: var(--color-accent-hover);
     border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+    box-shadow: 0 0 9px color-mix(in srgb, var(--color-accent) 35%, transparent);
   }
 
   .np-toggle:disabled {
     color: var(--color-muted);
     opacity: 0.4;
     cursor: default;
+    animation: none;
+    text-shadow: none;
+    box-shadow: none;
   }
 
   /* Dropdown: anchored to .site-header (the nearest positioned ancestor — .hdr-music is
      deliberately not positioned), so top: 100% sits flush under the header's bottom border
      with no air gap; right inset matches the header's padding so the panel's right edge
-     lines up with the widget above it. Its own internal scroll (max-height + overflow-y)
-     holds the embed + jukebox. z-index 60 clears the hero grain (#grain, z-index 10) and
+     lines up with the widget above it. It grows with its content (no panel scrollbar).
+     z-index 60 clears the hero grain (#grain, z-index 10) and
      the CRT scanline overlay (body::after, z-index 9). visibility keeps the collapsed
      panel out of the a11y tree and non-interactive; the opacity/transform fade is polish. */
   .np-panel {
@@ -269,8 +294,8 @@
     top: 100%;
     right: var(--space-lg);
     width: min(420px, calc(100vw - 2 * var(--space-md)));
-    max-height: min(70vh, 560px);
-    overflow-y: auto;
+    /* No max-height/overflow — owner wants zero panel scrollbar; the panel grows with its
+       content. The jukebox log keeps its own internal cap, so height stays bounded. */
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-top: none; /* the header's own border-bottom reads as this panel's top edge */
@@ -325,6 +350,11 @@
     .np-panel,
     .np-panel.is-open {
       transition: none;
+    }
+
+    /* Keep the static glow (it's the affordance), just stop the breathing. */
+    .np-toggle {
+      animation: none;
     }
   }
 

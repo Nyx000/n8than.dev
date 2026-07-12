@@ -415,11 +415,10 @@
 </script>
 
 <style>
-  /* Composed inside the now-playing dropdown, directly under the embed. A small top
-     margin separates it from the embed (or from the panel's top padding when idle);
-     no bottom flow margin — the dropdown's own padding handles that. */
+  /* Composed inside the now-playing dropdown, FIRST child (jukebox on top, embed below).
+     The panel's own padding provides the top gap; no flow margins of its own. */
   .jb {
-    margin-top: var(--space-sm);
+    margin-top: 0;
   }
 
   .jb-line {
