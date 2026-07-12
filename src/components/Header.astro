@@ -61,7 +61,10 @@ function isActive(href: string): boolean {
      border by the header padding). min-width: 0 lets the line ellipsize
      instead of forcing the grid wider. */
   .hdr-music {
-    justify-self: end;
+    /* stretch (default), NOT justify-self: end — end sizes the item to fit-content, which
+       let a long track title overflow the 1fr track leftward over the nav. Stretched, the
+       cell equals the track and the line packs right inside it (justify-content on .np-line),
+       so the text can only ellipsize, never spill. */
     min-width: 0;
   }
 

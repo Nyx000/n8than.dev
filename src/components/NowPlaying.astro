@@ -203,6 +203,7 @@
 
   .np-line {
     display: flex;
+    justify-content: flex-end; /* pack right inside the stretched grid cell */
     align-items: center;
     gap: 0.5em;
     margin: 0;
@@ -228,7 +229,7 @@
      is right-anchored, so the spill collides with ABOUT). flex: 1 1 auto + min-width: 0
      lets the text take exactly the free space and shrink to nothing before overlapping. */
   .np-text {
-    flex: 1 1 auto;
+    flex: 0 1 auto; /* shrink-only: no grow, so short titles hug the button on the right */
     min-width: 0;
     max-width: 24rem;
     overflow: hidden;
