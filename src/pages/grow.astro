@@ -1815,7 +1815,7 @@ const defs: Record<string, Record<string, string>> = {
           busy = false;
           buttons.forEach((b) => (b.disabled = false));
           if (hint && hint.textContent?.startsWith('moving')) hint.hidden = true;
-        }, 700); // debounce so one impatient viewer can't spam the shared camera
+        }, 250); // brief debounce so a stuck double-fire can't stack; the edge rate-limit is the real cap
       }
     }
 
