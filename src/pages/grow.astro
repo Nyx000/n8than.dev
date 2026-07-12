@@ -152,37 +152,12 @@ const defs: Record<string, Record<string, string>> = {
             ></path>
           </svg>
         </button>
-        {/* Quality indicator + on-demand HD. The feed defaults to 1080p ("Full HD") to stay light;
-            the "⇧ HD" button requests a shared 1440p window (all viewers, ~10 min, auto-reverts).
-            [hidden] until the first /quality poll answers; the HD button hides on a 403 (kill switch
-            off). Switching resolution restarts the Pi's ffmpeg, so the player is rebuilt on any
-            observed mode change. */}
-        <div id="grow-cam-quality" class="cam-quality" hidden>
-          <span id="grow-cam-quality-badge" class="cam-quality-badge">
-            <span class="cam-quality-dot" aria-hidden="true"></span><span id="grow-cam-quality-label">Full HD</span>
-          </span>
-          <button id="grow-cam-hd-btn" type="button" class="cam-quality-hd" aria-label="Watch in HD (1440p)">⇧ HD</button>
-        </div>
-      </div>
-      {/* Public digital PTZ. Hidden until a probe home() on load comes back allowed (200) —
-          a 403 (CAM_PTZ_PUBLIC=off) leaves it hidden. Sits below the frame, not overlaid on
-          it, so it doesn't compete with the fullscreen button or fight touch scroll on mobile. */}
-      <div id="grow-ptz" class="cam-ptz" hidden aria-label="Camera controls">
-        <div class="cam-ptz-pad">
-          {/* Axis mapping is provisional: tilt/pan sign convention is only confirmed live on the
-              box (Step 5, out of scope here). If a control feels inverted, swap that button's
-              data-ptz value (e.g. tilt:+ <-> tilt:-) — nothing else depends on the mapping. */}
-          <button type="button" class="cam-ptz-btn cam-ptz-up" data-ptz="tilt:+" aria-label="Tilt up">↑</button>
-          <button type="button" class="cam-ptz-btn cam-ptz-left" data-ptz="pan:-" aria-label="Pan left">←</button>
-          <button type="button" class="cam-ptz-btn cam-ptz-home" data-ptz="home" aria-label="Return to home framing">⊙</button>
-          <button type="button" class="cam-ptz-btn cam-ptz-right" data-ptz="pan:+" aria-label="Pan right">→</button>
-          <button type="button" class="cam-ptz-btn cam-ptz-down" data-ptz="tilt:-" aria-label="Tilt down">↓</button>
-        </div>
-        <div class="cam-ptz-zoom">
-          <button type="button" class="cam-ptz-btn" data-ptz="zoom:-" aria-label="Zoom out">−</button>
-          <button type="button" class="cam-ptz-btn" data-ptz="zoom:+" aria-label="Zoom in">+</button>
-        </div>
-        <span class="cam-ptz-hint" id="grow-ptz-hint" hidden>moving… (takes a few seconds)</span>
+        {/* On-demand HD. The feed defaults to 1080p to stay light; this one small button requests a
+            shared 1440p window (all viewers, ~10 min, auto-reverts). It shows a live countdown and is
+            disabled while HD is active, so nobody can re-trigger mid-window. [hidden] until the first
+            /quality poll answers; hidden entirely on a 403 (kill switch off). Switching resolution
+            restarts the Pi's ffmpeg, so the player is rebuilt on any observed mode change. */}
+        <button id="grow-cam-hd-btn" type="button" class="cam-hd-btn" hidden aria-label="Watch in HD (1440p)">HD</button>
       </div>
     </article>
 
@@ -622,47 +597,17 @@ const defs: Record<string, Record<string, string>> = {
     }
   }
 
-  /* Quality indicator + on-demand HD, top-left of the frame (fullscreen sits top-right). */
-  .cam-quality {
+  /* On-demand HD button, top-left of the frame (fullscreen sits top-right). One small pill: an
+     "HD" invitation when the feed is 1080p, or a disabled "HD M:SS" countdown while the shared
+     1440p window is active. */
+  .cam-hd-btn {
     position: absolute;
     top: 0.6rem;
     left: 0.6rem;
     z-index: 3;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-  .cam-quality[hidden] {
-    display: none;
-  }
-  .cam-quality-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.2rem 0.5rem;
-    font-family: var(--font-mono);
-    font-size: 0.66rem;
-    letter-spacing: 0.06em;
-    color: #fff;
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 5px;
-    white-space: nowrap;
-  }
-  .cam-quality-dot {
-    width: 0.42rem;
-    height: 0.42rem;
-    border-radius: 50%;
-    background: #ff5a4d; /* live dot */
-  }
-  /* HD active: accent-tint the badge so the upgrade reads at a glance. */
-  .cam-quality.is-hd .cam-quality-badge {
-    color: var(--color-accent);
-    border-color: var(--color-accent);
-  }
-  .cam-quality-hd {
-    display: inline-flex;
-    align-items: center;
+    gap: 0.3rem;
     padding: 0.2rem 0.5rem;
     font-family: var(--font-mono);
     font-size: 0.66rem;
@@ -673,19 +618,30 @@ const defs: Record<string, Record<string, string>> = {
     border-radius: 5px;
     cursor: pointer;
     opacity: 0.85;
+    white-space: nowrap;
     transition:
       background 0.2s ease,
       opacity 0.2s ease;
   }
-  .cam-quality-hd:hover {
+  .cam-hd-btn:hover {
     background: rgba(0, 0, 0, 0.72);
     opacity: 1;
   }
-  .cam-quality-hd:focus-visible {
+  .cam-hd-btn:focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
-  .cam-quality-hd[hidden] {
+  /* HD active: accent-tint + no pointer (the window is running, re-triggering is blocked). */
+  .cam-hd-btn.is-hd {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    opacity: 1;
+    cursor: default;
+  }
+  .cam-hd-btn:disabled {
+    cursor: default;
+  }
+  .cam-hd-btn[hidden] {
     display: none;
   }
 
@@ -765,100 +721,6 @@ const defs: Record<string, Record<string, string>> = {
     height: 100vh;
     aspect-ratio: auto;
     border-radius: 0;
-  }
-
-  /* Public digital PTZ — compact D-pad + zoom row below the camera frame. [hidden] until the
-     setup probe confirms the kill switch is on; touch targets stay >=40px per-button. */
-  .cam-ptz {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-md);
-    margin-top: var(--space-sm);
-  }
-
-  .cam-ptz[hidden] {
-    display: none;
-  }
-
-  .cam-ptz-pad {
-    display: grid;
-    grid-template-columns: repeat(3, 2.75rem);
-    grid-template-rows: repeat(3, 2.75rem);
-    gap: 0.3rem;
-  }
-
-  .cam-ptz-up {
-    grid-area: 1 / 2;
-  }
-  .cam-ptz-left {
-    grid-area: 2 / 1;
-  }
-  .cam-ptz-home {
-    grid-area: 2 / 2;
-  }
-  .cam-ptz-right {
-    grid-area: 2 / 3;
-  }
-  .cam-ptz-down {
-    grid-area: 3 / 2;
-  }
-
-  .cam-ptz-zoom {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-  }
-
-  .cam-ptz-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 2.75rem;
-    min-height: 2.75rem;
-    padding: 0;
-    font-family: var(--font-mono);
-    font-size: 1.1rem;
-    line-height: 1;
-    color: var(--color-accent);
-    background: transparent;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    cursor: pointer;
-    transition:
-      background 0.2s ease,
-      color 0.2s ease,
-      border-color 0.2s ease;
-  }
-
-  .cam-ptz-btn:hover {
-    background: var(--color-accent);
-    color: #0b0907;
-  }
-
-  .cam-ptz-btn:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 2px;
-  }
-
-  .cam-ptz-btn:disabled {
-    opacity: 0.5;
-    cursor: default;
-    background: transparent;
-    color: var(--color-accent);
-  }
-
-  .cam-ptz-hint {
-    flex-basis: 100%;
-    text-align: center;
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: var(--color-muted);
-  }
-
-  .cam-ptz-hint[hidden] {
-    display: none;
   }
 
   .equip-card {
@@ -1864,16 +1726,16 @@ const defs: Record<string, Record<string, string>> = {
     }
   }
 
-  // Public HD quality toggle. GET /quality drives the badge + countdown; the "⇧ HD" button POSTs a
-  // request for the shared 1440p window (all viewers, ~10 min, auto-reverts to 1080p). Because
-  // switching resolution restarts the Pi's ffmpeg, whenever the observed mode flips — this viewer's
-  // click, another viewer's request, or the auto-revert — the player is rebuilt to pick up the
-  // new-resolution segments. A 403 (edge kill switch off) hides the HD button; the badge stays.
+  // On-demand HD. One small button doubles as status + control: GET /quality drives it, showing "HD"
+  // (clickable) while the feed is 1080p, or "HD M:SS" (disabled) while the shared 1440p window runs —
+  // so nobody can re-trigger mid-window. A click POSTs a request for the window (all viewers, ~10 min,
+  // auto-reverts to 1080p). Because switching resolution restarts the Pi's ffmpeg, whenever the
+  // observed mode flips — this viewer's click, another viewer's request, or the auto-revert — the
+  // player is rebuilt to pick up the new-resolution segments. A 403 (edge kill switch off) hides the
+  // button entirely.
   function setupQuality() {
-    const wrap = document.getElementById('grow-cam-quality');
-    const label = document.getElementById('grow-cam-quality-label');
     const btn = document.getElementById('grow-cam-hd-btn') as HTMLButtonElement | null;
-    if (!wrap || !label || !btn) return;
+    if (!btn) return;
 
     if (qualityPollTimer != null) clearInterval(qualityPollTimer);
     if (qualityTickTimer != null) clearInterval(qualityTickTimer);
@@ -1881,11 +1743,24 @@ const defs: Record<string, Record<string, string>> = {
     let mode: 'sd' | 'hd' = 'sd';
     let remaining = 0; // seconds left in the HD window (local countdown, resynced by polling)
     let lastMode: 'sd' | 'hd' | null = null;
+    let killed = false; // 403 kill switch — hide the button for good
 
     const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
     const render = () => {
-      wrap.classList.toggle('is-hd', mode === 'hd');
-      label.textContent = mode === 'hd' ? `HD · ${fmt(Math.max(0, remaining))}` : 'Full HD';
+      if (killed) {
+        btn.hidden = true;
+        return;
+      }
+      btn.hidden = false;
+      if (mode === 'hd') {
+        btn.textContent = `HD ${fmt(Math.max(0, remaining))}`;
+        btn.disabled = true;
+        btn.classList.add('is-hd');
+      } else {
+        btn.textContent = 'HD';
+        btn.disabled = false;
+        btn.classList.remove('is-hd');
+      }
     };
 
     // Apply an observed {mode, secondsRemaining}. Rebuild the player only when the mode actually
@@ -1904,44 +1779,44 @@ const defs: Record<string, Record<string, string>> = {
         const res = await fetch('/api/grow/cam/hls/quality', { cache: 'no-store' });
         if (!res.ok) return;
         const j = await res.json();
-        if (j && (j.mode === 'sd' || j.mode === 'hd')) {
-          wrap.hidden = false;
-          apply(j.mode, Number(j.secondsRemaining) || 0);
-        }
+        if (j && (j.mode === 'sd' || j.mode === 'hd')) apply(j.mode, Number(j.secondsRemaining) || 0);
       } catch {
         /* transient — keep last state */
       }
     };
 
     btn.addEventListener('click', async () => {
+      if (mode === 'hd') return; // window already running — button is disabled anyway; guard the race
       btn.disabled = true;
       try {
         const res = await fetch('/api/grow/cam/hls/hd', { method: 'POST' });
         if (res.status === 403) {
-          btn.hidden = true; // kill switch off — no HD, keep the badge
+          killed = true; // kill switch off — no HD at all
+          render();
           return;
         }
         if (res.status === 429) {
           btn.title = 'slow down…';
           window.setTimeout(() => (btn.title = ''), 1500);
+          btn.disabled = false;
           return;
         }
         if (res.ok) {
           const j = await res.json();
-          // Immediate feedback: flip the badge to HD + countdown now. If this was the sd->hd
-          // transition the Pi is restarting ffmpeg (~5s), so rebuild the player after a beat to pick
-          // up 1440p; if it was already HD (an extend) the rebuild is a harmless brief reload we skip.
+          // Immediate feedback: flip to the HD countdown now (render() disables the button). If this
+          // was the sd->hd transition the Pi is restarting ffmpeg (~5s), so rebuild the player after a
+          // beat to pick up 1440p.
           const wasSd = mode === 'sd';
           mode = 'hd';
           remaining = Number(j.secondsRemaining) || 600;
           lastMode = 'hd';
           render();
           if (wasSd) window.setTimeout(() => camRebuild && camRebuild(), 6000);
+        } else {
+          btn.disabled = false;
         }
       } catch {
-        /* ignore transient */
-      } finally {
-        window.setTimeout(() => (btn.disabled = false), 800);
+        btn.disabled = false; /* transient — let them retry */
       }
     });
 
@@ -1950,72 +1825,11 @@ const defs: Record<string, Record<string, string>> = {
       if (mode === 'hd' && remaining > 0) {
         remaining -= 1;
         render();
+        if (remaining === 0) void poll(); // just elapsed — resync now instead of waiting for the 15s poll
       }
     }, 1000);
     void poll();
     qualityPollTimer = window.setInterval(poll, 15000);
-  }
-
-  // Public digital PTZ. The cluster starts `hidden` in markup; a probe home() below reveals it
-  // only once the request actually lands (200) — a 403 (edge kill switch CAM_PTZ_PUBLIC=off)
-  // leaves it hidden. Debounced (~700ms) so one impatient viewer can't spam the shared camera's
-  // actuator; a 429 (edge rate-limit) surfaces as a brief "slow down" on the hint instead of a
-  // silent no-op.
-  function setupPtz() {
-    const maybeCluster = document.getElementById('grow-ptz');
-    const hint = document.getElementById('grow-ptz-hint');
-    if (!maybeCluster) return;
-    const cluster: HTMLElement = maybeCluster; // narrowed once — closures below don't retain the null-check
-    let busy = false;
-
-    async function send(cmd: string) {
-      if (busy) return;
-      busy = true;
-      const buttons = cluster.querySelectorAll<HTMLButtonElement>('button');
-      buttons.forEach((b) => (b.disabled = true));
-      if (hint) {
-        hint.textContent = 'moving… (takes a few seconds)';
-        hint.hidden = false;
-      }
-      // axis/dir for a nudge (e.g. "tilt:+"), or the home action — mirrors the edge's
-      // parsePtzCommand body shape ({axis,dir} | {action:'home'}).
-      const body =
-        cmd === 'home' ? { action: 'home' } : { axis: cmd.split(':')[0], dir: cmd.split(':')[1] };
-      try {
-        const res = await fetch('/api/grow/cam/ptz', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        if (res.status === 403) {
-          cluster.hidden = true; // kill switch off — stay hidden
-          return;
-        }
-        if (res.status === 429 && hint) {
-          hint.textContent = 'slow down…';
-          setTimeout(() => {
-            if (hint.textContent === 'slow down…') hint.textContent = 'moving… (takes a few seconds)';
-          }, 1500);
-        }
-        // Any non-403 response means PTZ is enabled → reveal. A 409 (no producer streaming yet —
-        // the common case at page load, since HLS is viewer-gated), 429, or 503 must NOT keep the
-        // cluster hidden; only the kill-switch 403 (handled above) does.
-        cluster.hidden = false;
-      } catch {
-        /* transient network blip — leave the cluster's visibility as-is */
-      } finally {
-        setTimeout(() => {
-          busy = false;
-          buttons.forEach((b) => (b.disabled = false));
-          if (hint && hint.textContent?.startsWith('moving')) hint.hidden = true;
-        }, 250); // brief debounce so a stuck double-fire can't stack; the edge rate-limit is the real cap
-      }
-    }
-
-    cluster.querySelectorAll<HTMLButtonElement>('button[data-ptz]').forEach((b) => {
-      b.addEventListener('click', () => void send(b.dataset.ptz ?? ''));
-    });
-    void send('home'); // reveal-via-probe: any non-403 shows the cluster; only 403 (kill switch) keeps it hidden
   }
 
   // Fullscreen the camera. Native Fullscreen API where available (desktop, Android) — with a
@@ -2337,7 +2151,6 @@ const defs: Record<string, Record<string, string>> = {
       setupCam();
       setupCamFullscreen();
       setupQuality();
-      setupPtz();
       setupChatterForm();
       startChatter();
     } else {
