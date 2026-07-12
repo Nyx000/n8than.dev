@@ -41,6 +41,7 @@
   let trackId: string | null = null;
   let expanded = false;
   let iframeCurrent = false; // iframe src matches trackId
+  let embedTimer: number | undefined; // deferred embed injection (post-open-transition)
   // Click-outside listener lives on `document` (persists across ClientRouter navs),
   // so it must be removed before each re-registration or it would leak duplicates.
   let docClickHandler: ((e: MouseEvent) => void) | null = null;
@@ -62,6 +63,10 @@
     $('np-root')?.classList.add('is-idle');
     // Owner directive: going idle must silence the embed — remove the iframe outright
     // (hiding keeps its audio alive). Manual visitor collapse still only hides.
+    if (embedTimer != null) {
+      clearTimeout(embedTimer);
+      embedTimer = undefined;
+    }
     $('np-embed')?.replaceChildren();
     iframeCurrent = false;
     trackId = null;
@@ -73,6 +78,14 @@
     if (!wrap) return;
     let iframe = wrap.querySelector('iframe');
     if (!iframe) {
+      // Skeleton first: the Spotify embed hauls in its whole app before painting, so
+      // without this the panel shows a dead hole (reads as a hang) until it lands.
+      if (!wrap.querySelector('.np-embed-ph')) {
+        const ph = document.createElement('div');
+        ph.className = 'np-embed-ph';
+        ph.textContent = 'loading player…';
+        wrap.appendChild(ph);
+      }
       iframe = document.createElement('iframe');
       iframe.title = 'spotify player';
       iframe.width = '100%';
@@ -83,6 +96,14 @@
       iframe.style.border = '0';
       iframe.setAttribute('loading', 'lazy');
       iframe.setAttribute('allow', 'encrypted-media; fullscreen');
+      iframe.addEventListener(
+        'load',
+        () => {
+          iframe?.classList.add('is-ready');
+          wrap.querySelector('.np-embed-ph')?.remove();
+        },
+        { once: true },
+      );
       wrap.appendChild(iframe);
     }
     iframe.src = `https://open.spotify.com/embed/track/${trackId}?utm_source=generator`;
@@ -95,8 +116,12 @@
     const btn = $('np-toggle');
     panel?.classList.toggle('is-open', on);
     if (btn) btn.setAttribute('aria-expanded', String(on));
-    if (on) {
-      if (!iframeCurrent) loadEmbed();
+    if (on && !iframeCurrent) {
+      // Don't inject the (heavy) embed on the click's own frame — let the panel's open
+      // transition finish first, then load. The click stays snappy; the skeleton above
+      // covers the gap. Guarded inside loadEmbed if we went idle/navigated meanwhile.
+      if (embedTimer != null) clearTimeout(embedTimer);
+      embedTimer = window.setTimeout(loadEmbed, 220);
     }
   }
 
@@ -368,17 +393,45 @@
      Height drives the embed's layout: 152 = full horizontal card (desktop), 80 = compact
      strip (mobile). A fixed 152 on touch/narrow renders a taller card that clips → Spotify
      scrollbars; the compact strip fits cleanly down to ~280px. */
+  /* Skeleton shown while the embed app boots (createElement'd → :global). Same footprint
+     as the compact strip so the panel doesn't reflow when the iframe replaces it. */
+  .np-embed :global(.np-embed-ph) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 80px;
+    max-width: 420px;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    border: 1px dashed color-mix(in srgb, var(--color-accent) 12%, transparent);
+    border-radius: 8px;
+  }
+
+  /* The iframe fades in once its content actually painted (load event) — until then the
+     skeleton above holds the space, so the open never shows a dead white/black hole. */
   .np-embed :global(iframe) {
+    opacity: 0;
+    transition: opacity var(--dur-fast) ease;
+    position: absolute; /* out of flow while hidden — the skeleton owns the space */
+    pointer-events: none;
     display: block;
     width: 100%;
     /* Cap the card width so it reads as a compact player, not a full-bleed banner on wide/4k
-       screens. Stays >300px (Spotify's scrollbar floor); shrinks to 100% on narrow columns. */
+       screens. Stays >300px (Spotify's scrollbar floor); shrinks to 100% on narrow columns.
+       Sized identically while hidden so Spotify lays out once — no snap on reveal. */
     max-width: 420px;
     /* 80px is the card's exact natural height at this width — the full row (art, title,
        progress, controls) fills it with no gap. Taller values leave Spotify's own background
        showing below the card (a white strip); shorter clips it. */
     height: 80px;
     border: 0;
+  }
+
+  .np-embed :global(iframe.is-ready) {
+    position: static;
+    pointer-events: auto;
+    opacity: 1;
   }
 
   @media (prefers-reduced-motion: reduce) {
