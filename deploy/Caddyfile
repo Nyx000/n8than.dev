@@ -190,6 +190,14 @@ n8than.dev {
 		}
 	}
 
+	# Build Sheet Studio demo entry (Solid Wood Worx client work). The demo runs on
+	# this box at :8443 behind its own access-code gate (sites/n8than.dev-swx-8443);
+	# this path is just the friendly entry. Replaces the pre-Hetzner TEMPORARY block
+	# that pointed at the retired hq tailnet host and was lost in a site redeploy.
+	handle /swx-demo* {
+		redir https://n8than.dev:8443/ temporary
+	}
+
 	# SeedSearch demo — relaxed CSP (inline script + external product-image CDNs).
 	handle /seedsearch {
 		redir * /seedsearch/ permanent
