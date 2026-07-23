@@ -13,6 +13,16 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      # Join the tailnet ephemerally so we can deploy over it — public SSH (:22)
+      # on the box is closed; the box is reachable only at its tailnet IP.
+      # Requires secret TS_AUTHKEY (reusable + ephemeral Tailscale auth key) and
+      # HETZNER_HOST set to the tailnet IP 100.99.198.88.
+      - name: Connect to tailnet (ephemeral)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+          version: latest
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@2ead5e36573f08b82fbfce1504f1a4b05a647c6f # v1.2.2
         with:
