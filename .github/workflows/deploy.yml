@@ -13,10 +13,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      # Join the tailnet ephemerally so we can deploy over it — public SSH (:22)
-      # on the box is closed; the box is reachable only at its tailnet IP.
-      # Requires secret TS_AUTHKEY (reusable + ephemeral Tailscale auth key) and
-      # HETZNER_HOST set to the tailnet IP 100.99.198.88.
+      # Join the tailnet ephemerally, then deploy over Tailscale SSH — the box has
+      # NO OpenSSH and public :22 is closed; it's reachable only at its tailnet IP,
+      # and access is authorized by tailnet identity (tag:ci -> tag:server in the
+      # ACL), so there is no SSH key. Requires secrets TS_OAUTH_CLIENT_ID /
+      # TS_OAUTH_SECRET (OAuth client, tag:ci) and HETZNER_HOST = 100.99.198.88.
       - name: Connect to tailnet (ephemeral)
         uses: tailscale/github-action@v3
         with:
@@ -25,55 +26,53 @@ jobs:
           tags: tag:ci
           version: latest
 
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@2ead5e36573f08b82fbfce1504f1a4b05a647c6f # v1.2.2
-        with:
-          host: ${{ secrets.HETZNER_HOST }}
-          username: ${{ secrets.HETZNER_USER }}
-          key: ${{ secrets.HETZNER_SSH_KEY }}
-          script: |
-            set -euo pipefail
-            export BUN_INSTALL="$HOME/.bun"
-            export PATH="$BUN_INSTALL/bin:$PATH"
+      - name: Deploy over Tailscale SSH (keyless)
+        run: |
+          ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
+              root@${{ secrets.HETZNER_HOST }} 'bash -s' <<'DEPLOY'
+          set -euo pipefail
+          export BUN_INSTALL="$HOME/.bun"
+          export PATH="$BUN_INSTALL/bin:$PATH"
 
-            cd /var/www/n8than.dev
-            git pull origin main
-            bun install --frozen-lockfile
+          cd /var/www/n8than.dev
+          git pull origin main
+          bun install --frozen-lockfile
 
-            # Build into ./dist (NOT served — Caddy serves ./current)
-            bun run build
+          # Build into ./dist (NOT served — Caddy serves ./current)
+          bun run build
 
-            # Publish: copy to a timestamped release, flip symlink atomically
-            REL="releases/$(date +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD)"
-            mkdir -p releases
-            cp -a dist "$REL"
-            ln -s "$REL" current.tmp && mv -Tf current.tmp current
-            echo "Published $REL"
+          # Publish: copy to a timestamped release, flip symlink atomically
+          REL="releases/$(date +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD)"
+          mkdir -p releases
+          cp -a dist "$REL"
+          ln -s "$REL" current.tmp && mv -Tf current.tmp current
+          echo "Published $REL"
 
-            # Prune: keep the 3 newest releases for rollback
-            ls -1dt releases/* | tail -n +4 | xargs -r rm -rf
+          # Prune: keep the 3 newest releases for rollback
+          ls -1dt releases/* | tail -n +4 | xargs -r rm -rf
 
-            # Caddy config: staged validate-then-install (skip in maintenance mode)
-            if grep -q "maintenance.html" /etc/caddy/sites/n8than.dev 2>/dev/null; then
-              echo "Maintenance mode active — skipping Caddy config update"
-            else
-              SITE=/etc/caddy/sites/n8than.dev
-              # Backup MUST live outside sites/ — `import /etc/caddy/sites/*` would
-              # otherwise load the .bak as a second n8than.dev ("ambiguous site").
-              BAK=/etc/caddy/n8than.dev.deploy.bak
-              [ -f "$SITE" ] && cp "$SITE" "$BAK"
-              cp deploy/Caddyfile "$SITE"
-              if ! caddy validate --config /etc/caddy/Caddyfile; then
-                [ -f "$BAK" ] && mv "$BAK" "$SITE"
-                echo "ERROR: caddy validate failed; previous config restored" >&2
-                exit 1
-              fi
-              rm -f "$BAK"
-              systemctl reload caddy
+          # Caddy config: staged validate-then-install (skip in maintenance mode)
+          if grep -q "maintenance.html" /etc/caddy/sites/n8than.dev 2>/dev/null; then
+            echo "Maintenance mode active — skipping Caddy config update"
+          else
+            SITE=/etc/caddy/sites/n8than.dev
+            # Backup MUST live outside sites/ — `import /etc/caddy/sites/*` would
+            # otherwise load the .bak as a second n8than.dev ("ambiguous site").
+            BAK=/etc/caddy/n8than.dev.deploy.bak
+            [ -f "$SITE" ] && cp "$SITE" "$BAK"
+            cp deploy/Caddyfile "$SITE"
+            if ! caddy validate --config /etc/caddy/Caddyfile; then
+              [ -f "$BAK" ] && mv "$BAK" "$SITE"
+              echo "ERROR: caddy validate failed; previous config restored" >&2
+              exit 1
             fi
+            rm -f "$BAK"
+            systemctl reload caddy
+          fi
 
-            # Sync the SeedSearch service (code, deps, systemd units, restart)
-            if [ -f sdsb/deploy/sync.sh ]; then
-              echo "Syncing sdsb service..."
-              bash sdsb/deploy/sync.sh
-            fi
+          # Sync the SeedSearch service (code, deps, systemd units, restart)
+          if [ -f sdsb/deploy/sync.sh ]; then
+            echo "Syncing sdsb service..."
+            bash sdsb/deploy/sync.sh
+          fi
+          DEPLOY
