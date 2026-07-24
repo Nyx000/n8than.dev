@@ -2,8 +2,8 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 const probes = [
-  { id: 'canopy', label: 'CANOPY', note: 'at the plant tops — drives VPD' },
-  { id: 'lower', label: 'LOWER TENT', note: 'under the canopy — gradient sentinel' },
+  { id: 'canopy', label: 'CANOPY', note: 'at the plant tops' },
+  { id: 'lower', label: 'LOWER TENT', note: 'under the canopy' },
   { id: 'room', label: 'INTAKE AIR', note: 'ambient air feeding the tent' },
 ];
 
@@ -50,7 +50,7 @@ const defs: Record<string, Record<string, string>> = {
     <div class="heading-row">
       <h1 class="section-heading">Grow Tent Telemetry</h1>
       <span id="grow-pill" class="pill is-connecting">CONNECTING</span>
-      <span id="grow-updated" class="updated"></span>
+      <span id="grow-updated" class="refresh-dot" role="status" aria-label="telemetry freshness" hidden></span>
       <span id="grow-phase-badge" class="phase-badge" hidden></span>
       <span id="grow-season-badge" class="phase-badge" hidden></span>
     </div>
@@ -111,7 +111,6 @@ const defs: Record<string, Record<string, string>> = {
     <article class="card equip-card" id="grow-equip">
       <header class="card-head equip-head">
         <h2 class="probe-name">EQUIPMENT</h2>
-        <span class="probe-note">what's running — tap a row for the why</span>
       </header>
       <ul class="equip-list" id="equip-list">
         <li class="equip-sys">connecting…</li>
@@ -237,10 +236,38 @@ const defs: Record<string, Record<string, string>> = {
   /* The status pill uses the global shape-encoded .pill (global.css) — the dot
      shape carries the state, so no page-local pill rules remain here. */
 
-  .updated {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--color-muted);
+  /* Subtle refresh indicator (replaces the verbose "updated Ns ago" counter): a small ring
+     in the heading row. At rest it's a quiet circle; each successful poll blips it into a
+     brief accent spin (`.is-refreshing`) — the motion, not text, signals a fresh update.
+     Exact age stays available via the title/aria tooltip. Dims when data goes stale/offline
+     (the LIVE/STALE pill carries the explicit state). Reuses the @keyframes cam-spin below. */
+  .refresh-dot {
+    width: 0.85rem;
+    height: 0.85rem;
+    border: 2px solid var(--color-border);
+    border-radius: 50%;
+    box-sizing: border-box;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+  }
+
+  .refresh-dot.is-refreshing {
+    border-top-color: var(--color-accent);
+    animation: cam-spin 0.7s linear infinite;
+  }
+
+  #grow-root.stale .refresh-dot,
+  #grow-root.offline .refresh-dot {
+    opacity: 0.3;
+    animation: none;
+    border-top-color: var(--color-border);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .refresh-dot.is-refreshing {
+      animation: none;
+      border-top-color: var(--color-accent);
+    }
   }
 
   .intro {
@@ -1551,20 +1578,35 @@ const defs: Record<string, Record<string, string>> = {
     return `${h}h ${m % 60}m`;
   }
 
+  // Keep the exact age off-screen (title + aria) so the spinner stays wordless but the
+  // freshness is still there for a hover / screen reader. The visible signal is the spin.
   function renderUpdated() {
     const el = document.getElementById('grow-updated');
     if (!el) return;
     if (lastTs == null) {
-      el.textContent = '';
+      el.hidden = true;
       return;
     }
+    el.hidden = false;
     const age = Math.max(0, Math.round((Date.now() - lastTs) / 1000));
-    el.textContent = `updated ${fmtAge(age)} ago`;
+    const label = `updated ${fmtAge(age)} ago`;
+    el.title = label;
+    el.setAttribute('aria-label', label);
   }
 
   async function tick() {
     const root = document.getElementById('grow-root');
     if (!root) return;
+    // Blip the refresh spinner for this poll, with a floor so a fast fetch still shows a
+    // visible spin rather than an imperceptible flash.
+    const dot = document.getElementById('grow-updated');
+    const spinStart = Date.now();
+    if (dot) { dot.hidden = false; dot.classList.add('is-refreshing'); }
+    const stopSpin = () => {
+      if (!dot) return;
+      const wait = Math.max(0, 600 - (Date.now() - spinStart));
+      window.setTimeout(() => dot.classList.remove('is-refreshing'), wait);
+    };
     try {
       const res = await fetch('/api/grow/live', { cache: 'no-store' });
       if (!res.ok) throw new Error(String(res.status));
@@ -1594,6 +1636,7 @@ const defs: Record<string, Record<string, string>> = {
         root.classList.add('offline');
       }
     }
+    stopSpin();
     renderUpdated();
   }
 
