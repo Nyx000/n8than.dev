@@ -190,12 +190,18 @@ n8than.dev {
 		}
 	}
 
-	# Build Sheet Studio demo entry (Solid Wood Worx client work). The demo runs on
-	# this box at :8443 behind its own access-code gate (sites/n8than.dev-swx-8443);
-	# this path is just the friendly entry. Replaces the pre-Hetzner TEMPORARY block
-	# that pointed at the retired hq tailnet host and was lost in a site redeploy.
+	# Build Sheet Studio demo (Solid Wood Worx client work) is PULLED — not reachable by
+	# any route. On the box: swx-demo.service stopped/disabled/masked (unit archived off
+	# the systemd path), the :8443 vhost archived, and 8443 NOT open in ufw. This block
+	# keeps the old public entry deliberately dead: `error 404` falls through to
+	# handle_errors, which renders the site's styled 404 page.
+	#
+	# Declared HERE rather than hand-edited on the box: the 2026-07-23 pull set this path
+	# to 410 box-side, and the next redeploy silently restored the old :8443 redirect,
+	# because this file overwrites /etc/caddy/sites/n8than.dev on every deploy. The repo
+	# is the only durable source of truth for this vhost.
 	handle /swx-demo* {
-		redir https://n8than.dev:8443/ temporary
+		error * 404
 	}
 
 	# SeedSearch demo — relaxed CSP (inline script + external product-image CDNs).
