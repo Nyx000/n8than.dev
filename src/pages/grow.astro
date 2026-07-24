@@ -7,12 +7,11 @@ const probes = [
   { id: 'room', label: 'INTAKE AIR', note: 'ambient air feeding the tent' },
 ];
 
-// The four readouts per card: the big value (`f` selects the API field) + its unit.
+// Top readout per card: the big value (`f` selects the API field) + its unit.
+// VPD lives in its own row alongside the sparkline (below); dew point isn't shown.
 const metrics = [
   { f: 'tempF', unit: '°F' },
   { f: 'rh', unit: '%' },
-  { f: 'vpdKpa', unit: 'kPa' },
-  { f: 'dewF', unit: '°F' },
 ];
 ---
 
@@ -47,19 +46,28 @@ const metrics = [
                 </div>
               ))}
             </div>
-            {/* VPD sparkline — drawn from the `spark` history the API already ships.
-                Desktop-only (≥720); the mobile strip stays compact. */}
-            <div class="spark-wrap">
-              <svg
-                class="spark"
-                viewBox="0 0 120 28"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <polyline class="spark-line" data-spark={p.id} fill="none" points="" />
-              </svg>
-              <span class="spark-cap">VPD</span>
+            {/* VPD moved down here, alongside its sparkline — drawn from the `spark`
+                history the API already ships. The graph itself is desktop-only (≥720);
+                the mobile strip still shows the VPD value, just without the graph. */}
+            <div class="vpd-row">
+              <div class="vpd-value">
+                <span class="vpd-label">VPD</span>
+                <span class="value" data-f="vpdKpa">
+                  —
+                </span>
+                <span class="unit">kPa</span>
+              </div>
+              <div class="spark-wrap">
+                <svg
+                  class="spark"
+                  viewBox="0 0 120 28"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <polyline class="spark-line" data-spark={p.id} fill="none" points="" />
+                </svg>
+              </div>
             </div>
           </article>
         ))
@@ -359,7 +367,33 @@ const metrics = [
     }
   }
 
-  /* VPD sparkline — desktop only; the mobile strip stays compact (KEEP list). */
+  /* VPD row: the value always shows; its sparkline is desktop only (the mobile
+     strip stays compact, no graphs — KEEP list). */
+  .vpd-row {
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .vpd-value {
+    flex: none;
+    display: grid;
+    grid-template-columns: auto auto auto;
+    align-items: baseline;
+    column-gap: 0.3em;
+  }
+
+  .vpd-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
   .spark-wrap {
     display: none;
   }
@@ -367,9 +401,8 @@ const metrics = [
   @media (min-width: 720px) {
     .spark-wrap {
       display: block;
-      margin-top: var(--space-sm);
-      padding-top: var(--space-sm);
-      border-top: 1px solid var(--color-border);
+      flex: 1;
+      min-width: 0;
     }
     .spark {
       display: block;
@@ -383,15 +416,6 @@ const metrics = [
       vector-effect: non-scaling-stroke;
       stroke-linejoin: round;
       stroke-linecap: round;
-    }
-    .spark-cap {
-      display: block;
-      margin-top: 0.25rem;
-      font-family: var(--font-mono);
-      font-size: 0.6rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--color-muted);
     }
   }
 
@@ -710,7 +734,7 @@ const metrics = [
     }
 
     .readout {
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 0 var(--space-sm);
     }
 
@@ -720,6 +744,15 @@ const metrics = [
 
     .unit {
       font-size: 0.6rem;
+    }
+
+    /* The zone is a 2-column grid (name | readout) on mobile — span the VPD row
+       across both so it reads as its own full-width line under the readings. */
+    .vpd-row {
+      grid-column: 1 / -1;
+      margin-top: 0.3rem;
+      padding-top: 0.3rem;
+      gap: 0.3em;
     }
 
     /* Camera eats the rest of the column — the plant is the hero. */
@@ -744,16 +777,6 @@ const metrics = [
 
     .chatter-card {
       order: 2;
-    }
-  }
-
-  /* ≤374px: the four-up readout can't shrink below its min-content (~224px) in the
-     ~180px of usable width → the whole page scrolls sideways. Reflow to 2×2 so each
-     reading keeps its room. Placed after the ≤719 block so it wins on narrow phones. */
-  @media (max-width: 374px) {
-    .readout {
-      grid-template-columns: repeat(2, 1fr);
-      gap: var(--space-sm) var(--space-sm);
     }
   }
 </style>
@@ -1268,7 +1291,6 @@ const metrics = [
       ['tempF', 1],
       ['rh', 1],
       ['vpdKpa', 2],
-      ['dewF', 1],
     ];
     for (const [key, digits] of fields) {
       const el = card.querySelector(`[data-f="${key}"]`) as HTMLElement | null;
