@@ -7,39 +7,13 @@ const probes = [
   { id: 'room', label: 'INTAKE AIR', note: 'ambient air feeding the tent' },
 ];
 
-// The four readouts per card. `key` selects the contextual definition; `aria` names the
-// term for screen readers on the ? trigger.
+// The four readouts per card: the big value (`f` selects the API field) + its unit.
 const metrics = [
-  { f: 'tempF', unit: '°F', label: 'temp', key: 'temperature', aria: 'temperature' },
-  { f: 'rh', unit: '%', label: 'humidity', key: 'humidity', aria: 'humidity' },
-  { f: 'vpdKpa', unit: 'kPa', label: 'VPD', key: 'vpd', aria: 'VPD (vapor pressure deficit)' },
-  { f: 'dewF', unit: '°F', label: 'dew point', key: 'dewpoint', aria: 'dew point' },
+  { f: 'tempF', unit: '°F' },
+  { f: 'rh', unit: '%' },
+  { f: 'vpdKpa', unit: 'kPa' },
+  { f: 'dewF', unit: '°F' },
 ];
-
-// Tooltip copy — same core meaning, but the "why it matters here" is tuned to each zone.
-const defs: Record<string, Record<string, string>> = {
-  canopy: {
-    temperature: 'Air temp at the leaves, where transpiration happens.',
-    humidity: 'Relative humidity at the canopy — moisture the air holds vs. its max at this temp.',
-    vpd: 'Vapor Pressure Deficit — how "thirsty" the air is at the leaf; it drives transpiration. The zone that matters most.',
-    dewpoint:
-      'The temp at which canopy air would condense — how close buds are to wet (mold risk).',
-  },
-  lower: {
-    temperature:
-      'Air temp beneath the canopy; compared to canopy temp it reveals vertical stratification.',
-    humidity: 'RH down low, where moisture pools — usually higher than the canopy.',
-    vpd: 'Vapor Pressure Deficit near the floor — a low-zone check on the gradient.',
-    dewpoint:
-      'Condensation temp in the coldest, dampest zone — the first place to see condensation.',
-  },
-  room: {
-    temperature: 'Temp of the ambient room air being pulled into the tent.',
-    humidity: 'RH of the incoming air — the baseline the tent has to correct.',
-    vpd: 'Vapor Pressure Deficit of the intake air, before the tent conditions it.',
-    dewpoint: 'Condensation temp of the incoming air.',
-  },
-};
 ---
 
 <BaseLayout
@@ -70,22 +44,6 @@ const defs: Record<string, Record<string, string>> = {
                     —
                   </span>
                   <span class="unit">{m.unit}</span>
-                  <span class="label">
-                    {m.label}
-                    <span class="tip">
-                      <button
-                        type="button"
-                        class="tip-btn"
-                        aria-label={`What is ${m.aria}?`}
-                        aria-describedby={`tip-${p.id}-${m.key}`}
-                      >
-                        ?
-                      </button>
-                      <span class="tip-bubble" role="tooltip" id={`tip-${p.id}-${m.key}`}>
-                        {defs[p.id][m.key]}
-                      </span>
-                    </span>
-                  </span>
                 </div>
               ))}
             </div>
@@ -101,7 +59,7 @@ const defs: Record<string, Record<string, string>> = {
               >
                 <polyline class="spark-line" data-spark={p.id} fill="none" points="" />
               </svg>
-              <span class="spark-cap">VPD · recent</span>
+              <span class="spark-cap">VPD</span>
             </div>
           </article>
         ))
@@ -363,87 +321,8 @@ const defs: Record<string, Record<string, string>> = {
     position: relative;
     display: grid;
     grid-template-columns: auto auto;
-    grid-template-rows: auto auto;
     align-items: baseline;
     column-gap: 0.25em;
-  }
-
-  /* "?" definition tooltip — CSS-first: reveals on hover (desktop), focus (keyboard),
-     and tap (the button takes focus on touch, triggering :focus-within). */
-  .tip {
-    position: static;
-    display: inline-flex;
-    margin-left: 0.3em;
-  }
-
-  .tip-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.15em;
-    height: 1.15em;
-    padding: 0;
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    line-height: 1;
-    color: var(--color-muted);
-    background: transparent;
-    border: 1px solid var(--color-muted);
-    border-radius: 50%;
-    cursor: help;
-    transition:
-      color 0.2s ease,
-      border-color 0.2s ease;
-  }
-
-  .tip-btn:hover,
-  .tip-btn:focus-visible {
-    color: var(--color-accent);
-    border-color: var(--color-accent);
-    outline: none;
-  }
-
-  .tip-bubble {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 5;
-    width: max-content;
-    max-width: min(240px, 70vw);
-    margin-top: 0.4em;
-    padding: 0.5em 0.65em;
-    font-size: 0.72rem;
-    line-height: 1.35;
-    letter-spacing: normal;
-    text-transform: none;
-    color: var(--color-text);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 0.15s ease;
-  }
-
-  /* Right-column metrics: grow the bubble leftward so it stays inside the card. */
-  .metric:nth-child(even) .tip-bubble {
-    left: auto;
-    right: 0;
-  }
-
-  .tip:hover .tip-bubble,
-  .tip:focus-within .tip-bubble {
-    opacity: 1;
-    visibility: visible;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .tip-btn,
-    .tip-bubble {
-      transition: none;
-    }
   }
 
   .value {
@@ -518,14 +397,6 @@ const defs: Record<string, Record<string, string>> = {
 
   .unit {
     font-size: 0.75rem;
-    color: var(--color-muted);
-  }
-
-  .label {
-    grid-column: 1 / -1;
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
     color: var(--color-muted);
   }
 
@@ -849,15 +720,6 @@ const defs: Record<string, Record<string, string>> = {
 
     .unit {
       font-size: 0.6rem;
-    }
-
-    .label {
-      font-size: 0.5rem;
-    }
-
-    /* Tooltips are a desktop affordance; on a phone they'd be untappably small and steal room. */
-    .tip {
-      display: none;
     }
 
     /* Camera eats the rest of the column — the plant is the hero. */
