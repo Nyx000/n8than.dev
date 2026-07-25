@@ -32,3 +32,10 @@ pnpm-debug.log*
 
 # private career area - never publish
 /career/
+
+# local Claude Code settings (enabled plugins, permissions) - machine-specific,
+# not project config. Ignored for a second reason too: this directory was
+# untracked but NOT ignored, which left it one `git add -A` from a public push,
+# and it is the tempting wrong place to put anything from /career/ if that
+# area's skill fails to load. Nothing from career/ ever belongs here.
+.claude/
