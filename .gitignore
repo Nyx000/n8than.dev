@@ -31,4 +31,4 @@ pnpm-debug.log*
 /docs/
 
 # private career area - never publish
-career/
+/career/
