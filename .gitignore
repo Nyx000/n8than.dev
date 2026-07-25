@@ -29,3 +29,6 @@ pnpm-debug.log*
 .idea/
 
 /docs/
+
+# private career area - never publish
+career/
