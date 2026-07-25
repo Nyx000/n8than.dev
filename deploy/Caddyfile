@@ -26,7 +26,8 @@
 	header Permissions-Policy "geolocation=(), microphone=(), camera=()"
 }
 
-# Strict CSP for the static site only (WS9). /seedsearch keeps its own relaxed policy.
+# Strict CSP for the static site (WS9). This is now the only policy on the vhost —
+# the relaxed /seedsearch variant went away with that project (2026-07-24).
 # Both flips landed: Flip A dropped `script-src 'unsafe-inline'` (verified no inline
 # `<script type="module">` survives in dist — astro.config assetsInlineLimit:0 forces
 # every bundled script to a hashed /_astro file); Flip B dropped the Google Fonts hosts
@@ -204,20 +205,16 @@ n8than.dev {
 		error * 404
 	}
 
-	# SeedSearch demo — relaxed CSP (inline script + external product-image CDNs).
-	handle /seedsearch {
-		redir * /seedsearch/ permanent
+	# SeedSearch is RETIRED (2026-07-24) — project ended, source removed from this repo.
+	# Same posture as /swx-demo above: the old public entries are declared here and kept
+	# deliberately dead, so a redeploy can never resurrect the old :3002 proxy. Falls
+	# through to handle_errors for the site's styled 404. Box-side cleanup (stop/disable
+	# the sdseed units, free :3002) is manual — see the deploy notes.
+	handle /seedsearch* {
+		error * 404
 	}
-	handle_path /seedsearch/* {
-		reverse_proxy 127.0.0.1:3002
-		header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'"
-	}
-	# Back-compat: the demo used to live at /sdsb — redirect old links.
-	handle /sdsb {
-		redir * /seedsearch/ permanent
-	}
-	handle /sdsb/* {
-		redir * /seedsearch/ permanent
+	handle /sdsb* {
+		error * 404
 	}
 
 	# Static site (WS2: served from the atomic release symlink)
