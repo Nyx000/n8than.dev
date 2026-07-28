@@ -155,6 +155,28 @@ n8than.dev {
 		header Cache-Control "no-store"
 	}
 
+	# Site visit logger beacon — anonymous public write, same posture as the jukebox
+	# request POST: Origin check + pinned XFF (real client IP, not the proxy hop) + tiny
+	# body cap. The real enforcement (rate limit, salted hash, bot filter) is the backend.
+	handle /api/site/visit {
+		rewrite * /api/public/site-visit
+		request_body {
+			max_size 1KB
+		}
+		@cross_origin_post {
+			method POST
+			not header Origin https://n8than.dev
+		}
+		respond @cross_origin_post 403
+		reverse_proxy https://growtent.taile16d94.ts.net {
+			header_up Host growtent.taile16d94.ts.net
+			header_up X-Forwarded-For {remote_host}
+			header_down -Vary
+			header_down -Via
+		}
+		header Cache-Control "no-store"
+	}
+
 	# Public HD quality toggle (POST) — request the shared 1440p window. Same public-write posture as
 	# the PTZ + jukebox POSTs: Origin check + pinned XFF + a tiny body cap; the REAL enforcement is the
 	# edge's kill switch + token-bucket rate-limit + 10-min/hard-cap bounds. Declared BEFORE the HLS
