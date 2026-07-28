@@ -26,12 +26,14 @@ const { title, description, canonicalURL, ogImage } = Astro.props;
     </main>
     <Footer />
     <script>
-      fetch('/api/site/visit', {
-        method: 'POST',
-        keepalive: true,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: location.pathname, referrer: document.referrer }),
-      }).catch(() => {})
+      document.addEventListener('astro:page-load', () => {
+        fetch('/api/site/visit', {
+          method: 'POST',
+          keepalive: true,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: location.pathname, referrer: document.referrer }),
+        }).catch(() => {})
+      })
     </script>
   </body>
 </html>
