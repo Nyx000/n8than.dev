@@ -31,7 +31,7 @@ const { title, description, canonicalURL, ogImage } = Astro.props;
           method: 'POST',
           keepalive: true,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: location.pathname, referrer: document.referrer }),
+          body: JSON.stringify({ path: location.pathname, referrer: document.referrer.slice(0, 256) }),
         }).catch(() => {})
       })
     </script>
