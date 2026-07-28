@@ -28,6 +28,9 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 
+# local git worktrees (subagent-driven-development isolation)
+.worktrees/
+
 /docs/
 
 # private career area - never publish
