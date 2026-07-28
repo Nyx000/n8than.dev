@@ -25,6 +25,14 @@ const { title, description, canonicalURL, ogImage } = Astro.props;
       <slot />
     </main>
     <Footer />
+    <script>
+      fetch('/api/site/visit', {
+        method: 'POST',
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: location.pathname, referrer: document.referrer }),
+      }).catch(() => {})
+    </script>
   </body>
 </html>
 
