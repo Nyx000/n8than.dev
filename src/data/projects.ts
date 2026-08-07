@@ -13,14 +13,14 @@ export const projects: Project[] = [
     title: 'Build Sheet Studio',
     description:
       'Client work for Solid Woodworx, shipped and in beta on their shop floor. They sell CNC-cut plywood drawer kits for overland vehicles through Shopify. Turning an order into a build used to mean someone reading it and working out the parts, counts, and hardware by hand. Now the order goes in and a printable build sheet comes out.',
-    tags: ['Python', 'FastAPI', 'pywebview', 'YAML', 'pdfplumber', 'OCR', 'PyInstaller'],
+    tags: ['Python', 'FastAPI', 'Uvicorn', 'Jinja2', 'YAML', 'pdfplumber', 'OCR'],
     expandable: true,
     details: `
       <p class="hook">The paperwork was never the hard part. The deduction behind it was. A senior builder had to know that a 4Runner generation changes the part-number series, the slide length, and the turnbuckle. Now the catalog knows.</p>
       <ul class="highlights">
         <li><strong>The engine knows nothing about drawers.</strong> Every vehicle-specific fact (parts, rules, sheet layout, provenance) lives in a versioned YAML catalog, so adding a kit means adding a file and writing no code. Nine catalogs ship today.</li>
         <li><strong>It says when it doesn't know.</strong> An order it can't fully resolve produces a gap report naming exactly what it couldn't work out, instead of a plausible guess. Two lint gates check every catalog before it ships, and the sheet renderer is locked against golden files so the printed output can't quietly drift.</li>
-        <li><strong>Runs on the shop floor.</strong> Intake reads order PDFs and screenshots through one deterministic parser (pdfplumber plus Windows OCR). The whole thing is a native desktop window packaged for Windows: no cloud account, no login, no internet required.</li>
+        <li><strong>Runs on the shop floor.</strong> Intake reads order PDFs and screenshots through one deterministic parser (pdfplumber plus platform OCR), with optional Shopify pull by order number. Delivered as source for the client to self-host: a FastAPI app they run on their own hardware, no vendor account and no dependency on me to keep it running.</li>
       </ul>
       <p class="stats">Shipped July 2026 · 9 catalogs · in shop-floor beta</p>`,
   },
@@ -43,7 +43,7 @@ export const projects: Project[] = [
   {
     title: 'CafeNightClub',
     description:
-      'The project that started it all. A full-stack ordering platform built for 80+ night-shift hospital staff at Scripps Health, in production Jan–Mar 2026. It runs now as a live, cyberpunk-themed demo you can log into and order from.',
+      'The project that started it all. A full-stack ordering platform built for 80+ night-shift hospital staff at Scripps Health, in production Jan–Mar 2026. It runs now as a live, cyberpunk-themed demo that is open to anyone: no sign-in, no account, just order from it.',
     url: 'https://cafenightclub.com',
     tags: ['Next.js', 'React 19', 'Supabase', 'Tailwind CSS', 'TypeScript'],
     expandable: true,
