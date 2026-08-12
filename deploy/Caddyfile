@@ -227,6 +227,19 @@ n8than.dev {
 		error * 404
 	}
 
+	# Intranet hub — PUBLIC demo (deliberate decision 2026-08-12): ungated, fake
+	# data only, noindex/no-store stamped by the app itself. hub-demo.service
+	# (user hubdemo) serves 127.0.0.1:8890 from the PRIVATE Nyx000/intranet repo,
+	# pushed over tailnet to /opt/hub-demo/repo.git (the box holds no GitHub creds
+	# for it). handle_path strips /hub; the app's base_path config re-adds it in
+	# outgoing HTML/redirects. Runbook: intranet repo ops/demo/README.md.
+	# Kill: `systemctl stop hub-demo` box-side, then dead-route this block like
+	# /swx-demo below and redeploy.
+	redir /hub /hub/ permanent
+	handle_path /hub/* {
+		reverse_proxy 127.0.0.1:8890
+	}
+
 	# SeedSearch is RETIRED (2026-07-24) — project ended, source removed from this repo.
 	# Same posture as /swx-demo above: the old public entries are declared here and kept
 	# deliberately dead, so a redeploy can never resurrect the old :3002 proxy. Falls
