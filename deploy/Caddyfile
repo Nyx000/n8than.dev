@@ -164,7 +164,8 @@ n8than.dev {
 
 	# Site visit logger beacon — anonymous public write, same posture as the jukebox
 	# request POST: Origin check + pinned XFF (real client IP, not the proxy hop) + tiny
-	# body cap. The real enforcement (rate limit, salted hash, bot filter) is the backend.
+	# body cap. The real enforcement (rate limit, bot filter) is the backend, which since
+	# growtent 60c4bf0 stores the raw client IP this XFF pins — not a salted hash.
 	handle /api/site/visit {
 		rewrite * /api/public/site-visit
 		request_body {
