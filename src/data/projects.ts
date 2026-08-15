@@ -87,6 +87,22 @@ export const projects: Project[] = [
       <p class="stats">~610 lines · 8 philosophers · 3 execution modes</p>`,
   },
   {
+    title: 'Claude Conformance',
+    description:
+      'A model-conformance layer for Claude Code. It detects installed instructions (plugin skills, agents, CLAUDE.md) that current Anthropic guidance says to remove, and injects the doctrine matching the running model at session start.',
+    url: 'https://github.com/Nyx000/claude-conformance',
+    tags: ['Claude Code', 'Python', 'PowerShell', 'Bash', 'Prompt Engineering'],
+    expandable: true,
+    details: `
+      <p class="hook">Claude Code gives plugins no way to know which model they run against, so instructions written for older models quietly degrade newer ones: mandatory verification steps, standing review gates, delegate-by-default. This layer measures that drift and corrects it from the one layer that outranks every plugin. <a href="https://github.com/Nyx000/claude-conformance" target="_blank" rel="noopener noreferrer">Read the source →</a></p>
+      <ul class="highlights">
+        <li><strong>Classes, not plugin names.</strong> Six superseded instruction classes, each traceable to a specific line of Anthropic guidance. The scanner covers 42 instruction units across plugin caches, local skills, agents, and CLAUDE.md itself, matching on what an instruction does rather than who ships it, so plugins installed tomorrow are covered today.</li>
+        <li><strong>It refuses to guess.</strong> A SessionStart hook injects the doctrine profile matching the running model and survives compaction. An unrecognized model gets an "audit needed" nudge instead of silently applied wrong rules.</li>
+        <li><strong>Audits you can disagree with.</strong> A dated per-machine ledger records three verdicts: conform, deliberate override with the reason, or drift. Overrides are version-gated and expire the day upstream ships a model-aware release.</li>
+      </ul>
+      <p class="stats">6 instruction classes · 42 units scanned · MIT</p>`,
+  },
+  {
     title: 'n8than.dev',
     description: 'Personal portfolio built with Astro 5 and vanilla CSS',
     tags: ['Astro 5', 'TypeScript', 'CSS'],
