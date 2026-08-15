@@ -3,10 +3,11 @@ import type { Project } from '../data/projects';
 
 type Props = Project;
 
-const { title, description, url, tags, expandable, details } = Astro.props;
-const isLive = !!url;
+const { title, description, url, tags, expandable, details, live } = Astro.props;
+// Keyed off `live`, not `url` — a repo link is not a running thing (see Project.live).
+const isLive = !!live;
 const isExternal = !!url && !url.startsWith('/');
-const visitLabel = isExternal ? 'Visit site' : 'Open live';
+const visitLabel = isLive ? (isExternal ? 'Visit site' : 'Open live') : 'View source';
 ---
 
 <article class:list={['card', 'card--link', { 'card--live': isLive }]}>
