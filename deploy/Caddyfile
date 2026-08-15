@@ -40,6 +40,30 @@
 	header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; frame-src https://open.spotify.com; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://i.scdn.co https://*.spotifycdn.com; media-src 'self' blob:; worker-src blob:; connect-src 'self'"
 }
 
+# Upstream for every public route whose backend keys on the CLIENT IP (rate limits,
+# salted identity hashes): the growtent Next app on THIS box, 127.0.0.1:3001
+# (growtent-web.service, PORT=3001). One hop, so X-Forwarded-For survives.
+#
+# It MUST NOT go via https://growtent.taile16d94.ts.net. That path is
+# Hetzner -> Pi -> back to Hetzner, and it crosses `tailscale serve` twice —
+# which REPLACES X-Forwarded-For with the tailnet peer address. Every visit logged
+# between 2026-07-28 and 2026-08-15 was therefore attributed to a single constant
+# (the Pi's 100.82.197.58): 90 sessions, exactly ONE distinct ip_hash. Per-IP rate
+# limits degraded to one global bucket and all sessions merged into shared rows.
+# Only genuinely Pi-local routes (cam, HLS, live) belong on the tailnet path.
+#
+# The XFF pin is redundant with Caddy's own default — with `trusted_proxies` unset,
+# Caddy REPLACES client-supplied X-Forwarded-* rather than appending (verified on
+# v2.11.4 against a forged header). It stays anyway so the guarantee is stated
+# locally and survives anyone later declaring trusted_proxies.
+(growtent_web_clientip) {
+	reverse_proxy 127.0.0.1:3001 {
+		header_up X-Forwarded-For {remote_host}
+		header_down -Vary
+		header_down -Via
+	}
+}
+
 # Single-hop http -> https apex for both hosts (WS6). ACME HTTP-01 is handled
 # internally by Caddy before these routes, so cert issuance is unaffected.
 http://n8than.dev, http://www.n8than.dev {
@@ -76,14 +100,7 @@ n8than.dev {
 			not header Origin https://n8than.dev
 		}
 		respond @cross_origin_post 403
-		reverse_proxy https://growtent.taile16d94.ts.net {
-			header_up Host growtent.taile16d94.ts.net
-			# Overwrite (not append) X-Forwarded-For with the real client so the
-			# backend's per-IP rate-limit + daily cap can't be spoofed.
-			header_up X-Forwarded-For {remote_host}
-			header_down -Vary
-			header_down -Via
-		}
+		import growtent_web_clientip
 		header Cache-Control "no-store"
 	}
 
@@ -113,12 +130,7 @@ n8than.dev {
 	# Jukebox search proxy — per-IP limited at the backend (XFF pinned so it can't be spoofed).
 	handle /api/spotify/search {
 		rewrite * /api/public/spotify/search
-		reverse_proxy https://growtent.taile16d94.ts.net {
-			header_up Host growtent.taile16d94.ts.net
-			header_up X-Forwarded-For {remote_host}
-			header_down -Vary
-			header_down -Via
-		}
+		import growtent_web_clientip
 		header Cache-Control "no-store"
 	}
 
@@ -135,12 +147,7 @@ n8than.dev {
 			not header Origin https://n8than.dev
 		}
 		respond @cross_origin_post 403
-		reverse_proxy https://growtent.taile16d94.ts.net {
-			header_up Host growtent.taile16d94.ts.net
-			header_up X-Forwarded-For {remote_host}
-			header_down -Vary
-			header_down -Via
-		}
+		import growtent_web_clientip
 		header Cache-Control "no-store"
 	}
 
@@ -168,12 +175,7 @@ n8than.dev {
 			not header Origin https://n8than.dev
 		}
 		respond @cross_origin_post 403
-		reverse_proxy https://growtent.taile16d94.ts.net {
-			header_up Host growtent.taile16d94.ts.net
-			header_up X-Forwarded-For {remote_host}
-			header_down -Vary
-			header_down -Via
-		}
+		import growtent_web_clientip
 		header Cache-Control "no-store"
 	}
 
