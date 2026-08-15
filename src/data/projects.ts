@@ -6,6 +6,8 @@ export interface Project {
   image?: string;
   expandable?: boolean;
   details?: string;
+  /** Running somewhere a visitor can click through and use — a GitHub link alone doesn't count. */
+  live?: boolean;
 }
 
 export const projects: Project[] = [
@@ -26,6 +28,7 @@ export const projects: Project[] = [
   },
   {
     title: 'Grow Tent Telemetry',
+    live: true,
     description:
       'Live environmental monitoring for an automated grow tent, streaming to this site. A read-only TypeScript poller captures three climate probes into Postgres, with a deterministic alert engine, an MCP server for AI-assisted queries, and a weekly LLM advisory analyst.',
     url: '/grow',
@@ -42,6 +45,7 @@ export const projects: Project[] = [
   },
   {
     title: 'CafeNightClub',
+    live: true,
     description:
       'The project that started it all. A full-stack ordering platform built for 80+ night-shift hospital staff at Scripps Health, in production Jan–Mar 2026. It runs now as a live, cyberpunk-themed demo that is open to anyone: no sign-in, no account, just order from it.',
     url: 'https://cafenightclub.com',
@@ -72,19 +76,20 @@ export const projects: Project[] = [
       <p class="stats">3 servers · ~1,800 types indexed · C# editor plugin + Node</p>`,
   },
   {
-    title: 'Sage8',
+    title: 'acinfinity-ble',
     description:
-      'Eight philosophical perspectives analyzed in parallel through dedicated AI agents. Full council, single philosopher, and structured debate modes, each voice encoded with its own reasoning method, vocabulary, and blind spots.',
-    tags: ['Claude Code', 'Multi-Agent', 'Philosophy', 'Prompt Engineering'],
+      'A clean-room Bluetooth LE implementation of the AC Infinity UIS grow-controller protocol: read sensors and write settings directly, with no vendor cloud account and no network dependency. Extracted from the grow tent system above, where it has driven live hardware continuously since June 2026.',
+    url: 'https://github.com/Nyx000/acinfinity-ble',
+    tags: ['TypeScript', 'BLE', 'Reverse Engineering', 'Protocols', 'Node'],
     expandable: true,
     details: `
-      <p class="hook">Eight philosophers take the same question at once, each with their own encoded reasoning method and voice. They come back as genuinely different readings, not eight paraphrases of one answer.</p>
+      <p class="hook">The official app mirrors everything through the vendor's cloud, and the wire protocol isn't published. This repository is that protocol, written down with its provenance, plus a tested implementation of it. <a href="https://github.com/Nyx000/acinfinity-ble" target="_blank" rel="noopener noreferrer">Read the source →</a></p>
       <ul class="highlights">
-        <li><strong>Voice integrity.</strong> Each philosopher has encoded biography, framework, vocabulary, reasoning method, and blind spots. Nietzsche writes aphorisms, Lao Tzu speaks in paradoxes, Sun Tzu issues strategic imperatives.</li>
-        <li><strong>Three modes.</strong> Full council with roundtable synthesis, single philosopher deep-dive, or structured debate where two philosophers respond to each other across rounds.</li>
-        <li><strong>Curated tension.</strong> Recommended pairings exploit genuine philosophical disagreements like Camus vs. Frankl on meaning, Nietzsche vs. Buddha on desire, and Sun Tzu vs. Lao Tzu on action.</li>
+        <li><strong>Every claim carries its provenance.</strong> The protocol docs record how each finding was established, and known-unresolved items are listed as unresolved — including one capture attempt that failed, and why.</li>
+        <li><strong>Verified against the vendor's own code.</strong> The frame envelope and CRC16 are confirmed bit-identical to the app's implementation across 20,000 random vectors and every captured reference frame.</li>
+        <li><strong>It documents the trap.</strong> Controller settings only apply as one bundled write — a lone single-field write sends zero bytes and reports no error. That is the class of bug a unit test against your own encoder can never catch, because your encoder is correct and the device simply ignores it.</li>
       </ul>
-      <p class="stats">~610 lines · 8 philosophers · 3 execution modes</p>`,
+      <p class="stats">Zero runtime dependencies · 165 tests · MIT</p>`,
   },
   {
     title: 'Claude Conformance',

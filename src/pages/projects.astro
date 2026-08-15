@@ -2,17 +2,30 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 import { projects } from '../data/projects';
+
+const liveProjects = projects.filter((p) => p.live);
+const restProjects = projects.filter((p) => !p.live);
 ---
 
 <BaseLayout
   title="Projects | n8than.dev"
-  description="Client work, production apps, and AI tooling. Two of them are running live."
+  description="Client work, production apps, and AI tooling. The live ones are a click away."
 >
   <section class="container">
     <h1 class="section-heading">Projects</h1>
-    <p class="intro">Six systems. Two are running live, so click through and use them.</p>
+    <p class="intro">
+      {projects.length} systems. {liveProjects.length} are running live — click through and use
+      them.
+    </p>
+
+    <h2 class="group-heading">Running live</h2>
     <div class="grid stagger">
-      {projects.map((project) => <ProjectCard {...project} />)}
+      {liveProjects.map((project) => <ProjectCard {...project} />)}
+    </div>
+
+    <h2 class="group-heading">Code &amp; client work</h2>
+    <div class="grid stagger">
+      {restProjects.map((project) => <ProjectCard {...project} />)}
     </div>
   </section>
 </BaseLayout>
@@ -22,5 +35,18 @@ import { projects } from '../data/projects';
     display: grid;
     grid-template-columns: 1fr;
     gap: var(--space-lg);
+  }
+
+  .group-heading {
+    margin-top: var(--space-xl);
+    margin-bottom: var(--space-md);
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-accent, inherit);
+  }
+
+  .group-heading:first-of-type {
+    margin-top: var(--space-lg);
   }
 </style>
