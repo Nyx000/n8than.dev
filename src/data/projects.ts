@@ -101,7 +101,7 @@ export const projects: Project[] = [
   {
     title: 'n8than.dev',
     description:
-      'This site. Astro 5 and hand-written CSS, static-first with JavaScript only where it earns it — the procedural film-grain hero, the live /grow telemetry, view transitions. Enforced Content-Security-Policy and a full security-header set, on Caddy with CI deploys.',
+      'This site. Astro 5 and hand-written CSS, static-first with JavaScript only where it earns it — the procedural film-grain hero, the live /grow telemetry, view transitions. Enforced Content-Security-Policy and a full security-header set, on Caddy on a Hetzner VPS with CI deploys.',
     tags: ['Astro 5', 'TypeScript', 'CSS'],
   },
 ];
