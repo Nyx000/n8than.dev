@@ -1,7 +1,7 @@
 -- OBS script for the /live stream: two hotkeys that flip the webcam overlay and the mic.
 -- Loaded by the local OBS scene collection (Tools > Scripts); nothing on the server uses it.
 -- Expects scene "Live" with items "Webcam" + "Webcam Frame" (the overlay/ chrome around it),
--- "Mic Badge", and an audio source "Mic". Everything starts off.
+-- and an audio source "Mic". The webcam starts off, the mic live.
 -- Default binds are Ctrl+Alt+W and Ctrl+Alt+M; rebinding in OBS Settings > Hotkeys persists.
 obs = obslua
 
@@ -28,14 +28,11 @@ local function toggle_webcam()
   set_visible({ "Webcam", "Webcam Frame" }, show)
 end
 
--- The badge follows the mic, so viewers (and the streamer, in the preview) see when it is live.
 local function toggle_mic()
   local src = obs.obs_get_source_by_name("Mic")
   if src == nil then return end
-  local live = obs.obs_source_muted(src)
-  obs.obs_source_set_muted(src, not live)
+  obs.obs_source_set_muted(src, not obs.obs_source_muted(src))
   obs.obs_source_release(src)
-  set_visible({ "Mic Badge" }, live)
 end
 
 local TOGGLES = {
