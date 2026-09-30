@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Black Mesa webcam frame</title>
+<style>
+  :root{
+    --console: #c4ba9f;         /* lab console enamel */
+    --console-lo: #978e74;
+    --ink:   #2a2620;
+    --glass: #050402;
+    --phos:  #ffae2e;           /* amber phosphor */
+    --phos-dim: rgba(255,174,46,.5);
+    --hev:   #ffa21f;
+    --warn:  #ff6600;
+    --stripe:#f0b400;
+    --xen:   #45e0c0;           /* used once: the Xen lamp and its status word */
+    /* webcam hole, page coordinates: 448x252 (16:9) at 32,44 */
+    --hx:32px; --hy:44px; --hw:448px; --hh:252px;
+  }
+  html,body{background:transparent;margin:0;overflow:hidden}
+  body{
+    width:512px;height:340px;position:relative;
+    font-family:"Bahnschrift","Segoe UI",sans-serif;
+    color:var(--phos);
+    font-variant-numeric:tabular-nums;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* Everything lives inside .unit. Its even-odd clip removes the hole, so no
+     background, glow or scanline can ever paint over the camera. */
+  .unit{position:absolute;inset:0;
+    clip-path:path(evenodd,"M6 0H506Q512 0 512 6V334Q512 340 506 340H6Q0 340 0 334V6Q0 0 6 0Z M32 44H480V296H32Z");
+    background:linear-gradient(#d2c8ad, var(--console) 12%, var(--console-lo));
+  }
+
+  /* CRT glass, inset in the console bezel */
+  .glass{position:absolute;left:10px;top:8px;width:492px;height:310px;border-radius:14px;
+    background:var(--glass);overflow:hidden;
+    box-shadow:0 0 0 1px rgba(0,0,0,.55), 0 1px 0 1px rgba(255,255,255,.35)}
+  .glass::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:14px;
+    background:
+      repeating-linear-gradient(to bottom, rgba(255,174,46,.05) 0 1px, transparent 1px 3px),
+      radial-gradient(120% 90% at 50% 45%, transparent 60%, rgba(0,0,0,.55) 100%)}
+
+  /* corner brackets hug the hole from outside (page coordinates) */
+  .br{position:absolute;width:14px;height:14px;border:0 solid var(--phos);opacity:.85}
+  .br.tl{left:calc(var(--hx) - 5px);top:calc(var(--hy) - 5px);border-top-width:2px;border-left-width:2px}
+  .br.tr{left:calc(var(--hx) + var(--hw) - 9px);top:calc(var(--hy) - 5px);border-top-width:2px;border-right-width:2px}
+  .br.bl{left:calc(var(--hx) - 5px);top:calc(var(--hy) + var(--hh) - 9px);border-bottom-width:2px;border-left-width:2px}
+  .br.brr{left:calc(var(--hx) + var(--hw) - 9px);top:calc(var(--hy) + var(--hh) - 9px);border-bottom-width:2px;border-right-width:2px}
+
+  /* header band, inside the glass */
+  .who{position:absolute;left:34px;top:13px;display:flex;align-items:baseline;gap:10px;
+    text-shadow:0 0 5px rgba(255,150,20,.5)}
+  .who .name{font-size:21px;line-height:24px;font-weight:600;letter-spacing:.02em}
+  .who .role{font-size:12px;letter-spacing:.04em;color:var(--phos-dim);font-stretch:87.5%}
+  .rec{position:absolute;right:34px;top:12px;display:flex;align-items:center;gap:8px}
+  .rec .dot{width:9px;height:9px;border-radius:50%;background:var(--warn);box-shadow:0 0 6px var(--warn);
+    animation:blink 1.6s steps(1,end) infinite}
+  .rec .lbl{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--warn);font-stretch:87.5%}
+  .rec .tc{font-size:26px;line-height:26px;font-weight:700;font-stretch:75%;color:var(--hev);
+    text-shadow:0 0 6px rgba(255,140,0,.5)}
+  @keyframes blink{0%,62%{opacity:1}63%,100%{opacity:.12}}
+
+  /* left rail: anti-mass spectrometer power, fills bottom-up */
+  .pwr{position:absolute;left:14px;top:var(--hy);height:var(--hh);width:12px;
+    display:flex;flex-direction:column-reverse;gap:3px}
+  .pwr i{flex:1;background:var(--phos);opacity:.14;border-radius:1px}
+  .pwr i.on{opacity:.85;box-shadow:0 0 4px rgba(255,150,20,.5)}
+  .pwr i.hot{background:var(--warn);opacity:1}
+
+  /* right rail: sample-cart position ruler with a caret */
+  .ruler{position:absolute;left:487px;top:var(--hy);height:var(--hh);width:12px;
+    background:
+      repeating-linear-gradient(to bottom, rgba(255,174,46,.6) 0 1px, transparent 1px 21px) left/12px 100% no-repeat,
+      repeating-linear-gradient(to bottom, rgba(255,174,46,.3) 0 1px, transparent 1px 7px) left/6px 100% no-repeat}
+  .ruler .caret{position:absolute;left:4px;top:0;width:0;height:0;
+    border-top:5px solid transparent;border-bottom:5px solid transparent;border-right:7px solid var(--phos);
+    animation:scan 7s ease-in-out infinite alternate;will-change:transform}
+  @keyframes scan{from{transform:translateY(-5px)}to{transform:translateY(247px)}}
+
+  /* footer band, inside the glass: terminal readout */
+  .term{position:absolute;left:36px;right:42px;top:301px;height:16px;display:flex;align-items:center;
+    font:13px/16px Consolas,"Lucida Console",monospace;white-space:nowrap;
+    text-shadow:0 0 4px rgba(255,150,20,.5)}
+  .term .k{color:var(--phos-dim)}
+  .term .v{margin-left:6px}
+  .term .v.xen{color:var(--xen);text-shadow:0 0 4px rgba(69,224,192,.5)}
+  .term.alarm .k,.term.alarm .v{color:var(--warn);text-shadow:0 0 5px rgba(255,102,0,.6)}
+  .term.alarm .pct b{color:var(--warn)}
+  .term .pct{margin-left:auto;color:var(--phos-dim)}
+  .term .pct b{font-weight:400;color:var(--phos)}
+
+  /* chin: caution panel, engraved plate, indicator lamps */
+  .caution{position:absolute;left:14px;top:322px;width:74px;height:12px;
+    background:repeating-linear-gradient(-45deg, var(--stripe) 0 5px, #141210 5px 10px);
+    box-shadow:0 0 0 1px rgba(0,0,0,.45)}
+  .plate{position:absolute;left:0;right:0;top:323px;text-align:center;
+    font-size:10px;line-height:12px;font-weight:700;letter-spacing:.16em;color:var(--ink);font-stretch:87.5%;
+    text-shadow:0 1px 0 rgba(255,255,255,.3)}
+  .lamps{position:absolute;right:16px;top:323px;display:flex;gap:7px}
+  .lamps i{width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.5)}
+  .lamps .a{background:var(--phos)}
+  .lamps .x{background:var(--xen);animation:blink 3.4s steps(1,end) infinite}
+  .lamps .w{background:#5a2a10}
+  .screw{position:absolute;top:326px;width:6px;height:6px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, #e8e0c8, #6d6654);box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+
+  @media (prefers-reduced-motion: reduce){
+    .rec .dot,.lamps .x{animation:none}
+    .ruler .caret{animation:none;display:none}
+  }
+</style>
+</head>
+<body>
+  <div class="unit">
+    <div class="glass"></div>
+
+    <i class="br tl"></i><i class="br tr"></i><i class="br bl"></i><i class="br brr"></i>
+
+    <div class="who"><span class="name">Nyx000</span><span class="role">Console 2 operator</span></div>
+    <div class="rec"><span class="dot"></span><span class="lbl">REC</span><span class="tc" id="tc">00:00:00</span></div>
+
+    <div class="pwr" id="pwr"></div>
+    <div class="ruler"><span class="caret"></span></div>
+
+    <div class="term" id="term">
+      <span class="k" id="k">Subject</span><span class="v" id="v">vitals nominal</span>
+      <span class="pct">PWR <b id="pct">000</b>%</span>
+    </div>
+
+    <i class="caution"></i>
+    <div class="plate">ANTI-MASS SPECTROMETER</div>
+    <div class="lamps"><i class="a"></i><i class="x"></i><i class="w" id="wl"></i></div>
+    <i class="screw" style="left:96px"></i><i class="screw" style="left:410px"></i>
+  </div>
+
+<script>
+(() => {
+  const tc = document.getElementById("tc");
+  const term = document.getElementById("term");
+  const k = document.getElementById("k");
+  const v = document.getElementById("v");
+  const pct = document.getElementById("pct");
+  const pwr = document.getElementById("pwr");
+  const wl = document.getElementById("wl");
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pad = n => String(n).padStart(2, "0");
+  const t0 = Date.now();
+
+  const SEG = 14;
+  const segs = [];
+  for (let s = 0; s < SEG; s++){ const i = document.createElement("i"); pwr.appendChild(i); segs.push(i); }
+
+  const states = [
+    ["Subject", "vitals nominal"],
+    ["Sample cart", "in position"],
+    ["Resonance", "98.6%"],
+    ["Xen flux", "trace", "xen"],
+    ["Lane discipline", "questionable"],
+    ["Shutdown", "not responding"],
+  ];
+  let n = 0;
+
+  // spectrometer spool: climbs past 100% over ~100 s, runs hot for 16 s
+  // (the one alarm moment: warn lamp, hot segments, cascade line), then resets
+  const CLIMB = 100, CYCLE = 116;
+  let alarm = false;
+  function power(sec){
+    const p = still ? 100 : Math.min(105, Math.floor((sec % CYCLE) / CLIMB * 105));
+    pct.textContent = String(p).padStart(3, "0");
+    const lit = Math.round(Math.min(p, 100) / 100 * SEG);
+    for (let s = 0; s < SEG; s++){
+      segs[s].className = s < lit ? (p > 100 && s >= SEG - 2 ? "on hot" : "on") : "";
+    }
+    wl.style.background = p > 100 ? "var(--warn)" : "#5a2a10";
+    const hot = p > 100;
+    if (hot !== alarm){
+      alarm = hot;
+      term.classList.toggle("alarm", hot);
+      if (hot){ k.textContent = "Beam at " + p + "%."; v.textContent = "We can't shut it down"; v.className = "v"; }
+      else show();
+    }
+  }
+
+  function tick(){
+    const s = Math.floor((Date.now() - t0) / 1000);
+    tc.textContent = pad(Math.floor(s / 3600)) + ":" + pad(Math.floor(s / 60) % 60) + ":" + pad(s % 60);
+    power(s);
+  }
+  function show(){
+    k.textContent = states[n][0];
+    v.textContent = states[n][1];
+    v.className = "v" + (states[n][2] ? " " + states[n][2] : "");
+  }
+  function cycle(){
+    n = (n + 1) % states.length;
+    if (!alarm) show();
+  }
+  tick();
+  setInterval(tick, 1000);
+  setInterval(cycle, 9000);
+})();
+</script>
+</body>
+</html>
