@@ -1,31 +1,44 @@
 -- OBS script for the /live stream: two hotkeys that flip the webcam overlay and the mic.
 -- Loaded by the local OBS scene collection (Tools > Scripts); nothing on the server uses it.
--- Expects scene "Live" with items "Webcam" + "Webcam Frame" (the overlay/ chrome around it),
--- and an audio source "Mic". The webcam starts off, the mic live.
+-- Works across every scene (one per game, each with its own theme): the shared "Webcam" source
+-- and any item named "Webcam Frame ..." flip together, so all scenes stay in step and the
+-- automatic scene switcher never lands on a scene in the other state. "Mic" is one shared
+-- audio source. The webcam starts off, the mic live.
 -- Default binds are Ctrl+Alt+W and Ctrl+Alt+M; rebinding in OBS Settings > Hotkeys persists.
 obs = obslua
 
 local hotkeys = {}
 
--- Set the visibility of the named items in scene "Live"; missing items are skipped.
-local function set_visible(names, visible)
-  local src = obs.obs_get_source_by_name("Live")
-  if src == nil then return end
-  local scene = obs.obs_scene_from_source(src)
-  for _, name in ipairs(names) do
-    local item = obs.obs_scene_find_source(scene, name)
-    if item ~= nil then obs.obs_sceneitem_set_visible(item, visible) end
-  end
-  obs.obs_source_release(src)
+local function is_webcam_item(name)
+  return name == "Webcam" or name:sub(1, #"Webcam Frame") == "Webcam Frame"
 end
 
+-- Set the visibility of every webcam item in every scene.
+local function set_webcam_visible(visible)
+  local scenes = obs.obs_frontend_get_scenes()
+  if scenes == nil then return end
+  for _, src in ipairs(scenes) do
+    local items = obs.obs_scene_enum_items(obs.obs_scene_from_source(src))
+    if items ~= nil then
+      for _, item in ipairs(items) do
+        if is_webcam_item(obs.obs_source_get_name(obs.obs_sceneitem_get_source(item))) then
+          obs.obs_sceneitem_set_visible(item, visible)
+        end
+      end
+      obs.sceneitem_list_release(items)
+    end
+  end
+  obs.source_list_release(scenes)
+end
+
+-- The scene on air decides the direction; every scene then follows it.
 local function toggle_webcam()
-  local src = obs.obs_get_source_by_name("Live")
+  local src = obs.obs_frontend_get_current_scene()
   if src == nil then return end
   local item = obs.obs_scene_find_source(obs.obs_scene_from_source(src), "Webcam")
   local show = item ~= nil and not obs.obs_sceneitem_visible(item)
   obs.obs_source_release(src)
-  set_visible({ "Webcam", "Webcam Frame" }, show)
+  set_webcam_visible(show)
 end
 
 local function toggle_mic()
