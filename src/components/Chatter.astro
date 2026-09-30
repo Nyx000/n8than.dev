@@ -7,6 +7,7 @@ interface Props {
   endpoint: string;
   pollMs: number;
   placeholder: string;
+  hidden?: boolean; // start hidden; the page shows it (spread onto the root via rest)
   class?: string;
 }
 
@@ -361,6 +362,11 @@ const { title, channel, endpoint, pollMs, placeholder, class: className, ...rest
       font-size: 0.85rem;
     }
   }
+
+  /* A page can hide the chat (the /live chat only shows while the stream is up). */
+  .card[data-chatter][hidden] {
+    display: none;
+  }
 </style>
 
 <script>
@@ -480,6 +486,9 @@ const { title, channel, endpoint, pollMs, placeholder, class: className, ...rest
   }
 
   async function loadChatter() {
+    // Hidden by its page (e.g. /live while offline): skip the fetch; the next tick after it is
+    // shown catches up.
+    if (document.querySelector<HTMLElement>('[data-chatter]')?.hidden) return;
     try {
       const res = await fetch(`${endpoint}?limit=50`, { cache: 'no-store' });
       if (!res.ok) throw new Error(String(res.status));

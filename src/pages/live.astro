@@ -45,6 +45,7 @@ const bars = Array.from({ length: 36 }, (_, i) => ({
       endpoint="/api/live/chat"
       pollMs={3_000}
       placeholder="say something…"
+      hidden
     />
   </section>
 </BaseLayout>
@@ -272,6 +273,15 @@ const bars = Array.from({ length: 36 }, (_, i) => ({
   }
 </style>
 
+<style is:global>
+  /* No CRT scanlines on /live: the site-wide overlay (body::after, global.css) would sit over
+     the stream. Lifting the player above it instead would also lift it over the header's
+     music dropdown, so the overlay is switched off for this page only. */
+  body:has(#live-root)::after {
+    content: none;
+  }
+</style>
+
 <script>
   // Playback prefers WebRTC (WHEP, sub-second) and falls back to LL-HLS (a few seconds
   // behind) when WebRTC can't connect, typically a network that blocks UDP. Both are
@@ -311,6 +321,9 @@ const bars = Array.from({ length: 36 }, (_, i) => ({
     chip.dataset.state = state;
     chip.textContent =
       state === 'offline' ? 'Offline' : state === 'connecting' ? 'Connecting' : 'Live';
+    // Chat only while the stream is up.
+    const chat = document.querySelector<HTMLElement>('[data-chatter]');
+    if (chat) chat.hidden = !online;
     const bar = $('live-bar');
     const signal = $('live-signal');
     if (bar) bar.dataset.state = state;

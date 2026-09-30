@@ -27,6 +27,13 @@ function isActive(href: string): boolean {
         </a>
       ))
     }
+    <a
+      href="/live"
+      class="nav-live"
+      id="nav-live"
+      aria-current={isActive('/live') ? 'page' : undefined}
+      hidden>Live</a
+    >
   </nav>
   <div class="hdr-music">
     <NowPlaying>
@@ -34,6 +41,31 @@ function isActive(href: string): boolean {
     </NowPlaying>
   </div>
 </header>
+
+<script>
+  // The "Live" nav link appears only while the stream is up. Same status route the /live page
+  // polls (MediaMTX's path API behind Caddy); a failed check just leaves the link hidden.
+  const LIVE_POLL_MS = 30_000;
+  let liveTimer: number | undefined;
+
+  async function checkLive() {
+    const link = document.getElementById('nav-live');
+    if (!link) return;
+    try {
+      const res = await fetch('/api/live/status', { cache: 'no-store' });
+      const online = res.ok && ((await res.json()) as { online?: boolean }).online === true;
+      link.hidden = !online;
+    } catch {
+      link.hidden = true;
+    }
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    if (liveTimer != null) clearInterval(liveTimer);
+    void checkLive();
+    liveTimer = window.setInterval(checkLive, LIVE_POLL_MS);
+  });
+</script>
 
 <style>
   .site-header {
@@ -45,7 +77,9 @@ function isActive(href: string): boolean {
     z-index: 5;
     display: grid;
     grid-template-columns: 1fr auto 1fr;
-    column-gap: var(--space-lg); /* guarantees space between brand and nav; kills the ~600-700px zero-gap crowding */
+    column-gap: var(
+      --space-lg
+    ); /* guarantees space between brand and nav; kills the ~600-700px zero-gap crowding */
     align-items: center;
     padding: var(--space-md) var(--space-lg);
     width: 100%;
@@ -104,6 +138,42 @@ function isActive(href: string): boolean {
   nav a[aria-current='page'] {
     color: var(--color-accent);
     font-weight: 600;
+  }
+
+  /* Shown only while the stream is up (script below). */
+  .nav-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+  }
+
+  .nav-live[hidden] {
+    display: none;
+  }
+
+  nav a.nav-live {
+    color: var(--color-accent);
+  }
+
+  .nav-live::before {
+    content: '';
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 50%;
+    background: var(--color-accent);
+    animation: nav-live-pulse 1.6s var(--ease) infinite;
+  }
+
+  @keyframes nav-live-pulse {
+    50% {
+      opacity: 0.3;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-live::before {
+      animation: none;
+    }
   }
 
   /* Shrink the nav before it can crowd the brand, buying room down to the stack point. */
