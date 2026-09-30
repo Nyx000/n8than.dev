@@ -263,10 +263,13 @@ const BARS = 36;
     font-size: 0.92rem;
   }
 
+  /* Centered, the usual tap-to-unmute spot: the corners carry the stream's own overlay
+     (the top-right console tower was hidden under this button). Gone after one tap. */
   .live-unmute {
     position: absolute;
-    top: var(--space-md);
-    right: var(--space-md);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     padding: var(--space-sm) var(--space-md);
     font-family: var(--font-display);
     font-size: 0.9rem;
