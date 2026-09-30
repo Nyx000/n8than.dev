@@ -33,7 +33,7 @@ const bars = Array.from({ length: 36 }, (_, i) => ({
       ></video>
       <div class="live-overlay" id="live-offline">
         <p class="live-offline-title">Not live right now</p>
-        <p class="live-offline-sub">This page checks every few seconds and starts on its own.</p>
+        <p class="live-offline-sub">This page checks every 30 seconds and starts on its own.</p>
       </div>
       <button type="button" class="live-unmute" id="live-unmute" hidden>Unmute</button>
     </div>
@@ -291,7 +291,9 @@ const bars = Array.from({ length: 36 }, (_, i) => ({
   const STATUS_URL = '/api/live/status';
   const WHEP_URL = '/api/live/rtc/game/whep';
   const HLS_URL = '/api/live/hls/game/index.m3u8';
-  const POLL_MS = 5_000;
+  // Status check cadence: how soon an open page notices the stream starting (and the viewer
+  // count refreshes). Playback latency is WebRTC and does not depend on it.
+  const POLL_MS = 30_000;
   const ICE_TIMEOUT_MS = 8_000;
 
   interface PathStatus {
