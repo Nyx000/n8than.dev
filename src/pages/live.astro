@@ -2,13 +2,9 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Chatter from '../components/Chatter.astro';
 
-// Decorative signal meter: fixed pseudo-random timings per bar, computed at build time so the
-// equaliser looks organic without any runtime randomness.
-const bars = Array.from({ length: 36 }, (_, i) => ({
-  dur: (0.55 + ((i * 37) % 11) * 0.07).toFixed(2),
-  delay: (-((i * 53) % 17) * 0.09).toFixed(2),
-  peak: (0.35 + ((i * 29) % 13) / 20).toFixed(2),
-}));
+// Bitrate history: one bar per stats tick (5 s), newest on the right, so the strip covers the
+// last three minutes of what the desk is sending. Heights are set by the script.
+const BARS = 36;
 ---
 
 <BaseLayout title="Live | n8than.dev" description="Live game stream, when there is one.">
@@ -19,10 +15,10 @@ const bars = Array.from({ length: 36 }, (_, i) => ({
       <span class="live-chip" id="live-chip" data-state="offline">Offline</span>
       <span class="live-viewers" id="live-viewers" hidden></span>
       <span class="live-meter" aria-hidden="true">
-        {bars.map((b) => <span style={`--dur:${b.dur}s;--delay:${b.delay}s;--peak:${b.peak}`} />)}
+        {Array.from({ length: BARS }, () => <span />)}
       </span>
       <span class="live-readout" aria-hidden="true">
-        <span>CH-01</span>
+        <span id="live-format">CH-01</span>
         <span>RELAY HIL-1</span>
         <span id="live-signal">NO SIGNAL</span>
       </span>
@@ -36,6 +32,54 @@ const bars = Array.from({ length: 36 }, (_, i) => ({
         <p class="live-offline-sub">This page checks every 30 seconds and starts on its own.</p>
       </div>
       <button type="button" class="live-unmute" id="live-unmute" hidden>Unmute</button>
+    </div>
+
+    <div class="live-hud" id="live-hud" hidden>
+      <span class="hud-tick" id="hud-tick" aria-hidden="true"></span>
+      <dl class="hud-grid">
+        <div class="hud-cell">
+          <dt>frame rate</dt>
+          <dd><span class="hud-v" id="hud-fps">–</span><span class="hud-u">fps</span></dd>
+          <dd class="hud-sub" id="hud-fps-sub"></dd>
+        </div>
+        <div class="hud-cell">
+          <dt>delay to you</dt>
+          <dd>
+            <span class="hud-v" id="hud-delay">–</span><span class="hud-u" id="hud-delay-u"></span>
+          </dd>
+          <dd class="hud-sub" id="hud-delay-sub"></dd>
+        </div>
+        <div class="hud-cell">
+          <dt>stream in</dt>
+          <dd><span class="hud-v" id="hud-in">–</span><span class="hud-u">Mb/s</span></dd>
+          <dd class="hud-sub">from the desk</dd>
+        </div>
+        <div class="hud-cell">
+          <dt>server out</dt>
+          <dd><span class="hud-v" id="hud-out">–</span><span class="hud-u">Mb/s</span></dd>
+          <dd class="hud-sub" id="hud-out-sub"></dd>
+        </div>
+        <div class="hud-cell">
+          <dt>source</dt>
+          <dd><span class="hud-v" id="hud-res">–</span></dd>
+          <dd class="hud-sub" id="hud-codec"></dd>
+        </div>
+        <div class="hud-cell">
+          <dt>packets lost</dt>
+          <dd><span class="hud-v" id="hud-loss">–</span><span class="hud-u">%</span></dd>
+          <dd class="hud-sub" id="hud-loss-sub"></dd>
+        </div>
+        <div class="hud-cell">
+          <dt>on air</dt>
+          <dd><span class="hud-v" id="hud-uptime">–</span></dd>
+          <dd class="hud-sub" id="hud-since"></dd>
+        </div>
+        <div class="hud-cell">
+          <dt>served</dt>
+          <dd><span class="hud-v" id="hud-total">–</span><span class="hud-u">GB</span></dd>
+          <dd class="hud-sub">this stream</dd>
+        </div>
+      </dl>
     </div>
 
     <Chatter
@@ -110,8 +154,9 @@ const bars = Array.from({ length: 36 }, (_, i) => ({
     color: var(--color-muted);
   }
 
-  /* Decorative signal meter: a strip of equaliser bars that idles flat while offline and
-     dances while live. Timings come from the frontmatter (per-bar --dur/--delay/--peak). */
+  /* Bitrate history: each bar is one stats tick of the upload from the desk, scaled to the
+     tallest bar in view (the script sets the height inline and marks bars that hold a sample).
+     Flat and dim while offline; amber while connecting. */
   .live-meter {
     flex: 1;
     min-width: 6rem;
@@ -130,12 +175,16 @@ const bars = Array.from({ length: 36 }, (_, i) => ({
     transform: scaleY(0.12);
     transition:
       background var(--dur-med) var(--ease),
-      transform var(--dur-slow) var(--ease);
+      transform var(--dur-slow) var(--ease-out);
   }
 
-  .live-bar[data-state='live'] .live-meter > span {
+  .live-bar[data-state='live'] .live-meter > span[data-on] {
     background: var(--color-accent);
-    animation: live-eq var(--dur) var(--ease) var(--delay) infinite alternate;
+  }
+
+  /* The newest sample, a little brighter so the eye finds where the history ends. */
+  .live-bar[data-state='live'] .live-meter > span[data-on]:last-child {
+    background: var(--color-accent-hover);
   }
 
   .live-bar[data-state='connecting'] .live-meter > span {
@@ -143,19 +192,9 @@ const bars = Array.from({ length: 36 }, (_, i) => ({
     transform: scaleY(0.3);
   }
 
-  @keyframes live-eq {
-    from {
-      transform: scaleY(0.12);
-    }
-    to {
-      transform: scaleY(var(--peak));
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .live-bar[data-state='live'] .live-meter > span {
-      animation: none;
-      transform: scaleY(var(--peak));
+    .live-meter > span {
+      transition: none;
     }
   }
 
@@ -271,6 +310,129 @@ const bars = Array.from({ length: 36 }, (_, i) => ({
   .live-unmute[hidden] {
     display: none;
   }
+
+  /* ----- HUD: the stream's vitals, docked under the player like a suit readout. -----
+     One panel joined to the frame (the frame gives up its bottom corners while the HUD
+     shows). Cells are separated by the 1px grid gap showing the border colour through. */
+  .live-frame:has(+ .live-hud:not([hidden])) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .live-hud {
+    position: relative;
+    margin-top: -1px;
+    background: var(--color-border);
+    border: 1px solid var(--color-border);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    overflow: hidden;
+  }
+
+  .live-hud[hidden] {
+    display: none;
+  }
+
+  /* The slow tick: a hairline that fills across the top between updates, so it's visible
+     the numbers are live and when the next reading lands. */
+  .hud-tick {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    height: 1px;
+    width: 100%;
+    background: var(--color-accent);
+    opacity: 0.6;
+    transform-origin: left;
+    transform: scaleX(0);
+  }
+
+  .hud-tick.is-running {
+    animation: hud-tick var(--tick-ms, 5000ms) linear forwards;
+  }
+
+  @keyframes hud-tick {
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hud-tick.is-running {
+      animation: none;
+    }
+  }
+
+  .hud-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1px;
+    margin: 0;
+  }
+
+  .hud-cell {
+    display: flex;
+    flex-direction: column;
+    padding: 0.7rem 0.9rem 0.75rem;
+    background: var(--color-surface);
+    min-width: 0;
+  }
+
+  .hud-cell dt {
+    order: 3;
+    margin-top: 0.15rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--color-muted);
+  }
+
+  .hud-cell dd {
+    margin: 0;
+  }
+
+  .hud-v {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    line-height: 1.1;
+    color: var(--color-text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hud-u {
+    margin-left: 0.3em;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    color: var(--color-muted);
+  }
+
+  .hud-sub {
+    order: 4;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--color-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* A reading outside its healthy range (dropped frame rate, high delay, visible loss). */
+  .hud-cell[data-warn] .hud-v {
+    color: var(--color-warn);
+  }
+
+  @media (max-width: 640px) {
+    .hud-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .hud-cell {
+      padding: 0.55rem 0.7rem 0.6rem;
+    }
+
+    .hud-v {
+      font-size: 1.25rem;
+    }
+  }
 </style>
 
 <style is:global>
@@ -291,14 +453,23 @@ const bars = Array.from({ length: 36 }, (_, i) => ({
   const STATUS_URL = '/api/live/status';
   const WHEP_URL = '/api/live/rtc/game/whep';
   const HLS_URL = '/api/live/hls/game/index.m3u8';
-  // Status check cadence: how soon an open page notices the stream starting (and the viewer
-  // count refreshes). Playback latency is WebRTC and does not depend on it.
+  // Status check cadence while offline: how soon an open page notices the stream starting.
+  // While live the page ticks faster to keep the HUD current. Playback latency is WebRTC and
+  // depends on neither.
   const POLL_MS = 30_000;
+  const STATS_MS = 5_000;
   const ICE_TIMEOUT_MS = 8_000;
 
   interface PathStatus {
     online: boolean;
+    onlineTime: string | null;
     readers: unknown[];
+    inboundBytes: number;
+    outboundBytes: number;
+    tracks2?: {
+      codec: string;
+      codecProps?: { width?: number; height?: number; profile?: string } | null;
+    }[];
   }
 
   type Player =
@@ -326,6 +497,8 @@ const bars = Array.from({ length: 36 }, (_, i) => ({
     // Chat only while the stream is up.
     const chat = document.querySelector<HTMLElement>('[data-chatter]');
     if (chat) chat.hidden = !online;
+    const hud = $('live-hud');
+    if (hud) hud.hidden = !online;
     const bar = $('live-bar');
     const signal = $('live-signal');
     if (bar) bar.dataset.state = state;
@@ -353,11 +526,14 @@ const bars = Array.from({ length: 36 }, (_, i) => ({
     if (online && player.kind === 'idle') void start();
     if (!online && player.kind !== 'idle') stopPlayer();
     render(online, status ? status.readers.length : null);
+    if (online && status) await updateHud(status);
+    else resetHud();
   }
 
   async function start() {
     player = { kind: 'connecting' };
     render(true, null);
+    schedule(); // switch to the live cadence
     const video = $<HTMLVideoElement>('live-video');
     if (!video) return;
     try {
@@ -470,6 +646,196 @@ const bars = Array.from({ length: 36 }, (_, i) => ({
     throw new Error('no HLS support');
   }
 
+  // ===== HUD =====
+  // Server side (MediaMTX path API): byte counters give the upload from the desk and the
+  // relay's egress as rates between ticks. Viewer side: this browser's own WebRTC stats (or
+  // the video element under HLS) give frame rate, delay and loss.
+  const BAR_COUNT = 36;
+  let history: number[] = []; // upload Mb/s per tick, oldest first
+  let prevServer: { t: number; inB: number; outB: number; since: string | null } | null = null;
+  let prevFrames: { t: number; frames: number } | null = null;
+
+  function setText(id: string, text: string) {
+    const el = $(id);
+    if (el && el.textContent !== text) el.textContent = text;
+  }
+
+  function warn(id: string, on: boolean) {
+    const cell = $(id)?.closest<HTMLElement>('.hud-cell');
+    if (cell) cell.toggleAttribute('data-warn', on);
+  }
+
+  function clock(sec: number): string {
+    const s = Math.max(0, Math.floor(sec));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
+  }
+
+  function drawMeter() {
+    const bars = document.querySelectorAll<HTMLElement>('.live-meter > span');
+    const peak = Math.max(1, ...history);
+    const offset = bars.length - history.length;
+    bars.forEach((bar, i) => {
+      const v = history[i - offset];
+      if (v == null) {
+        bar.style.transform = '';
+        bar.removeAttribute('data-on');
+      } else {
+        bar.style.transform = `scaleY(${Math.max(0.12, v / peak).toFixed(3)})`;
+        bar.setAttribute('data-on', '');
+      }
+    });
+  }
+
+  function restartTick() {
+    const t = $('hud-tick');
+    if (!t) return;
+    t.style.setProperty('--tick-ms', `${STATS_MS}ms`);
+    t.classList.remove('is-running');
+    void t.offsetWidth; // restart the animation
+    t.classList.add('is-running');
+  }
+
+  interface ViewerStats {
+    fps: number | null;
+    delayS: number | null;
+    delayNote: string;
+    lossPct: number | null;
+    dropped: number | null;
+  }
+
+  async function viewerStats(): Promise<ViewerStats> {
+    const video = $<HTMLVideoElement>('live-video');
+    const out: ViewerStats = {
+      fps: null,
+      delayS: null,
+      delayNote: '',
+      lossPct: null,
+      dropped: null,
+    };
+    if (player.kind === 'webrtc') {
+      const report = await player.pc.getStats();
+      let rtt: number | null = null;
+      report.forEach((r) => {
+        if (r.type === 'inbound-rtp' && r.kind === 'video') {
+          // 0 right after (re)connecting means no measurement yet, not a stalled stream.
+          if (typeof r.framesPerSecond === 'number' && r.framesPerSecond > 0) {
+            out.fps = r.framesPerSecond;
+          }
+          const lost = r.packetsLost ?? 0;
+          const got = r.packetsReceived ?? 0;
+          if (lost + got > 0) out.lossPct = (100 * lost) / (lost + got);
+          if (typeof r.framesDropped === 'number') out.dropped = r.framesDropped;
+          if (r.jitterBufferEmittedCount > 0) {
+            out.delayS = r.jitterBufferDelay / r.jitterBufferEmittedCount;
+          }
+        }
+        if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') {
+          if (typeof r.currentRoundTripTime === 'number') rtt = r.currentRoundTripTime;
+        }
+      });
+      // One-way network time (half the round trip) plus the time frames wait in this
+      // browser's jitter buffer. Excludes encode and decode, a few ms each at these settings.
+      if (out.delayS != null && rtt != null) out.delayS += rtt / 2;
+      out.delayNote = rtt != null ? `rtt ${Math.round(rtt * 1000)} ms` : 'webrtc';
+    } else if (player.kind === 'hls') {
+      if (player.hls && Number.isFinite(player.hls.latency)) out.delayS = player.hls.latency;
+      out.delayNote = 'hls fallback';
+    }
+    // Frame rate from what actually got painted, when WebRTC stats don't say (HLS).
+    if (out.fps == null && video?.getVideoPlaybackQuality) {
+      const q = video.getVideoPlaybackQuality();
+      const now = performance.now();
+      if (prevFrames) {
+        const dt = (now - prevFrames.t) / 1000;
+        if (dt > 0) out.fps = (q.totalVideoFrames - prevFrames.frames) / dt;
+      }
+      prevFrames = { t: now, frames: q.totalVideoFrames };
+      out.dropped ??= q.droppedVideoFrames;
+    }
+    return out;
+  }
+
+  async function updateHud(st: PathStatus) {
+    const now = performance.now();
+    // Rates need two samples from the same broadcast; a new onlineTime or a counter that went
+    // backwards means the relay restarted the path, so start over.
+    if (prevServer && (prevServer.since !== st.onlineTime || st.inboundBytes < prevServer.inB)) {
+      prevServer = null;
+      history = [];
+    }
+    if (prevServer) {
+      const dt = (now - prevServer.t) / 1000;
+      if (dt > 0.5) {
+        const inMbps = ((st.inboundBytes - prevServer.inB) * 8) / dt / 1e6;
+        const outMbps = ((st.outboundBytes - prevServer.outB) * 8) / dt / 1e6;
+        setText('hud-in', inMbps.toFixed(1));
+        setText('hud-out', outMbps.toFixed(1));
+        history.push(inMbps);
+        if (history.length > BAR_COUNT) history.shift();
+        drawMeter();
+      }
+    }
+    prevServer = { t: now, inB: st.inboundBytes, outB: st.outboundBytes, since: st.onlineTime };
+
+    const viewers = st.readers.length;
+    setText('hud-out-sub', `${viewers} ${viewers === 1 ? 'viewer' : 'viewers'}`);
+    setText('hud-total', (st.outboundBytes / 1e9).toFixed(2));
+
+    const video = (st.tracks2 ?? []).find((t) =>
+      ['H264', 'H265', 'AV1', 'VP9', 'VP8'].includes(t.codec),
+    );
+    const w = video?.codecProps?.width;
+    const h = video?.codecProps?.height;
+    setText('hud-res', w && h ? `${w}×${h}` : '–');
+    const profile = video?.codecProps?.profile;
+    const codecName = video?.codec === 'H264' ? 'h.264' : (video?.codec ?? '').toLowerCase();
+    setText('hud-codec', [codecName, profile?.toLowerCase()].filter(Boolean).join(' '));
+
+    if (st.onlineTime) {
+      const since = new Date(st.onlineTime);
+      setText('hud-uptime', clock((Date.now() - since.getTime()) / 1000));
+      setText(
+        'hud-since',
+        `since ${since.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+      );
+    }
+
+    const v = await viewerStats();
+    setText('hud-fps', v.fps != null ? Math.round(v.fps).toString() : '–');
+    setText('hud-fps-sub', v.dropped != null ? `${v.dropped} dropped here` : '');
+    warn('hud-fps', v.fps != null && v.fps < 55);
+    if (v.delayS != null) {
+      const ms = v.delayS * 1000;
+      setText('hud-delay', ms < 1000 ? String(Math.round(ms)) : v.delayS.toFixed(1));
+      setText('hud-delay-u', ms < 1000 ? 'ms' : 's');
+    } else {
+      setText('hud-delay', '–');
+      setText('hud-delay-u', '');
+    }
+    setText('hud-delay-sub', v.delayNote);
+    warn('hud-delay', v.delayS != null && v.delayS > 1);
+    setText('hud-loss', v.lossPct != null ? v.lossPct.toFixed(2) : '–');
+    setText('hud-loss-sub', player.kind === 'webrtc' ? 'on the way to you' : '');
+    warn('hud-loss', v.lossPct != null && v.lossPct > 1);
+
+    // Readout: the format as it actually arrives, e.g. 1080p90.
+    if (h && v.fps != null && v.fps > 0) setText('live-format', `${h}p${Math.round(v.fps)}`);
+
+    restartTick();
+  }
+
+  function resetHud() {
+    prevServer = null;
+    prevFrames = null;
+    history = [];
+    drawMeter();
+    setText('live-format', 'CH-01');
+    $('hud-tick')?.classList.remove('is-running');
+  }
+
   function stopPlayer() {
     const video = $<HTMLVideoElement>('live-video');
     if (player.kind === 'webrtc') {
@@ -508,14 +874,24 @@ const bars = Array.from({ length: 36 }, (_, i) => ({
     };
   }
 
+  // Self-scheduling loop: the next check is 5 s away while something plays, 30 s while idle.
+  function schedule() {
+    if (pollTimer != null) clearTimeout(pollTimer);
+    const ms = player.kind === 'idle' ? POLL_MS : STATS_MS;
+    pollTimer = window.setTimeout(async () => {
+      await tick();
+      if (pollTimer != null) schedule();
+    }, ms);
+  }
+
   function startPolling() {
     stopPolling();
     void tick();
-    pollTimer = window.setInterval(tick, POLL_MS);
+    schedule();
   }
 
   function stopPolling() {
-    if (pollTimer != null) clearInterval(pollTimer);
+    if (pollTimer != null) clearTimeout(pollTimer);
     pollTimer = undefined;
   }
 
