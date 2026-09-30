@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Overwatch webcam frame</title>
+<style>
+  :root{
+    --slate: rgba(10,17,24,.86);
+    --steel: #3c5566;
+    --frost: #d6f1ff;
+    --scan:  #7fd6ff;
+    --resist:#ff6600;
+    --amber: #ffb24a;
+    /* webcam hole, page coordinates: 448x252 (16:9) at 32,44 */
+    --hx:32px; --hy:44px; --hw:448px; --hh:252px;
+  }
+  html,body{background:transparent;margin:0;overflow:hidden}
+  body{
+    width:512px;height:340px;position:relative;
+    font-family:"Bahnschrift","Segoe UI",sans-serif;
+    color:var(--frost);
+    font-variant-numeric:tabular-nums;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* angular citadel panel; the hole's own shadow paints the frame */
+  .frame{position:absolute;inset:0;overflow:hidden;
+    clip-path:polygon(0 0, 494px 0, 512px 18px, 512px 340px, 18px 340px, 0 322px)}
+  .hole{
+    position:absolute;left:var(--hx);top:var(--hy);width:var(--hw);height:var(--hh);
+    box-shadow:0 0 0 600px var(--slate);
+  }
+  .outline{position:absolute;inset:0;pointer-events:none}
+  .hairline{ /* sits just outside the hole */
+    position:absolute;
+    left:calc(var(--hx) - 2px);top:calc(var(--hy) - 2px);
+    width:calc(var(--hw) + 4px);height:calc(var(--hh) + 4px);
+    box-sizing:border-box;border:1px solid rgba(127,214,255,.18);
+  }
+
+  /* corner brackets hug the hole from outside */
+  .br{position:absolute;width:16px;height:16px;border:0 solid var(--scan);opacity:.9}
+  .br.tl{left:calc(var(--hx) - 6px);top:calc(var(--hy) - 6px);border-top-width:2px;border-left-width:2px}
+  .br.tr{left:calc(var(--hx) + var(--hw) - 10px);top:calc(var(--hy) - 6px);border-top-width:2px;border-right-width:2px}
+  .br.bl{left:calc(var(--hx) - 6px);top:calc(var(--hy) + var(--hh) - 10px);border-bottom-width:2px;border-left-width:2px}
+  .br.brr{left:calc(var(--hx) + var(--hw) - 10px);top:calc(var(--hy) + var(--hh) - 10px);border-bottom-width:2px;border-right-width:2px}
+
+  /* header */
+  .who{position:absolute;left:32px;top:9px;display:flex;align-items:baseline;gap:10px}
+  .who .name{font-size:22px;font-weight:600;letter-spacing:.02em;line-height:26px}
+  .who .unit{font-size:12px;letter-spacing:.14em;color:var(--scan);font-stretch:75%}
+  .rec{position:absolute;right:32px;top:11px;display:flex;align-items:center;gap:8px}
+  .rec .dot{width:9px;height:9px;border-radius:50%;background:var(--resist);box-shadow:0 0 8px var(--resist);
+    animation:blink 1.6s steps(1,end) infinite}
+  .rec .lbl{font-size:13px;font-weight:700;letter-spacing:.16em;color:var(--resist);font-stretch:75%}
+  .rec .tc{font-size:20px;font-weight:300;letter-spacing:.05em;line-height:22px}
+  @keyframes blink{0%,62%{opacity:1}63%,100%{opacity:.12}}
+
+  /* left rail: citadel spires, bottom-anchored, with a slow rising light on the tallest */
+  .slats{position:absolute;left:8px;top:var(--hy);height:var(--hh);width:18px;display:flex;gap:2px;justify-content:center;align-items:flex-end}
+  .slats i{display:block;width:3px;border-radius:1px 1px 0 0;position:relative;overflow:hidden;
+    background:linear-gradient(to top, rgba(127,214,255,.15), rgba(127,214,255,.8))}
+  .slats i:nth-child(1){height:38%}
+  .slats i:nth-child(2){height:72%}
+  .slats i:nth-child(3){height:100%;background:linear-gradient(to top, rgba(127,214,255,.12), rgba(214,241,255,.9))}
+  .slats i:nth-child(4){height:58%}
+  .slats i:nth-child(5){height:26%}
+  .slats .lift{position:absolute;left:0;right:0;bottom:0;height:30px;
+    background:linear-gradient(to top, transparent, #fff, transparent);
+    animation:lift 6s linear infinite;will-change:transform}
+  @keyframes lift{from{transform:translateY(30px)}to{transform:translateY(-260px)}}
+
+  /* right rail: scanner ruler with a caret */
+  .ruler{position:absolute;right:10px;top:var(--hy);height:var(--hh);width:12px;
+    background:
+      repeating-linear-gradient(to bottom, rgba(127,214,255,.55) 0 1px, transparent 1px 21px) right/12px 100% no-repeat,
+      repeating-linear-gradient(to bottom, rgba(127,214,255,.3) 0 1px, transparent 1px 7px) right/6px 100% no-repeat}
+  .ruler .caret{position:absolute;left:-6px;top:0;width:0;height:0;
+    border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:6px solid var(--frost);
+    animation:scan 5.5s ease-in-out infinite alternate;will-change:transform}
+  @keyframes scan{from{transform:translateY(-5px)}to{transform:translateY(247px)}}
+
+  /* footer */
+  .foot{position:absolute;left:32px;right:32px;top:305px;height:24px;display:flex;align-items:center;gap:12px}
+  .ticks{display:flex;gap:3px}
+  .ticks i{display:block;width:5px;height:12px;border-radius:1px;background:rgba(127,214,255,.8)}
+  .ticks i.dim{background:rgba(127,214,255,.2)}
+  .ticks i.warn{background:var(--amber);animation:blink 2.2s steps(1,end) infinite}
+  .stat{font-size:14px;letter-spacing:.03em;font-stretch:87.5%;white-space:nowrap}
+  .stat b{font-weight:600;color:var(--scan)}
+  .code{font-size:12px;letter-spacing:.12em;opacity:.55;font-stretch:75%;margin-left:auto}
+  .tag{width:28px;height:28px;flex:none;transform:rotate(-8deg)}
+
+  @media (prefers-reduced-motion: reduce){
+    .rec .dot,.ticks i.warn{animation:none}
+    .slats .lift,.ruler .caret{animation:none;display:none}
+  }
+</style>
+</head>
+<body>
+  <div class="frame"><div class="hole"></div></div>
+  <svg class="outline" width="512" height="340" viewBox="0 0 512 340" aria-hidden="true">
+    <polygon points="0.5,0.5 493.8,0.5 511.5,18.2 511.5,339.5 18.2,339.5 0.5,321.8" fill="none" stroke="rgba(60,85,102,.95)" stroke-width="1"/>
+    <polyline points="0.5,0.5 493.8,0.5 511.5,18.2 511.5,60" fill="none" stroke="rgba(127,214,255,.7)" stroke-width="1"/>
+    <polyline points="18.2,339.5 0.5,321.8 0.5,290" fill="none" stroke="#ff6600" stroke-width="2"/>
+  </svg>
+  <div class="hairline"></div>
+
+  <i class="br tl"></i><i class="br tr"></i><i class="br bl"></i><i class="br brr"></i>
+
+  <div class="who"><span class="name">Nyx000</span><span class="unit">UNIT C17:S7</span></div>
+  <div class="rec"><span class="dot"></span><span class="lbl">REC</span><span class="tc" id="tc">00:00:00</span></div>
+
+  <div class="slats"><i></i><i></i><i><span class="lift"></span></i><i></i><i></i></div>
+  <div class="ruler"><span class="caret"></span></div>
+
+  <div class="foot">
+    <span class="ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i class="warn"></i><i class="dim"></i></span>
+    <span class="stat" id="stat">Biosignal <b>steady</b></span>
+    <span class="code" id="code">CAM 01</span>
+    <svg class="tag" viewBox="0 0 28 28" aria-hidden="true">
+      <circle cx="14" cy="14" r="12" fill="none" stroke="#ff6600" stroke-width="2.2" stroke-dasharray="66 4 3 4"/>
+      <path d="M9 21 L13.2 12.4 L11.2 7.5 M13.2 12.4 L18.6 21" fill="none" stroke="#ff6600" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+<script>
+(() => {
+  const tc = document.getElementById("tc");
+  const stat = document.getElementById("stat");
+  const code = document.getElementById("code");
+  const pad = n => String(n).padStart(2, "0");
+  const t0 = Date.now();
+  const states = [
+    ["Biosignal", "steady"],
+    ["Signal", "clear"],
+    ["Subject", "compliant"],
+    ["Uplink", "holding"],
+  ];
+  let n = 0;
+  function tick(){
+    const s = Math.floor((Date.now() - t0) / 1000);
+    tc.textContent = pad(Math.floor(s / 3600)) + ":" + pad(Math.floor(s / 60) % 60) + ":" + pad(s % 60);
+    code.textContent = "FRAME " + String(s * 30 % 100000).padStart(5, "0");
+  }
+  function cycle(){
+    n = (n + 1) % states.length;
+    stat.innerHTML = states[n][0] + " <b>" + states[n][1] + "</b>";
+  }
+  tick();
+  setInterval(tick, 1000);
+  setInterval(cycle, 11000);
+})();
+</script>
+</body>
+</html>
