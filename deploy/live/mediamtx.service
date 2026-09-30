@@ -12,9 +12,9 @@ ExecStart=/opt/mediamtx/mediamtx /etc/mediamtx/mediamtx.yml
 Restart=on-failure
 RestartSec=5
 
-# A relay holds a few packet buffers per reader; 256M is generous. Postgres is
+# A relay holds packet buffers per reader; 15 readers plus the HLS muxer fit well under 512M. Postgres is
 # deliberately uncapped on this box, so the new tenant is the one that gets a ceiling.
-MemoryMax=256M
+MemoryMax=512M
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
