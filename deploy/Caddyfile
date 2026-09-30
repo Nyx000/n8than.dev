@@ -125,6 +125,9 @@ n8than.dev {
 			header_down -Via
 		}
 		# No Cache-Control stamp here: the route sets it per-status (max-age=5 on 200, no-store on 503) and a handle-level header would override the 503's no-store.
+		# Readable cross-origin for the stream overlay (OBS serves local pages from its own origin).
+		@overlay_read method GET
+		header @overlay_read Access-Control-Allow-Origin "*"
 	}
 
 	# Jukebox search proxy — per-IP limited at the backend (XFF pinned so it can't be spoofed).
@@ -230,6 +233,9 @@ n8than.dev {
 			header_down -Vary
 		}
 		header Cache-Control "no-store"
+		# Readable cross-origin for the stream overlay (OBS serves local pages from its own origin).
+		@overlay_read method GET
+		header @overlay_read Access-Control-Allow-Origin "*"
 	}
 
 	# Stream chat under the player — the growtent shoutbox, room pinned to `live` here (the
@@ -248,6 +254,9 @@ n8than.dev {
 		respond @cross_origin_post 403
 		import growtent_web_clientip
 		header Cache-Control "no-store"
+		# GET only: the overlay reads chat cross-origin; writes stay same-origin (403 above).
+		@overlay_read method GET
+		header @overlay_read Access-Control-Allow-Origin "*"
 	}
 
 	# WHEP: POST creates a playback session, PATCH trickles ICE, DELETE ends it. MediaMTX
