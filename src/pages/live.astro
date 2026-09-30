@@ -15,7 +15,7 @@ const BARS = 36;
       <span class="live-chip" id="live-chip" data-state="offline">Offline</span>
       <span class="live-viewers" id="live-viewers" hidden></span>
       <span class="live-meter" aria-hidden="true">
-        {Array.from({ length: BARS }, () => <span />)}
+        {Array.from({ length: BARS }, (_, i) => <span style={`--i:${i}`} />)}
       </span>
       <span class="live-readout" aria-hidden="true">
         <span id="live-format">CH-01</span>
@@ -30,6 +30,11 @@ const BARS = 36;
       <div class="live-overlay" id="live-offline">
         <p class="live-offline-title">Not live right now</p>
         <p class="live-offline-sub">This page checks every 30 seconds and starts on its own.</p>
+      </div>
+      <div class="live-doors" aria-hidden="true">
+        <span class="door door-l"></span>
+        <span class="door door-r"></span>
+        <p class="doors-msg">Incoming signal</p>
       </div>
       <button type="button" class="live-unmute" id="live-unmute" hidden>Unmute</button>
     </div>
@@ -365,6 +370,218 @@ const BARS = 36;
   }
 </style>
 
+<style>
+  /* ===== Go-live intro =====
+     Plays once for viewers who were waiting on the offline screen when the stream starts.
+     #live-root[data-intro] drives it: 'arming' while WebRTC connects (blast doors shut over
+     the frame, a wave runs the meter, "Incoming signal" blinks on the seam), then 'open' once
+     real frames are playing (doors part, the frame flares, the readout and chat rise in).
+     Colours are the site palette only: accent, accent-hover, warn, surface. */
+  .live-doors {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: none;
+    pointer-events: none;
+  }
+
+  #live-root[data-intro='arming'] .live-doors,
+  #live-root[data-intro='open'] .live-doors {
+    display: block;
+  }
+
+  /* After the intro: switch the children's animations off rather than removing the state.
+     Dropping back to the site-wide .stagger entrance would replay its fade-up. */
+  #live-root[data-intro='done'] > * {
+    animation: none;
+  }
+
+  .door {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50%;
+    background:
+      repeating-linear-gradient(-45deg, transparent 0 18px, rgba(255, 102, 0, 0.035) 18px 36px),
+      var(--color-surface);
+  }
+
+  .door-l {
+    left: 0;
+    box-shadow:
+      inset -2px 0 0 var(--color-accent),
+      8px 0 28px rgba(255, 102, 0, 0.45);
+  }
+
+  .door-r {
+    right: 0;
+    box-shadow:
+      inset 2px 0 0 var(--color-accent),
+      -8px 0 28px rgba(255, 102, 0, 0.45);
+  }
+
+  .doors-msg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+    margin: 0;
+    padding: 0.35em 0.9em;
+    transform: translate(-50%, -50%);
+    font-family: var(--font-display);
+    font-size: clamp(0.85rem, 0.7rem + 0.8vw, 1.15rem);
+    letter-spacing: 0.14em;
+    white-space: nowrap;
+    color: var(--color-accent);
+    background: var(--color-bg);
+    border: 1px solid var(--color-accent);
+    text-shadow: 0 0 10px rgba(255, 102, 0, 0.6);
+    box-shadow: 0 0 22px rgba(255, 102, 0, 0.3);
+  }
+
+  #live-root[data-intro='arming'] .doors-msg {
+    animation: doors-blink 0.8s steps(2, jump-none) infinite;
+  }
+
+  @keyframes doors-blink {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0.25;
+    }
+  }
+
+  #live-root[data-intro='open'] .door-l {
+    animation: door-open-l 1.5s 0.3s cubic-bezier(0.65, 0, 0.25, 1) forwards;
+  }
+
+  #live-root[data-intro='open'] .door-r {
+    animation: door-open-r 1.5s 0.3s cubic-bezier(0.65, 0, 0.25, 1) forwards;
+  }
+
+  #live-root[data-intro='open'] .doors-msg {
+    animation: doors-msg-out 0.5s ease-in forwards;
+  }
+
+  @keyframes door-open-l {
+    to {
+      transform: translateX(-101%);
+    }
+  }
+
+  @keyframes door-open-r {
+    to {
+      transform: translateX(101%);
+    }
+  }
+
+  @keyframes doors-msg-out {
+    to {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(1.25);
+    }
+  }
+
+  /* The frame flares once as the doors clear. */
+  #live-root[data-intro='open'] .live-frame {
+    animation: frame-flare 2.2s 1s ease-out both;
+  }
+
+  @keyframes frame-flare {
+    0% {
+      border-color: var(--color-border);
+      box-shadow: 0 0 0 0 rgba(255, 102, 0, 0);
+    }
+    25% {
+      border-color: var(--color-accent-hover);
+      box-shadow:
+        0 0 0 1px var(--color-accent),
+        0 0 48px rgba(255, 102, 0, 0.45);
+    }
+    100% {
+      border-color: var(--color-border);
+      box-shadow: 0 0 0 0 rgba(255, 102, 0, 0);
+    }
+  }
+
+  /* Meter: a wave of light runs left to right while the signal arms. */
+  #live-root[data-intro='arming'] .live-meter > span {
+    background: var(--color-accent);
+    animation: bar-wave 1.4s calc(var(--i) * 35ms) ease-in-out infinite;
+  }
+
+  @keyframes bar-wave {
+    0%,
+    100% {
+      transform: scaleY(0.12);
+      background: var(--color-warn);
+    }
+    35% {
+      transform: scaleY(1);
+      background: var(--color-accent-hover);
+    }
+  }
+
+  #live-root[data-intro='arming'] .live-chip,
+  #live-root[data-intro='open'] .live-chip {
+    animation: chip-flash 0.5s steps(2, jump-none) 5;
+  }
+
+  @keyframes chip-flash {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0.2;
+    }
+  }
+
+  /* Readout and chat stay out of sight while armed, then rise in after the flare. */
+  /* animation: none too: the finished .stagger fade-up still holds opacity 1 through its fill,
+     and animation values beat ordinary declarations. */
+  #live-root[data-intro='arming'] .live-hud,
+  #live-root[data-intro='arming'] .live-chat {
+    animation: none;
+    opacity: 0;
+  }
+
+  #live-root[data-intro='open'] .live-hud {
+    animation: intro-rise 0.9s 1.6s var(--ease-out) both;
+  }
+
+  #live-root[data-intro='open'] .live-chat {
+    animation: intro-rise 1s 2s var(--ease-out) both;
+  }
+
+  @keyframes intro-rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #live-root[data-intro] .live-doors {
+      display: none;
+    }
+
+    #live-root[data-intro] *,
+    #live-root[data-intro] .live-frame {
+      animation: none !important;
+    }
+
+    #live-root[data-intro='arming'] .live-hud,
+    #live-root[data-intro='arming'] .live-chat {
+      opacity: 1;
+    }
+  }
+</style>
+
 <style is:global>
   /* No CRT scanlines on /live: the site-wide overlay (body::after, global.css) would sit over
      the stream. Lifting the player above it instead would also lift it over the header's
@@ -409,6 +626,11 @@ const BARS = 36;
     | { kind: 'hls'; hls: Hls | null };
 
   let player: Player = { kind: 'idle' };
+  // True once this page view has shown the offline screen, so a start that follows it gets the
+  // go-live intro. Someone who opens the page mid-stream just sees the stream.
+  let sawOffline = false;
+  let introTimer: number | undefined;
+  const INTRO_MIN_ARMED_MS = 2_000;
   let pollTimer: number | undefined;
   // Set when WebRTC failed on this page view, so the next attempt goes straight to HLS.
   let webrtcFailed = false;
@@ -421,6 +643,7 @@ const BARS = 36;
     const overlay = $('live-offline');
     if (!chip || !count || !overlay) return;
     const state = !online ? 'offline' : player.kind === 'connecting' ? 'connecting' : 'live';
+    if (!online) sawOffline = true;
     chip.dataset.state = state;
     chip.textContent =
       state === 'offline' ? 'Offline' : state === 'connecting' ? 'Connecting' : 'Live';
@@ -462,9 +685,10 @@ const BARS = 36;
 
   async function start() {
     player = { kind: 'connecting' };
+    const video = $<HTMLVideoElement>('live-video');
+    if (sawOffline && video) armIntro(video);
     render(true, null);
     schedule(); // switch to the live cadence
-    const video = $<HTMLVideoElement>('live-video');
     if (!video) return;
     try {
       player = webrtcFailed ? await startHls(video) : await startWebRtc(video);
@@ -480,8 +704,41 @@ const BARS = 36;
         player = { kind: 'idle' };
       }
     }
+    if (player.kind === 'idle') endIntro('done');
     showUnmute(video);
     void tick();
+  }
+
+  // ----- go-live intro (styles: "Go-live intro" above) -----
+  function armIntro(video: HTMLVideoElement) {
+    const root = $('live-root');
+    if (!root || root.dataset.intro === 'arming' || root.dataset.intro === 'open') return;
+    root.dataset.intro = 'arming';
+    const armedAt = performance.now();
+    // Open on the first real frame (or after 8 s if frames are slow), but never before the
+    // "Incoming signal" beat has had 2 s on screen; the whole sequence then runs about 3.5 s.
+    const open = () => {
+      video.removeEventListener('playing', open);
+      if (introTimer != null) clearTimeout(introTimer);
+      if (root.dataset.intro !== 'arming') return;
+      const wait = Math.max(0, INTRO_MIN_ARMED_MS - (performance.now() - armedAt));
+      introTimer = window.setTimeout(() => {
+        root.dataset.intro = 'open';
+        introTimer = window.setTimeout(() => endIntro('done'), 3_600);
+      }, wait);
+    };
+    video.addEventListener('playing', open);
+    introTimer = window.setTimeout(open, 8_000);
+  }
+
+  // 'done' after a played intro (see the CSS note); 'reset' clears it for a fresh page.
+  function endIntro(how: 'done' | 'reset') {
+    if (introTimer != null) clearTimeout(introTimer);
+    introTimer = undefined;
+    const root = $('live-root');
+    if (!root || !root.dataset.intro) return;
+    if (how === 'done') root.dataset.intro = 'done';
+    else delete root.dataset.intro;
   }
 
   async function startWebRtc(video: HTMLVideoElement): Promise<Player> {
@@ -837,6 +1094,8 @@ const BARS = 36;
   document.addEventListener('astro:page-load', () => {
     if ($('live-root')) {
       webrtcFailed = false;
+      sawOffline = false;
+      endIntro('reset');
       startPolling();
     } else {
       stopPolling();
