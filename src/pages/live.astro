@@ -615,7 +615,7 @@ const BARS = 36;
     outboundBytes: number;
     tracks2?: {
       codec: string;
-      codecProps?: { width?: number; height?: number; profile?: string } | null;
+      codecProps?: { width?: number; height?: number; profile?: string | number } | null;
     }[];
   }
 
@@ -977,10 +977,14 @@ const BARS = 36;
     const video = (st.tracks2 ?? []).find((t) =>
       ['H264', 'H265', 'AV1', 'VP9', 'VP8'].includes(t.codec),
     );
-    const w = video?.codecProps?.width;
-    const h = video?.codecProps?.height;
+    // MediaMTX parses dimensions for H.264 but reports 0 for AV1; the decoded frame size is
+    // the fallback. Profile is a name for H.264 and a number for AV1; only names are shown.
+    const el = $<HTMLVideoElement>('live-video');
+    const w = video?.codecProps?.width || el?.videoWidth;
+    const h = video?.codecProps?.height || el?.videoHeight;
     setText('hud-res', h ? `${h}p` : '–');
-    const profile = video?.codecProps?.profile;
+    const rawProfile = video?.codecProps?.profile;
+    const profile = typeof rawProfile === 'string' ? rawProfile : undefined;
     const codecName = video?.codec === 'H264' ? 'h.264' : (video?.codec ?? '').toLowerCase();
     setTitle(
       'hud-src-i',
