@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Overwatch stage</title>
+<style>
+  :root{
+    --slate: rgba(10,17,24,.82);
+    --steel: #3c5566;
+    --frost: #d6f1ff;
+    --scan:  #7fd6ff;
+    --resist:#ff6600;
+    --amber: #ffb24a;
+  }
+  html,body{background:transparent;margin:0;overflow:hidden}
+  body{
+    width:1920px;height:1080px;position:relative;
+    font-family:"Bahnschrift","Segoe UI",sans-serif;
+    color:var(--frost);
+    font-variant-numeric:tabular-nums;
+    -webkit-font-smoothing:antialiased;
+  }
+  .panel{
+    position:absolute;
+    background:var(--slate);
+    clip-path:polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+    box-shadow:inset 0 1px 0 rgba(127,214,255,.4), inset 0 0 0 1px rgba(60,85,102,.6);
+  }
+
+  /* ---------- incident log: top-left, directly above the webcam frame (24,90), clear of the compass ---------- */
+  .log{left:24px;top:8px;width:512px;height:76px;overflow:hidden}
+  .log::after{content:"";position:absolute;left:0;top:55px;width:3px;height:17px;background:var(--resist);opacity:.9}
+
+  .hdr{position:absolute;left:14px;right:14px;top:7px;height:13px;display:flex;align-items:center;gap:8px}
+  .pip{width:6px;height:6px;border-radius:50%;background:var(--scan);box-shadow:0 0 6px var(--scan);flex:none}
+  .live .pip{animation:pip 2.4s steps(1,end) infinite}
+  .code{font-size:11px;line-height:13px;letter-spacing:.14em;color:var(--scan);font-stretch:75%;white-space:nowrap}
+  .code b{font-weight:600;color:var(--frost);opacity:.55}
+  .clock{margin-left:auto;font-size:12px;line-height:13px;letter-spacing:.08em;opacity:.7;font-stretch:87.5%}
+  @keyframes pip{0%,70%{opacity:1}71%,100%{opacity:.15}}
+
+  /* the two faces of the panel share one box and crossfade */
+  .face{position:absolute;left:14px;right:14px;top:21px;height:30px;transition:opacity .5s ease}
+  .dispatch-face{opacity:1}
+  .tally{opacity:0}
+  .live .dispatch-face{opacity:0}
+  .live .tally{opacity:1}
+
+  .tally{display:flex;align-items:center;gap:22px}
+  .stat{display:flex;align-items:center;gap:7px;white-space:nowrap}
+  .stat .k{font-size:12px;letter-spacing:.14em;color:var(--scan);font-stretch:75%;transform:translateY(1px)}
+  .stat .n{font-size:26px;line-height:30px;font-weight:600;letter-spacing:.01em;font-stretch:87.5%}
+  /* tally marks, one per incident, grouped in fives like a hand count */
+  .bars{display:flex;gap:2px;align-items:center}
+  .bars i{display:block;width:4px;height:12px;border-radius:1px}
+  .bars i:nth-child(5){margin-right:5px}
+  .bars.kills i{background:rgba(127,214,255,.85)}
+  .bars.deaths i{background:var(--resist)}
+  .stat.net .n{font-weight:500}
+  .net.up .n{color:var(--amber)}
+  .net.down .n{color:var(--resist)}
+  .net.flat .n{opacity:.6}
+
+  .flavor{font-size:21px;line-height:30px;font-weight:300;letter-spacing:.02em;white-space:nowrap;overflow:hidden;
+    font-stretch:87.5%;transition:opacity .45s ease, transform .45s ease}
+
+  .evt{position:absolute;left:14px;right:14px;top:55px;height:17px;display:flex;align-items:baseline;gap:9px;white-space:nowrap}
+  .evt .tag{font-size:11px;letter-spacing:.14em;font-stretch:75%;font-weight:600;color:var(--scan);flex:none}
+  .evt .tag.k-down{color:var(--resist)}
+  .evt .tag.k-cash{color:var(--amber)}
+  .evt .tag.k-rev,.evt .tag.k-idle{color:var(--frost);opacity:.7}
+  .evt .at{font-size:12px;letter-spacing:.06em;opacity:.5;font-stretch:87.5%;flex:none}
+  .evt .at:empty{display:none}
+  .evt .txt{font-size:16px;line-height:17px;font-stretch:87.5%;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .swap{transition:opacity .45s ease, transform .45s ease}
+  .swap.out{opacity:0;transform:translateY(-4px)}
+
+  /* a new incident: one scan sweep across the panel and a blinking tag */
+  .sweep{position:absolute;top:0;left:0;width:140px;height:100%;pointer-events:none;opacity:0;
+    background:linear-gradient(90deg, transparent, rgba(127,214,255,.22) 70%, rgba(214,241,255,.5) 97%, transparent);
+    transform:translateX(-160px)}
+  .sweep.go{animation:sweep 1.1s cubic-bezier(.3,.1,.3,1) 1}
+  @keyframes sweep{0%{opacity:1;transform:translateX(-160px)}85%{opacity:1}100%{opacity:0;transform:translateX(520px)}}
+  .tag.fresh{animation:fresh .5s steps(1,end) 4}
+  @keyframes fresh{0%{opacity:1}50%{opacity:.2}}
+
+  @media (prefers-reduced-motion: reduce){
+    .live .pip,.tag.fresh{animation:none}
+    .sweep{display:none}
+    .face,.flavor,.swap{transition:none}
+  }
+</style>
+</head>
+<body>
+  <div class="panel log" id="log">
+    <div class="hdr">
+      <span class="pip"></span>
+      <span class="code" id="code">C17 <b>/</b> DISPATCH</span>
+      <span class="clock" id="clock">00:00</span>
+    </div>
+
+    <div class="face dispatch-face"><div class="flavor" id="flavor">Sector 7 under observation</div></div>
+
+    <div class="face tally">
+      <div class="stat"><span class="k">K</span><span class="n" id="kills">00</span><span class="bars kills" id="killBars"></span></div>
+      <div class="stat"><span class="k">D</span><span class="n" id="deaths">00</span><span class="bars deaths" id="deathBars"></span></div>
+      <div class="stat net flat" id="netStat"><span class="k">NET</span><span class="n" id="net">$0</span></div>
+    </div>
+
+    <div class="evt swap" id="evt">
+      <span class="tag k-idle" id="tag">STATUS</span>
+      <span class="at" id="at"></span>
+      <span class="txt" id="txt">Nyx000 on patrol</span>
+    </div>
+    <div class="sweep" id="sweep"></div>
+  </div>
+
+<script>
+(() => {
+  // Session feed from wardogs-ocr's live.py. ?mock=1 swaps in scripted data for previews.
+  const FEED = "http://127.0.0.1:47800/wardogs.json";
+  const POLL_MS = 3000, ROTATE_MS = 6000, HOLD_NEW_MS = 12000, FLAVOR_MS = 8000;
+  const STALE_S = 900;          // incidents older than this drop out of the rotation
+  const RECENT = 4;             // how many recent incidents the line cycles through
+  const MOCK = new URLSearchParams(location.search).get("mock") === "1";
+
+  const flavor = [
+    "Sector 7 under observation",
+    "Control zone breach logged",
+    "Anticitizen spotted, ridge",
+    "Bribes are not compliance",
+    "Unit Nyx000 reporting in",
+    "Lambda sighting logged",
+    "Calls for help are noted",
+    "Compliance is appreciated",
+  ];
+  const KINDS = new Map([
+    ["kill", ["KILL", "k-kill"]],
+    ["down", ["DOWN", "k-down"]],
+    ["revived", ["REVIVE", "k-rev"]],
+    ["respawn", ["RESPAWN", "k-rev"]],
+    ["cash", ["FUNDS", "k-cash"]],
+  ]);
+  const $ = id => document.getElementById(id);
+  const log = $("log"), code = $("code"), clock = $("clock"), flavorEl = $("flavor");
+  const evtEl = $("evt"), tagEl = $("tag"), atEl = $("at"), txtEl = $("txt"), sweep = $("sweep");
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pad = n => String(n).padStart(2, "0");
+
+  // feed text is untrusted: plain strings only, whitespace collapsed, length capped
+  const clip = (s, n) => {
+    s = String(s ?? "").replace(/\s+/g, " ").trim();
+    return s.length > n ? s.slice(0, n - 1) + "…" : s;
+  };
+  const int = (v, lo, hi) => {
+    const n = Math.trunc(Number(v));
+    return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : 0;
+  };
+  const hhmm = sec => {
+    const d = new Date(sec * 1000);
+    return Number.isFinite(d.getTime()) ? pad(d.getHours()) + ":" + pad(d.getMinutes()) : "";
+  };
+  const money = n => (n < 0 ? "-$" : n > 0 ? "+$" : "$") + Math.abs(n).toLocaleString("en-US");
+
+  function bars(el, n){   // one mark per incident, up to ten; the numeral carries the rest
+    const want = Math.min(n, 10);
+    while (el.childElementCount > want) el.lastElementChild.remove();
+    while (el.childElementCount < want) el.append(document.createElement("i"));
+  }
+
+  // ---------- two faces: live incident log, or dispatch flavor when the feed is down or idle ----------
+  let live = false;
+  function setLive(on){
+    if (on === live) return;
+    live = on;
+    log.classList.toggle("live", on);
+    code.replaceChildren("C17 ", Object.assign(document.createElement("b"), {textContent: "/"}),
+      on ? " CP INCIDENT LOG" : " DISPATCH");
+    events = []; shownId = null; holdUntil = 0; lastTop = null;
+    if (!on) showLine();   // going live, apply() picks the line once it has the events
+  }
+
+  // ---------- incident line ----------
+  let events = [], shownId = null, idx = 0, holdUntil = 0, lastTop = null, sessionId = null;
+
+  let current = "";
+  function swapLine(tag, cls, at, text, fresh){
+    const key = tag + "|" + at + "|" + text;
+    if (key === current && !fresh) return;   // nothing changed: no fade
+    current = key;
+    const write = () => {
+      tagEl.textContent = tag;
+      tagEl.className = "tag " + cls + (fresh && !still ? " fresh" : "");
+      atEl.textContent = at;
+      txtEl.textContent = text;
+      evtEl.classList.remove("out");
+    };
+    if (still) return write();
+    evtEl.classList.add("out");
+    setTimeout(write, 460);
+  }
+  function showEvent(ev, fresh){
+    const [tag, cls] = KINDS.get(ev.kind) || ["NOTE", "k-rev"];
+    shownId = ev.id;
+    swapLine(tag, cls, hhmm(ev.at), clip(ev.text, 48), fresh);
+    if (fresh && !still){
+      sweep.classList.remove("go");
+      void sweep.offsetWidth;   // restart the one-shot animation
+      sweep.classList.add("go");
+    }
+  }
+  function recent(){
+    const now = Date.now() / 1000;
+    return events.filter(e => now - e.at < STALE_S).slice(0, RECENT);
+  }
+  function showLine(){
+    const list = live ? recent() : [];
+    if (!list.length){
+      shownId = null;
+      swapLine(live ? "DISPATCH" : "STATUS", "k-idle", "",
+        live ? flavor[fi] : "Nyx000 on patrol", false);
+      return;
+    }
+    idx = (idx + 1) % list.length;
+    showEvent(list[idx], false);
+  }
+
+  // ---------- feed ----------
+  function apply(doc){
+    if (!doc || doc.status !== "live" || !doc.session || typeof doc.session !== "object") return setLive(false);
+    setLive(true);
+    const s = doc.session;
+    const k = int(s.kills, 0, 999), d = int(s.deaths, 0, 999), net = int(s.cash && s.cash.net, -9999999, 9999999);
+    $("kills").textContent = pad(k);
+    $("deaths").textContent = pad(d);
+    bars($("killBars"), k);
+    bars($("deathBars"), d);
+    $("net").textContent = money(net);
+    $("netStat").className = "stat net " + (net > 0 ? "up" : net < 0 ? "down" : "flat");
+
+    if (s.id !== sessionId){ sessionId = s.id; lastTop = null; }
+    events = (Array.isArray(s.events) ? s.events : []).slice(0, 8).map(e => ({
+      id: int(e && e.id, 0, 1e9), kind: String(e && e.kind), at: Number(e && e.at) || 0, text: e && e.text,
+    }));
+    const top = events[0];
+    if (top && lastTop !== null && top.id > lastTop){   // a new incident: show it now and hold it
+      idx = 0;
+      holdUntil = Date.now() + HOLD_NEW_MS;
+      showEvent(top, true);
+    } else if (shownId === null && recent().length){
+      idx = -1; showLine();
+    }
+    if (top) lastTop = Math.max(lastTop ?? 0, top.id);
+  }
+
+  let fails = 0;
+  async function poll(){
+    if (MOCK) return apply(mock());
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 2000);
+    try {
+      const r = await fetch(FEED, {cache: "no-store", signal: ctl.signal});
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      apply(await r.json());
+      fails = 0;
+    } catch {
+      if (++fails >= 2) setLive(false);   // one missed poll is not an outage
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // ---------- scripted data for ?mock=1 ----------
+  const t0 = Date.now() / 1000;
+  const script = [
+    {kind: "kill", text: "Downed Anticitizen_01, 94 m", k: 1},
+    {kind: "cash", text: "Control zone presence +$160", cash: 160},
+    {kind: "down", text: "Downed by HEADCRAB ENTHUSIAST, 5 hits", d: 1},
+    {kind: "revived", text: "Revived after 22 s"},
+    {kind: "kill", text: "Downed [RES]Freeman Fan Club Treasurer Emeritus, 142 m", k: 1},
+    {kind: "cash", text: "Balance -$90", cash: -90},
+  ];
+  const mockState = {k: 6, d: 2, net: 1180, n: 4, events: [
+    {id: 4, kind: "cash", at: t0 - 40, text: "Control zone entered +$250"},
+    {id: 3, kind: "down", at: t0 - 130, text: "Downed by Vortigaunt_42, 4 hits"},
+    {id: 2, kind: "kill", at: t0 - 300, text: "Downed ClearlyNolan, 38 m"},
+    {id: 1, kind: "revived", at: t0 - 420, text: "Revived after 64 s"},
+  ]};
+  let mockTick = 0;
+  function mock(){
+    mockTick++;
+    if (mockTick % 6 === 0){   // a new incident every ~18 s
+      const e = script[(mockTick / 6 - 1) % script.length];
+      mockState.k += e.k || 0; mockState.d += e.d || 0; mockState.net += e.cash || 0;
+      mockState.events.unshift({id: ++mockState.n, kind: e.kind, at: Date.now() / 1000, text: e.text});
+      mockState.events.length = Math.min(mockState.events.length, 8);
+    }
+    return {schema: 1, status: "live", source: "obs", player: "Nyx000", session: {
+      id: 1, kills: mockState.k, deaths: mockState.d, revived: 1, matches: 2,
+      cash: {net: mockState.net}, events: mockState.events.slice()}};
+  }
+
+  // ---------- clocks ----------
+  let fi = 0;
+  function tick(){
+    const d = new Date();
+    clock.textContent = pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }
+  function nextFlavor(){
+    fi = (fi + 1) % flavor.length;
+    if (still){ flavorEl.textContent = flavor[fi]; return; }
+    flavorEl.style.opacity = 0;
+    setTimeout(() => { flavorEl.textContent = flavor[fi]; flavorEl.style.opacity = ""; }, 460);
+  }
+  function rotate(){
+    if (Date.now() < holdUntil) return;
+    showLine();
+  }
+
+  tick();
+  poll();
+  setInterval(tick, 1000);
+  setInterval(poll, POLL_MS);
+  setInterval(rotate, ROTATE_MS);
+  setInterval(nextFlavor, FLAVOR_MS);
+})();
+</script>
+</body>
+</html>
