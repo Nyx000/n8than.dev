@@ -1,0 +1,28 @@
+[Unit]
+Description=MediaMTX live relay (n8than.dev/live)
+# tailscaled first: OBS publishes over tailscale0.
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+User=mediamtx
+Group=mediamtx
+EnvironmentFile=/etc/mediamtx/secret.env
+ExecStart=/opt/mediamtx/mediamtx /etc/mediamtx/mediamtx.yml
+Restart=on-failure
+RestartSec=5
+
+# A relay holds a few packet buffers per reader; 256M is generous. Postgres is
+# deliberately uncapped on this box, so the new tenant is the one that gets a ceiling.
+MemoryMax=256M
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

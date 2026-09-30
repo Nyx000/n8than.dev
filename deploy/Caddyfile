@@ -216,6 +216,56 @@ n8than.dev {
 		}
 	}
 
+	# Live game stream (/live) — the MediaMTX relay on THIS box (deploy/live/, installed by
+	# deploy/live/setup.sh, not by this workflow). Only the read side is routed: stream
+	# status, WHEP playback and LL-HLS. Publishing (WHIP) never passes through Caddy — OBS
+	# publishes over the tailnet straight to :8889, and MediaMTX only accepts the publish
+	# user from tailnet addresses, while everything Caddy forwards arrives from 127.0.0.1.
+
+	# Status for the page: one path of the MediaMTX control API (online flag + reader list;
+	# readers carry type and id only, no IPs). The API itself listens on loopback only.
+	handle /api/live/status {
+		rewrite * /v3/paths/get/game
+		reverse_proxy 127.0.0.1:9997 {
+			header_down -Vary
+		}
+		header Cache-Control "no-store"
+	}
+
+	# WHEP: POST creates a playback session, PATCH trickles ICE, DELETE ends it. MediaMTX
+	# returns the session URL in Location rooted at /, so it is re-prefixed on the way out.
+	# The media itself flows over 8189/udp directly, not through Caddy.
+	@live_whep {
+		path /api/live/rtc/game/whep /api/live/rtc/game/whep/*
+		method POST PATCH DELETE OPTIONS
+	}
+	handle @live_whep {
+		request_body {
+			max_size 64KB
+		}
+		uri strip_prefix /api/live/rtc
+		reverse_proxy 127.0.0.1:8889 {
+			header_down Location "^/" "/api/live/rtc/"
+			header_down -Vary
+		}
+		header Cache-Control "no-store"
+	}
+
+	# LL-HLS fallback for viewers whose network blocks WebRTC's UDP. No Cache-Control
+	# stamp: MediaMTX sets its own per playlist and segment.
+	handle /api/live/hls/game/* {
+		uri strip_prefix /api/live/hls
+		reverse_proxy 127.0.0.1:8888 {
+			header_down Location "^/" "/api/live/hls/"
+			header_down -Vary
+		}
+	}
+
+	# Anything else under /api/live (WHIP, other paths, other methods) is dead.
+	handle /api/live/* {
+		error * 404
+	}
+
 	# Build Sheet Studio demo (Solid Wood Worx client work) is PULLED — not reachable by
 	# any route. On the box: swx-demo.service stopped/disabled/masked (unit archived off
 	# the systemd path), the :8443 vhost archived, and 8443 NOT open in ufw. This block

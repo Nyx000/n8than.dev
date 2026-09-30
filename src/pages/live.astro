@@ -1,0 +1,407 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Live | n8than.dev" description="Live game stream, when there is one.">
+  <section class="container stagger" id="live-root">
+    <h1 class="section-heading">Live</h1>
+    <p class="intro">
+      Whatever I'm playing, streamed from my desk. Encoded on my GPU and relayed by the same
+      Hetzner box that serves this site, with under a second of delay.
+    </p>
+
+    <div class="live-bar">
+      <span class="live-chip" id="live-chip" data-state="offline">Offline</span>
+      <span class="live-viewers" id="live-viewers" hidden></span>
+    </div>
+
+    <div class="live-frame">
+      <video id="live-video" muted autoplay playsinline controls aria-label="live game stream"></video>
+      <div class="live-overlay" id="live-offline">
+        <p class="live-offline-title">Not live right now</p>
+        <p class="live-offline-sub">This page checks every few seconds and starts on its own.</p>
+      </div>
+      <button type="button" class="live-unmute" id="live-unmute" hidden>Unmute</button>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .live-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-sm);
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .live-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    color: var(--color-muted);
+  }
+
+  .live-chip::before {
+    content: '';
+    width: 0.55em;
+    height: 0.55em;
+    border-radius: 50%;
+    background: var(--color-border);
+  }
+
+  .live-chip[data-state='live'] {
+    color: var(--color-accent);
+  }
+
+  .live-chip[data-state='live']::before {
+    background: var(--color-accent);
+    animation: live-pulse 1.6s var(--ease) infinite;
+  }
+
+  .live-chip[data-state='connecting'] {
+    color: var(--color-warn);
+  }
+
+  .live-chip[data-state='connecting']::before {
+    background: var(--color-warn);
+  }
+
+  @keyframes live-pulse {
+    50% {
+      opacity: 0.35;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .live-chip[data-state='live']::before {
+      animation: none;
+    }
+  }
+
+  .live-viewers {
+    color: var(--color-muted);
+  }
+
+  .live-frame {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  #live-video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+  }
+
+  .live-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    padding: var(--space-md);
+    text-align: center;
+    background: var(--color-surface);
+  }
+
+  .live-overlay[hidden] {
+    display: none;
+  }
+
+  .live-offline-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: var(--color-text);
+  }
+
+  .live-offline-sub {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.92rem;
+  }
+
+  .live-unmute {
+    position: absolute;
+    top: var(--space-md);
+    right: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-bg);
+    background: var(--color-accent);
+    border: 0;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease);
+  }
+
+  .live-unmute:hover {
+    background: var(--color-accent-hover);
+  }
+
+  .live-unmute[hidden] {
+    display: none;
+  }
+</style>
+
+<script>
+  // Playback prefers WebRTC (WHEP, sub-second) and falls back to LL-HLS (a few seconds
+  // behind) when WebRTC can't connect, typically a network that blocks UDP. Both are
+  // routed through Caddy to the MediaMTX relay; see deploy/Caddyfile, /api/live/*.
+  import type Hls from 'hls.js';
+
+  const STATUS_URL = '/api/live/status';
+  const WHEP_URL = '/api/live/rtc/game/whep';
+  const HLS_URL = '/api/live/hls/game/index.m3u8';
+  const POLL_MS = 5_000;
+  const ICE_TIMEOUT_MS = 8_000;
+
+  interface PathStatus {
+    online: boolean;
+    readers: unknown[];
+  }
+
+  type Player =
+    | { kind: 'idle' }
+    | { kind: 'connecting' }
+    | { kind: 'webrtc'; pc: RTCPeerConnection; session: string | null }
+    | { kind: 'hls'; hls: Hls | null };
+
+  let player: Player = { kind: 'idle' };
+  let pollTimer: number | undefined;
+  // Set when WebRTC failed on this page view, so the next attempt goes straight to HLS.
+  let webrtcFailed = false;
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T | null;
+
+  function render(online: boolean, viewers: number | null) {
+    const chip = $('live-chip');
+    const count = $('live-viewers');
+    const overlay = $('live-offline');
+    if (!chip || !count || !overlay) return;
+    const state = !online ? 'offline' : player.kind === 'connecting' ? 'connecting' : 'live';
+    chip.dataset.state = state;
+    chip.textContent = state === 'offline' ? 'Offline' : state === 'connecting' ? 'Connecting' : 'Live';
+    count.hidden = !online || viewers == null;
+    if (viewers != null) count.textContent = `${viewers} watching`;
+    overlay.hidden = online && player.kind !== 'idle';
+  }
+
+  async function fetchStatus(): Promise<PathStatus | null> {
+    try {
+      const res = await fetch(STATUS_URL, { cache: 'no-store' });
+      if (!res.ok) return null; // 404 before the first publish: path not created yet
+      return (await res.json()) as PathStatus;
+    } catch {
+      return null;
+    }
+  }
+
+  async function tick() {
+    const status = await fetchStatus();
+    const online = status?.online === true;
+    if (online && player.kind === 'idle') void start();
+    if (!online && player.kind !== 'idle') stopPlayer();
+    render(online, status ? status.readers.length : null);
+  }
+
+  async function start() {
+    player = { kind: 'connecting' };
+    render(true, null);
+    const video = $<HTMLVideoElement>('live-video');
+    if (!video) return;
+    try {
+      player = webrtcFailed ? await startHls(video) : await startWebRtc(video);
+    } catch {
+      if (!webrtcFailed) {
+        webrtcFailed = true;
+        try {
+          player = await startHls(video);
+        } catch {
+          player = { kind: 'idle' }; // next tick retries
+        }
+      } else {
+        player = { kind: 'idle' };
+      }
+    }
+    showUnmute(video);
+    void tick();
+  }
+
+  async function startWebRtc(video: HTMLVideoElement): Promise<Player> {
+    const pc = new RTCPeerConnection();
+    const stream = new MediaStream();
+    pc.addTransceiver('video', { direction: 'recvonly' });
+    pc.addTransceiver('audio', { direction: 'recvonly' });
+    pc.ontrack = (ev) => {
+      stream.addTrack(ev.track);
+      video.srcObject = stream;
+      video.play().catch(() => {});
+    };
+
+    try {
+      await pc.setLocalDescription(await pc.createOffer());
+      await iceGathered(pc);
+      const res = await fetch(WHEP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/sdp' },
+        body: pc.localDescription!.sdp,
+      });
+      if (res.status !== 201) throw new Error(`WHEP ${res.status}`);
+      const session = res.headers.get('Location');
+      await pc.setRemoteDescription({ type: 'answer', sdp: await res.text() });
+      await connected(pc);
+
+      const p: Player = { kind: 'webrtc', pc, session };
+      // A publisher that stops ends the session; drop back to idle and let polling decide.
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+          if (player === p) stopPlayer();
+        }
+      };
+      return p;
+    } catch (err) {
+      pc.close();
+      throw err;
+    }
+  }
+
+  // Non-trickle WHEP: send one offer carrying every local candidate.
+  function iceGathered(pc: RTCPeerConnection): Promise<void> {
+    if (pc.iceGatheringState === 'complete') return Promise.resolve();
+    return new Promise((resolve) => {
+      const done = () => {
+        pc.removeEventListener('icegatheringstatechange', check);
+        resolve();
+      };
+      const check = () => pc.iceGatheringState === 'complete' && done();
+      pc.addEventListener('icegatheringstatechange', check);
+      setTimeout(done, 2_000); // host candidates are enough; the server has a public IP
+    });
+  }
+
+  function connected(pc: RTCPeerConnection): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('ICE timeout')), ICE_TIMEOUT_MS);
+      const check = () => {
+        if (pc.connectionState === 'connected') {
+          clearTimeout(timer);
+          resolve();
+        } else if (pc.connectionState === 'failed') {
+          clearTimeout(timer);
+          reject(new Error('ICE failed'));
+        }
+      };
+      pc.addEventListener('connectionstatechange', check);
+      check();
+    });
+  }
+
+  async function startHls(video: HTMLVideoElement): Promise<Player> {
+    // A failed WebRTC attempt may have set srcObject, which would outrank src/MSE.
+    video.srcObject = null;
+    const { default: HlsCtor } = await import('hls.js');
+    if (HlsCtor.isSupported()) {
+      const hls = new HlsCtor({ lowLatencyMode: true, backBufferLength: 0 });
+      const p: Player = { kind: 'hls', hls };
+      hls.on(HlsCtor.Events.ERROR, (_evt, data) => {
+        if (data.fatal && player === p) stopPlayer();
+      });
+      hls.loadSource(HLS_URL);
+      hls.attachMedia(video);
+      video.play().catch(() => {});
+      return p;
+    }
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = HLS_URL; // Safari / iOS: native HLS
+      video.play().catch(() => {});
+      return { kind: 'hls', hls: null };
+    }
+    throw new Error('no HLS support');
+  }
+
+  function stopPlayer() {
+    const video = $<HTMLVideoElement>('live-video');
+    if (player.kind === 'webrtc') {
+      const { pc, session } = player;
+      pc.onconnectionstatechange = null;
+      pc.close();
+      // Free the reader slot now rather than when MediaMTX notices the dead peer.
+      if (session) fetch(session, { method: 'DELETE', keepalive: true }).catch(() => {});
+    } else if (player.kind === 'hls') {
+      player.hls?.destroy();
+    }
+    player = { kind: 'idle' };
+    if (video) {
+      video.srcObject = null;
+      if (video.getAttribute('src')) {
+        video.removeAttribute('src');
+        video.load();
+      }
+    }
+    const unmute = $('live-unmute');
+    if (unmute) unmute.hidden = true;
+  }
+
+  // Autoplay only works muted; one tap brings the game audio in.
+  function showUnmute(video: HTMLVideoElement) {
+    const btn = $('live-unmute');
+    if (!btn) return;
+    btn.hidden = player.kind === 'idle' || !video.muted;
+    btn.onclick = () => {
+      video.muted = false;
+      video.play().catch(() => {});
+      btn.hidden = true;
+    };
+    video.onvolumechange = () => {
+      if (!video.muted) btn.hidden = true;
+    };
+  }
+
+  function startPolling() {
+    stopPolling();
+    void tick();
+    pollTimer = window.setInterval(tick, POLL_MS);
+  }
+
+  function stopPolling() {
+    if (pollTimer != null) clearInterval(pollTimer);
+    pollTimer = undefined;
+  }
+
+  // ClientRouter is active: init on every page load, stop everything when leaving /live.
+  document.addEventListener('astro:page-load', () => {
+    if ($('live-root')) {
+      webrtcFailed = false;
+      startPolling();
+    } else {
+      stopPolling();
+      stopPlayer();
+    }
+  });
+
+  // A hidden tab keeps playing (people listen in the background) but stops polling
+  // only when nothing is playing.
+  document.addEventListener('visibilitychange', () => {
+    if (!$('live-root')) return;
+    if (document.hidden && player.kind === 'idle') stopPolling();
+    else if (!document.hidden && pollTimer == null) startPolling();
+  });
+
+  window.addEventListener('pagehide', () => stopPlayer());
+</script>

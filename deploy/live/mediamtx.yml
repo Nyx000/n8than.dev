@@ -1,0 +1,88 @@
+# MediaMTX config for n8than.dev/live — a pure relay, never a transcoder.
+#
+# The CPX21 has 3 shared vCPUs and ~1 GB of headroom; it cannot encode. OBS on the
+# desktop does all encoding (NVENC H.264 + Opus) and publishes over WHIP; this box
+# only forwards packets to viewers (WebRTC/WHEP, LL-HLS as the fallback).
+#
+# Installed by deploy/live/setup.sh to /etc/mediamtx/mediamtx.yml. The deploy
+# workflow does NOT copy this file — rerun setup.sh after changing it.
+#
+# Keys not set here take MediaMTX's defaults (v1.21.1).
+
+logLevel: info
+
+###############################################
+# Auth
+#
+# Index 0's password is NOT in this file: systemd injects it from
+# /etc/mediamtx/secret.env as MTX_AUTHINTERNALUSERS_0_PASS. OBS sends it as the
+# WHIP "Bearer Token" in the form `streamer:<password>`.
+authMethod: internal
+authInternalUsers:
+  # Publisher: password AND tailnet-only. Caddy reaches MediaMTX from 127.0.0.1,
+  # so nothing arriving through the public site can match this user.
+  - user: streamer
+    pass: overridden-by-secret-env
+    ips: ["100.64.0.0/10", "fd7a:115c:a1e0::/48"]
+    permissions:
+      - action: publish
+        path: game
+  # Viewers: anyone may read, publish nothing.
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: read
+        path: game
+  # Control API from localhost only. Caddy exposes exactly one read-only route
+  # of it (/api/live/status -> /v3/paths/get/game).
+  - user: any
+    pass:
+    ips: ["127.0.0.1", "::1"]
+    permissions:
+      - action: api
+
+###############################################
+# Listeners
+#
+# Only WebRTC's ICE port (8189/udp) is public. 8889 listens on all interfaces
+# so OBS can reach it over tailscale0, but ufw denies it on eth0; 8888 and 9997
+# are loopback-only and reached through Caddy.
+
+api: true
+apiAddress: 127.0.0.1:9997
+
+webrtc: true
+webrtcAddress: :8889
+webrtcAllowOrigins: ["https://n8than.dev"]
+webrtcTrustedProxies: ["127.0.0.1", "::1"]
+webrtcLocalUDPAddress: :8189
+# Advertise only the public interface. tailscale0 candidates would leak the
+# tailnet address to every viewer; OBS reaches the public IP just fine.
+webrtcIPsFromInterfacesList: [eth0]
+
+hls: true
+hlsAddress: 127.0.0.1:8888
+hlsAllowOrigins: ["https://n8than.dev"]
+hlsTrustedProxies: ["127.0.0.1", "::1"]
+hlsVariant: lowLatency
+
+rtsp: false
+rtmp: false
+srt: false
+moq: false
+metrics: false
+playback: false
+pprof: false
+
+###############################################
+# Paths
+#
+# One path. No `all_others`, so publishing anywhere else is refused.
+paths:
+  game:
+    source: publisher
+    # Egress bound. The box is in Hillsboro (US), where outbound traffic
+    # allowance is small; at ~8 Mbps each reader is ~3.6 GB/hour. The LL-HLS
+    # muxer counts as one reader however many HLS viewers it serves.
+    maxReaders: 15
