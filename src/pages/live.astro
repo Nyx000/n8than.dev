@@ -6,8 +6,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   <section class="container stagger" id="live-root">
     <h1 class="section-heading">Live</h1>
     <p class="intro">
-      Whatever I'm playing, streamed from my desk. Encoded on my GPU and relayed by the same
-      Hetzner box that serves this site, with under a second of delay.
+      Whatever I'm playing, streamed from my desk. Encoded on my GPU and relayed by the same Hetzner
+      box that serves this site, with under a second of delay.
     </p>
 
     <div class="live-bar">
@@ -16,7 +16,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </div>
 
     <div class="live-frame">
-      <video id="live-video" muted autoplay playsinline controls aria-label="live game stream"></video>
+      <video id="live-video" muted autoplay playsinline controls aria-label="live game stream"
+      ></video>
       <div class="live-overlay" id="live-offline">
         <p class="live-offline-title">Not live right now</p>
         <p class="live-offline-sub">This page checks every few seconds and starts on its own.</p>
@@ -196,7 +197,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     if (!chip || !count || !overlay) return;
     const state = !online ? 'offline' : player.kind === 'connecting' ? 'connecting' : 'live';
     chip.dataset.state = state;
-    chip.textContent = state === 'offline' ? 'Offline' : state === 'connecting' ? 'Connecting' : 'Live';
+    chip.textContent =
+      state === 'offline' ? 'Offline' : state === 'connecting' ? 'Connecting' : 'Live';
     count.hidden = !online || viewers == null;
     if (viewers != null) count.textContent = `${viewers} watching`;
     overlay.hidden = online && player.kind !== 'idle';
