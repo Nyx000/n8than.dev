@@ -34,53 +34,25 @@ const BARS = 36;
       <button type="button" class="live-unmute" id="live-unmute" hidden>Unmute</button>
     </div>
 
-    <div class="live-hud" id="live-hud" hidden>
+    <p class="live-hud" id="live-hud" hidden>
       <span class="hud-tick" id="hud-tick" aria-hidden="true"></span>
-      <dl class="hud-grid">
-        <div class="hud-cell">
-          <dt>frame rate</dt>
-          <dd><span class="hud-v" id="hud-fps">–</span><span class="hud-u">fps</span></dd>
-          <dd class="hud-sub" id="hud-fps-sub"></dd>
-        </div>
-        <div class="hud-cell">
-          <dt>delay to you</dt>
-          <dd>
-            <span class="hud-v" id="hud-delay">–</span><span class="hud-u" id="hud-delay-u"></span>
-          </dd>
-          <dd class="hud-sub" id="hud-delay-sub"></dd>
-        </div>
-        <div class="hud-cell">
-          <dt>stream in</dt>
-          <dd><span class="hud-v" id="hud-in">–</span><span class="hud-u">Mb/s</span></dd>
-          <dd class="hud-sub">from the desk</dd>
-        </div>
-        <div class="hud-cell">
-          <dt>server out</dt>
-          <dd><span class="hud-v" id="hud-out">–</span><span class="hud-u">Mb/s</span></dd>
-          <dd class="hud-sub" id="hud-out-sub"></dd>
-        </div>
-        <div class="hud-cell">
-          <dt>source</dt>
-          <dd><span class="hud-v" id="hud-res">–</span></dd>
-          <dd class="hud-sub" id="hud-codec"></dd>
-        </div>
-        <div class="hud-cell">
-          <dt>packets lost</dt>
-          <dd><span class="hud-v" id="hud-loss">–</span><span class="hud-u">%</span></dd>
-          <dd class="hud-sub" id="hud-loss-sub"></dd>
-        </div>
-        <div class="hud-cell">
-          <dt>on air</dt>
-          <dd><span class="hud-v" id="hud-uptime">–</span></dd>
-          <dd class="hud-sub" id="hud-since"></dd>
-        </div>
-        <div class="hud-cell">
-          <dt>served</dt>
-          <dd><span class="hud-v" id="hud-total">–</span><span class="hud-u">GB</span></dd>
-          <dd class="hud-sub">this stream</dd>
-        </div>
-      </dl>
-    </div>
+      <span class="hud-item" id="hud-fps-i" title="frame rate reaching you"
+        ><b id="hud-fps">–</b> fps</span
+      >
+      <span class="hud-item" id="hud-delay-i" title="delay to you: network plus playback buffer"
+        ><b id="hud-delay">–</b><span id="hud-delay-u"></span></span
+      >
+      <span class="hud-item" title="upload from the desk"><b id="hud-in">–</b> Mb/s in</span>
+      <span class="hud-item" title="server bandwidth out, all viewers"
+        ><b id="hud-out">–</b> out</span
+      >
+      <span class="hud-item" id="hud-src-i" title="source"><b id="hud-res">–</b></span>
+      <span class="hud-item" id="hud-loss-i" title="packets lost on the way to you"
+        ><b id="hud-loss">–</b>% loss</span
+      >
+      <span class="hud-item" id="hud-up-i" title="on air"><b id="hud-uptime">–</b></span>
+      <span class="hud-item" title="served this stream"><b id="hud-total">–</b> GB</span>
+    </p>
 
     <Chatter
       class="live-chat"
@@ -311,38 +283,67 @@ const BARS = 36;
     display: none;
   }
 
-  /* ----- HUD: the stream's vitals, docked under the player like a suit readout. -----
-     One panel joined to the frame (the frame gives up its bottom corners while the HUD
-     shows). Cells are separated by the 1px grid gap showing the border colour through. */
-  .live-frame:has(+ .live-hud:not([hidden])) {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-  }
-
+  /* ----- HUD: the stream's vitals as one quiet readout line under the player, in the
+     same voice as the CH-01 // RELAY strip above. Values a step brighter than their units;
+     a reading outside its healthy range turns amber. ----- */
   .live-hud {
     position: relative;
-    margin-top: -1px;
-    background: var(--color-border);
-    border: 1px solid var(--color-border);
-    border-radius: 0 0 var(--radius-md) var(--radius-md);
-    overflow: hidden;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35em 0.9em;
+    margin: var(--space-sm) 0 0;
+    padding-top: 0.45rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--color-muted);
   }
 
   .live-hud[hidden] {
     display: none;
   }
 
-  /* The slow tick: a hairline that fills across the top between updates, so it's visible
-     the numbers are live and when the next reading lands. */
+  .hud-item {
+    white-space: nowrap;
+    cursor: default;
+  }
+
+  .hud-item + .hud-item::before {
+    content: '//';
+    margin-right: 0.9em;
+    color: var(--color-border);
+  }
+
+  /* Phone width wraps the line; a separator would then start the second row. */
+  @media (max-width: 640px) {
+    .live-hud {
+      column-gap: 1.2em;
+    }
+
+    .hud-item + .hud-item::before {
+      content: none;
+    }
+  }
+
+  .hud-item b {
+    font-weight: 400;
+    color: var(--color-text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hud-item[data-warn] b {
+    color: var(--color-warn);
+  }
+
+  /* The slow tick: a hairline along the top that fills between readings. */
   .hud-tick {
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 1;
     height: 1px;
     width: 100%;
     background: var(--color-accent);
-    opacity: 0.6;
+    opacity: 0.35;
     transform-origin: left;
     transform: scaleX(0);
   }
@@ -360,77 +361,6 @@ const BARS = 36;
   @media (prefers-reduced-motion: reduce) {
     .hud-tick.is-running {
       animation: none;
-    }
-  }
-
-  .hud-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1px;
-    margin: 0;
-  }
-
-  .hud-cell {
-    display: flex;
-    flex-direction: column;
-    padding: 0.7rem 0.9rem 0.75rem;
-    background: var(--color-surface);
-    min-width: 0;
-  }
-
-  .hud-cell dt {
-    order: 3;
-    margin-top: 0.15rem;
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: var(--color-muted);
-  }
-
-  .hud-cell dd {
-    margin: 0;
-  }
-
-  .hud-v {
-    font-family: var(--font-display);
-    font-size: 1.5rem;
-    line-height: 1.1;
-    color: var(--color-text);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .hud-u {
-    margin-left: 0.3em;
-    font-family: var(--font-display);
-    font-size: 0.8rem;
-    color: var(--color-muted);
-  }
-
-  .hud-sub {
-    order: 4;
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    color: var(--color-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* A reading outside its healthy range (dropped frame rate, high delay, visible loss). */
-  .hud-cell[data-warn] .hud-v {
-    color: var(--color-warn);
-  }
-
-  @media (max-width: 640px) {
-    .hud-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .hud-cell {
-      padding: 0.55rem 0.7rem 0.6rem;
-    }
-
-    .hud-v {
-      font-size: 1.25rem;
     }
   }
 </style>
@@ -660,8 +590,13 @@ const BARS = 36;
     if (el && el.textContent !== text) el.textContent = text;
   }
 
+  function setTitle(id: string, text: string) {
+    const el = $(id);
+    if (el) el.title = text;
+  }
+
   function warn(id: string, on: boolean) {
-    const cell = $(id)?.closest<HTMLElement>('.hud-cell');
+    const cell = $(id)?.closest<HTMLElement>('.hud-item');
     if (cell) cell.toggleAttribute('data-warn', on);
   }
 
@@ -780,8 +715,6 @@ const BARS = 36;
     }
     prevServer = { t: now, inB: st.inboundBytes, outB: st.outboundBytes, since: st.onlineTime };
 
-    const viewers = st.readers.length;
-    setText('hud-out-sub', `${viewers} ${viewers === 1 ? 'viewer' : 'viewers'}`);
     setText('hud-total', (st.outboundBytes / 1e9).toFixed(2));
 
     const video = (st.tracks2 ?? []).find((t) =>
@@ -789,36 +722,41 @@ const BARS = 36;
     );
     const w = video?.codecProps?.width;
     const h = video?.codecProps?.height;
-    setText('hud-res', w && h ? `${w}×${h}` : '–');
+    setText('hud-res', h ? `${h}p` : '–');
     const profile = video?.codecProps?.profile;
     const codecName = video?.codec === 'H264' ? 'h.264' : (video?.codec ?? '').toLowerCase();
-    setText('hud-codec', [codecName, profile?.toLowerCase()].filter(Boolean).join(' '));
+    setTitle(
+      'hud-src-i',
+      [w && h ? `${w}×${h}` : '', codecName, profile?.toLowerCase()].filter(Boolean).join(' '),
+    );
 
     if (st.onlineTime) {
       const since = new Date(st.onlineTime);
       setText('hud-uptime', clock((Date.now() - since.getTime()) / 1000));
-      setText(
-        'hud-since',
-        `since ${since.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+      setTitle(
+        'hud-up-i',
+        `on air since ${since.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
       );
     }
 
     const v = await viewerStats();
     setText('hud-fps', v.fps != null ? Math.round(v.fps).toString() : '–');
-    setText('hud-fps-sub', v.dropped != null ? `${v.dropped} dropped here` : '');
+    setTitle(
+      'hud-fps-i',
+      `frame rate reaching you${v.dropped != null ? `, ${v.dropped} dropped here` : ''}`,
+    );
     warn('hud-fps', v.fps != null && v.fps < 55);
     if (v.delayS != null) {
       const ms = v.delayS * 1000;
       setText('hud-delay', ms < 1000 ? String(Math.round(ms)) : v.delayS.toFixed(1));
-      setText('hud-delay-u', ms < 1000 ? 'ms' : 's');
+      setText('hud-delay-u', ms < 1000 ? ' ms' : ' s');
     } else {
       setText('hud-delay', '–');
       setText('hud-delay-u', '');
     }
-    setText('hud-delay-sub', v.delayNote);
+    setTitle('hud-delay-i', `delay to you: network plus playback buffer (${v.delayNote})`);
     warn('hud-delay', v.delayS != null && v.delayS > 1);
     setText('hud-loss', v.lossPct != null ? v.lossPct.toFixed(2) : '–');
-    setText('hud-loss-sub', player.kind === 'webrtc' ? 'on the way to you' : '');
     warn('hud-loss', v.lossPct != null && v.lossPct > 1);
 
     // Readout: the format as it actually arrives, e.g. 1080p90.
