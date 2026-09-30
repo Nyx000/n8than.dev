@@ -219,7 +219,11 @@ n8than.dev {
 		}
 	}
 
-	# Live game stream (/live) — the MediaMTX relay on THIS box (deploy/live/, installed by
+	# The stream page moved from /live to /game on 2026-09-30; old links keep working.
+	@old_live path /live /live/
+	redir @old_live /game/ permanent
+
+	# Live game stream (/game) — the MediaMTX relay on THIS box (deploy/live/, installed by
 	# deploy/live/setup.sh, not by this workflow). Only the read side is routed: stream
 	# status, WHEP playback and LL-HLS. Publishing (WHIP) never passes through Caddy — OBS
 	# publishes over the tailnet straight to :8889, and MediaMTX only accepts the publish
