@@ -1,0 +1,610 @@
+---
+// The amber CRT chat used on /grow and /live. Posts and reads go to `endpoint`, a Caddy
+// route onto the growtent shoutbox (deploy/Caddyfile); each route pins its own room.
+interface Props {
+  title: string;
+  channel: string;
+  endpoint: string;
+  pollMs: number;
+  placeholder: string;
+  class?: string;
+}
+
+const { title, channel, endpoint, pollMs, placeholder, class: className, ...rest } = Astro.props;
+---
+
+<article
+  class:list={['card', 'chatter-crt', className]}
+  data-chatter
+  data-endpoint={endpoint}
+  data-poll-ms={pollMs}
+  {...rest}
+>
+  <header class="chatter-head">
+    <h2 class="chatter-title">{title}</h2>
+    <span class="chatter-topic" id="chatter-count-note">{channel}</span>
+  </header>
+  <ol
+    class="chatter-log"
+    id="chatter-log"
+    role="log"
+    aria-live="polite"
+    aria-label="recent shouts"
+    aria-busy="false"
+  >
+    <li class="chatter-sys">*** connecting to {channel}…</li>
+  </ol>
+  <form class="chatter-form" id="chatter-form" autocomplete="off">
+    <textarea
+      id="chatter-body"
+      class="chatter-input"
+      name="body"
+      rows="2"
+      maxlength="280"
+      placeholder={placeholder}
+      required
+      autocomplete="off"
+      aria-label="your shout"></textarea>
+    <div class="chatter-meta">
+      <input
+        id="chatter-name"
+        class="chatter-name"
+        name="name"
+        type="text"
+        maxlength="32"
+        placeholder="anon"
+        autocomplete="off"
+        aria-label="name (optional)"
+      />
+      <input
+        id="chatter-hp"
+        class="chatter-hp"
+        name="website"
+        type="text"
+        tabindex="-1"
+        autocomplete="off"
+        aria-hidden="true"
+      />
+      <span class="chatter-count" id="chatter-count" aria-hidden="true">280</span>
+      <button type="submit" class="chatter-post" id="chatter-post">transmit</button>
+    </div>
+    <p class="chatter-status" id="chatter-status" role="status" aria-live="polite"></p>
+  </form>
+</article>
+
+<style is:global>
+  /* ============================================================
+     CHATTER — an amber-phosphor IRC terminal (the /grow tent chat and
+     the /live stream chat). Stays in the page's HL2-orange palette but treats the
+     whole panel like a lit CRT screen (recessed warm bg, scanlines,
+     phosphor glow). GLOBAL on purpose: the log rows are created in JS,
+     so Astro's scoped CSS would miss them. Every selector is uniquely
+     named, so global scope leaks nothing.
+     ============================================================ */
+  .card.chatter-crt[data-chatter] {
+    --crt-fg: var(--color-text); /* warm off-white message text */
+    --crt-amber: var(--color-accent); /* HL2 orange phosphor */
+    --crt-dim: #9c8f7d; /* warm dim — clears 4.5:1 on the screen bg */
+    --crt-screen: #0b0907; /* recessed warm near-black screen */
+    --crt-line: #241c14; /* warm screen border */
+    --crt-glow: rgba(255, 102, 0, 0.35);
+    position: relative;
+    overflow: hidden;
+    background: var(--crt-screen);
+    border-color: var(--crt-line);
+  }
+
+  .card.chatter-crt[data-chatter]:hover {
+    border-color: var(--crt-amber);
+  }
+
+  /* scanlines over the whole screen — moderate, kept readable. pointer-events
+     none so the form underneath stays clickable. */
+  .card.chatter-crt[data-chatter]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0) 0px,
+      rgba(0, 0, 0, 0) 3px,
+      rgba(0, 0, 0, 0.02) 3px,
+      rgba(0, 0, 0, 0.02) 4px
+    );
+  }
+
+  /* content above the overlays */
+  .card.chatter-crt[data-chatter] > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .chatter-head {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+  }
+
+  .chatter-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    letter-spacing: 0.14em;
+    color: var(--crt-amber);
+    text-shadow: 0 0 7px var(--crt-glow);
+  }
+
+  .chatter-topic {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--crt-dim);
+  }
+
+  /* the scrollable screen region */
+  .chatter-log {
+    list-style: none;
+    margin: var(--space-md) 0 0;
+    padding: 0.3rem 0;
+    min-height: 5rem;
+    max-height: 34rem;
+    overflow-y: auto;
+    overflow-anchor: none; /* prepend must not yank the scroll */
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--crt-fg);
+    text-shadow: 0 0 3px rgba(255, 102, 0, 0.12); /* phosphor bloom */
+    border-top: 1px solid var(--crt-line);
+    border-bottom: 1px solid var(--crt-line);
+    scrollbar-width: thin;
+    scrollbar-color: var(--crt-line) var(--crt-screen);
+  }
+
+  /* IRC row: HH:MM <nick> message — time + nick fixed, message wraps with a
+     hanging indent (it stays in its own flex column). */
+  .chatter-line {
+    display: flex;
+    gap: 0.5em;
+    align-items: baseline;
+    padding: 0.13rem 0.45rem;
+  }
+
+  .chatter-line:nth-child(odd) {
+    background: rgba(255, 140, 40, 0.04); /* zebra — differentiate rows */
+  }
+
+  .chatter-time {
+    flex: none;
+    color: var(--crt-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .chatter-nick {
+    flex: none;
+    font-weight: 500;
+    /* per-user hue set inline in JS; this is the fallback */
+    color: var(--crt-amber);
+  }
+
+  .chatter-msg {
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+  }
+
+  /* mIRC-style system + empty lines */
+  .chatter-sys {
+    padding: 0.13rem 0.45rem;
+    color: var(--crt-dim);
+    font-style: italic;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .chatter-line.is-new {
+      animation: chatter-in 0.18s ease both;
+    }
+  }
+
+  @keyframes chatter-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* ----- compose bar ----- */
+  .chatter-form {
+    margin-top: 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .chatter-input,
+  .chatter-name {
+    width: 100%;
+    padding: 0.5em 0.6em;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--crt-fg);
+    background: #070504;
+    border: 1px solid var(--crt-line);
+    border-radius: 5px;
+    text-shadow: 0 0 3px rgba(255, 102, 0, 0.12);
+  }
+
+  .chatter-input {
+    resize: vertical;
+  }
+
+  .chatter-input::placeholder,
+  .chatter-name::placeholder {
+    color: #7a6f5e;
+  }
+
+  .chatter-input:focus,
+  .chatter-name:focus {
+    outline: none;
+    border-color: var(--crt-amber);
+    box-shadow:
+      0 0 0 1px var(--crt-amber),
+      0 0 10px rgba(255, 102, 0, 0.25);
+  }
+
+  .chatter-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .chatter-name {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .chatter-count {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--crt-dim);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .chatter-count.is-warn {
+    color: var(--crt-amber);
+  }
+
+  .chatter-count.is-over {
+    color: #ff5a5a;
+  }
+
+  .chatter-post {
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 0.45em 1.1em;
+    color: var(--crt-amber);
+    background: transparent;
+    border: 1px solid var(--crt-amber);
+    border-radius: 5px;
+    cursor: pointer;
+    text-shadow: 0 0 6px var(--crt-glow);
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .chatter-post:hover {
+    background: var(--crt-amber);
+    color: #0b0907;
+    text-shadow: none;
+    box-shadow: 0 0 12px rgba(255, 102, 0, 0.5);
+  }
+
+  .chatter-post:focus-visible {
+    outline: 2px solid var(--crt-amber);
+    outline-offset: 2px;
+  }
+
+  .chatter-post:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .chatter-status {
+    min-height: 1em;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--crt-dim);
+  }
+
+  .chatter-status.is-error {
+    color: #ff5a5a;
+  }
+
+  .chatter-hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+
+  /* Mobile: the camera or stream is the hero. Trim the padding and cap the log
+     short so the video claims the screen; the chat sits compact below it. */
+  @media (max-width: 719px) {
+    .card.chatter-crt[data-chatter] {
+      padding: 0.55rem 0.65rem;
+      margin-bottom: 0;
+    }
+
+    .chatter-log {
+      max-height: 9rem;
+      margin-top: 0.45rem;
+    }
+
+    .chatter-form {
+      margin-top: 0.45rem;
+    }
+
+    .chatter-title {
+      font-size: 0.85rem;
+    }
+  }
+</style>
+
+<script>
+  // Anonymous chat backed by the growtent shoutbox. One per page; the endpoint (which also
+  // selects the room, via Caddy) and poll interval come from the element's data attributes.
+  interface PublicShout {
+    id: number;
+    body: string;
+    name: string | null;
+    created_at: string;
+  }
+
+  let endpoint = '';
+  let pollMs = 25_000;
+  let chatterTimer: number | undefined;
+  let chatterSeen = new Set<number>();
+
+  // IRC-style HH:MM clock (local, 24h). Full timestamp lives in the title tooltip.
+  function clockTime(iso: string): string {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '--:--';
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+
+  // Stable per-nick colour from a warm CRT-phosphor palette (named users pop;
+  // anon stays dim). Deterministic hash so the same nick is always the same hue.
+  const NICK_COLORS = [
+    '#ff8a3d',
+    '#ffb05c',
+    '#e0a83c',
+    '#ff7e6b',
+    '#d99a4e',
+    '#ffcf87',
+    '#f0915e',
+    '#caa46a',
+  ];
+  function nickColor(name: string): string {
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    return NICK_COLORS[h % NICK_COLORS.length];
+  }
+
+  function absTime(iso: string): string {
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? iso : d.toLocaleString();
+  }
+
+  // Build an IRC row "HH:MM <nick> message" with TEXT NODES only — body/name are
+  // untrusted, never innerHTML. Nick colour is set inline (works on JS-made nodes).
+  function shoutLine(sh: PublicShout, isNew = false): HTMLLIElement {
+    const li = document.createElement('li');
+    li.className = isNew ? 'chatter-line is-new' : 'chatter-line';
+    li.dataset.id = String(sh.id);
+
+    const t = document.createElement('time');
+    t.className = 'chatter-time';
+    t.dateTime = sh.created_at;
+    t.title = absTime(sh.created_at);
+    t.textContent = clockTime(sh.created_at);
+    li.append(t);
+
+    const nick = sh.name ? sh.name : 'anon';
+    const n = document.createElement('span');
+    n.className = 'chatter-nick';
+    n.textContent = `<${nick}>`;
+    n.style.color = sh.name ? nickColor(nick) : 'var(--crt-dim)';
+    li.append(n);
+
+    const msg = document.createElement('span');
+    msg.className = 'chatter-msg';
+    msg.textContent = sh.body;
+    li.append(msg);
+
+    return li;
+  }
+
+  // Is the log scrolled to (near) the bottom? Used to keep the newest line in view
+  // IRC-style without yanking a reader who has scrolled up into history.
+  function isNearBottom(el: HTMLElement): boolean {
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+  }
+
+  function renderChatter(items: PublicShout[]) {
+    const log = document.getElementById('chatter-log');
+    if (!log) return;
+    // Bottom-anchored like IRC: keep the newest line in view unless the reader has
+    // scrolled up into history.
+    const pinned = isNearBottom(log);
+
+    if (!items.length) {
+      // Show the placeholder only if nothing has ever been rendered — never wipe
+      // shouts already on screen (messages don't erase).
+      if (!log.querySelector('.chatter-line')) {
+        log.textContent = '';
+        const li = document.createElement('li');
+        li.className = 'chatter-sys';
+        li.textContent = '*** channel quiet — say something';
+        log.append(li);
+      }
+      return;
+    }
+
+    // Append-only: add new shouts at the bottom and NEVER remove a rendered line, so
+    // nothing erases. Dedup by id so polls don't duplicate; role="log" announces only
+    // the newly-appended lines. Timestamps are absolute, so old rows never need redraw.
+    log.querySelector('.chatter-sys')?.remove();
+    // items are newest-first; walk oldest→newest so new lines append at the bottom in order.
+    for (let i = items.length - 1; i >= 0; i--) {
+      const sh = items[i];
+      if (!chatterSeen.has(sh.id)) {
+        log.append(shoutLine(sh, true));
+        chatterSeen.add(sh.id);
+      }
+    }
+
+    if (pinned) log.scrollTop = log.scrollHeight;
+  }
+
+  async function loadChatter() {
+    try {
+      const res = await fetch(`${endpoint}?limit=50`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(String(res.status));
+      renderChatter((await res.json()) as PublicShout[]);
+    } catch {
+      const log = document.getElementById('chatter-log');
+      if (log && !log.querySelector('.chatter-line')) {
+        log.textContent = '';
+        const li = document.createElement('li');
+        li.className = 'chatter-sys';
+        li.textContent = '// channel unreachable — retrying';
+        log.append(li);
+      }
+    }
+  }
+
+  function setChatterStatus(msg: string, isError = false) {
+    const el = document.getElementById('chatter-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.toggle('is-error', isError);
+  }
+
+  function setupChatterForm() {
+    const form = document.getElementById('chatter-form') as HTMLFormElement | null;
+    const body = document.getElementById('chatter-body') as HTMLTextAreaElement | null;
+    const name = document.getElementById('chatter-name') as HTMLInputElement | null;
+    const hp = document.getElementById('chatter-hp') as HTMLInputElement | null;
+    const count = document.getElementById('chatter-count');
+    const postBtn = document.getElementById('chatter-post') as HTMLButtonElement | null;
+    if (!form || !body || !postBtn) return;
+
+    const updateCount = () => {
+      const remaining = 280 - body.value.length;
+      if (count) {
+        count.textContent = String(remaining);
+        count.classList.toggle('is-warn', remaining <= 40 && remaining > 0);
+        count.classList.toggle('is-over', remaining < 0);
+      }
+    };
+    body.addEventListener('input', updateCount);
+    updateCount();
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = body.value.trim();
+      if (!text) {
+        setChatterStatus('say something first', true);
+        return;
+      }
+      postBtn.disabled = true;
+      setChatterStatus('transmitting…');
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            body: text,
+            name: name && name.value.trim() ? name.value.trim() : undefined,
+            website: hp ? hp.value : '',
+          }),
+        });
+        if (res.status === 201) {
+          const sh = (await res.json()) as PublicShout;
+          const log = document.getElementById('chatter-log');
+          if (log) {
+            log.querySelector('.chatter-sys')?.remove();
+            if (!chatterSeen.has(sh.id)) {
+              log.append(shoutLine(sh, true));
+              chatterSeen.add(sh.id);
+            }
+            log.scrollTop = log.scrollHeight; // jump to the newest (the poster's own line)
+          }
+          body.value = '';
+          updateCount();
+          setChatterStatus('transmitted ✓');
+          body.focus(); // poster's own action — keep focus for rapid posting (not focus-stealing)
+        } else if (res.status === 429) {
+          setChatterStatus('rate limited — slow down a sec', true);
+        } else if (res.status === 400) {
+          const d = (await res.json().catch(() => ({}))) as { error?: string };
+          setChatterStatus(d.error || "that didn't go through", true);
+        } else {
+          throw new Error(String(res.status));
+        }
+      } catch {
+        setChatterStatus("couldn't send — try again", true);
+      } finally {
+        postBtn.disabled = false;
+      }
+    });
+  }
+
+  function startChatter() {
+    stopChatter();
+    void loadChatter();
+    chatterTimer = window.setInterval(loadChatter, pollMs);
+  }
+
+  function stopChatter() {
+    if (chatterTimer != null) clearInterval(chatterTimer);
+    chatterTimer = undefined;
+  }
+
+  // ClientRouter is active: init on every page load that has a chat, stop on pages without one
+  // or while the tab is hidden.
+  document.addEventListener('astro:page-load', () => {
+    const el = document.querySelector<HTMLElement>('[data-chatter]');
+    if (!el) {
+      stopChatter();
+      return;
+    }
+    endpoint = el.dataset.endpoint ?? '';
+    pollMs = Number(el.dataset.pollMs) || 25_000;
+    // The page DOM (incl. an empty #chatter-log) is rebuilt on every nav, but this Set is
+    // module-scoped and survives, so without resetting it every id is "already seen" and the
+    // fresh log never repopulates until a hard reload.
+    chatterSeen = new Set();
+    setupChatterForm();
+    startChatter();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.querySelector('[data-chatter]')) return;
+    if (document.hidden) stopChatter();
+    else startChatter();
+  });
+</script>

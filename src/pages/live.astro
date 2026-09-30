@@ -1,18 +1,31 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Chatter from '../components/Chatter.astro';
+
+// Decorative signal meter: fixed pseudo-random timings per bar, computed at build time so the
+// equaliser looks organic without any runtime randomness.
+const bars = Array.from({ length: 36 }, (_, i) => ({
+  dur: (0.55 + ((i * 37) % 11) * 0.07).toFixed(2),
+  delay: (-((i * 53) % 17) * 0.09).toFixed(2),
+  peak: (0.35 + ((i * 29) % 13) / 20).toFixed(2),
+}));
 ---
 
 <BaseLayout title="Live | n8than.dev" description="Live game stream, when there is one.">
   <section class="container stagger" id="live-root">
     <h1 class="section-heading">Live</h1>
-    <p class="intro">
-      Whatever I'm playing, streamed from my desk. Encoded on my GPU and relayed by the same Hetzner
-      box that serves this site, with under a second of delay.
-    </p>
 
-    <div class="live-bar">
+    <div class="live-bar" id="live-bar" data-state="offline">
       <span class="live-chip" id="live-chip" data-state="offline">Offline</span>
       <span class="live-viewers" id="live-viewers" hidden></span>
+      <span class="live-meter" aria-hidden="true">
+        {bars.map((b) => <span style={`--dur:${b.dur}s;--delay:${b.delay}s;--peak:${b.peak}`} />)}
+      </span>
+      <span class="live-readout" aria-hidden="true">
+        <span>CH-01</span>
+        <span>RELAY HIL-1</span>
+        <span id="live-signal">NO SIGNAL</span>
+      </span>
     </div>
 
     <div class="live-frame">
@@ -24,6 +37,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       </div>
       <button type="button" class="live-unmute" id="live-unmute" hidden>Unmute</button>
     </div>
+
+    <Chatter
+      class="live-chat"
+      title="STREAM CHAT"
+      channel="#live"
+      endpoint="/api/live/chat"
+      pollMs={3_000}
+      placeholder="say something…"
+    />
   </section>
 </BaseLayout>
 
@@ -85,6 +107,96 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   .live-viewers {
     color: var(--color-muted);
+  }
+
+  /* Decorative signal meter: a strip of equaliser bars that idles flat while offline and
+     dances while live. Timings come from the frontmatter (per-bar --dur/--delay/--peak). */
+  .live-meter {
+    flex: 1;
+    min-width: 6rem;
+    height: 1.1rem;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    opacity: 0.85;
+  }
+
+  .live-meter > span {
+    flex: 1;
+    height: 100%;
+    background: var(--color-border);
+    transform-origin: bottom;
+    transform: scaleY(0.12);
+    transition:
+      background var(--dur-med) var(--ease),
+      transform var(--dur-slow) var(--ease);
+  }
+
+  .live-bar[data-state='live'] .live-meter > span {
+    background: var(--color-accent);
+    animation: live-eq var(--dur) var(--ease) var(--delay) infinite alternate;
+  }
+
+  .live-bar[data-state='connecting'] .live-meter > span {
+    background: var(--color-warn);
+    transform: scaleY(0.3);
+  }
+
+  @keyframes live-eq {
+    from {
+      transform: scaleY(0.12);
+    }
+    to {
+      transform: scaleY(var(--peak));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .live-bar[data-state='live'] .live-meter > span {
+      animation: none;
+      transform: scaleY(var(--peak));
+    }
+  }
+
+  .live-readout {
+    display: flex;
+    gap: 0.9em;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+
+  .live-readout > span + span::before {
+    content: '//';
+    margin-right: 0.9em;
+    color: var(--color-border);
+  }
+
+  .live-bar[data-state='live'] #live-signal {
+    color: var(--color-accent);
+  }
+
+  /* Phone width: chip + count on the first row, the meter and readout each take a full row. */
+  @media (max-width: 640px) {
+    .live-bar {
+      flex-wrap: wrap;
+      row-gap: var(--space-sm);
+    }
+
+    .live-meter {
+      order: 3;
+      flex-basis: 100%;
+    }
+
+    .live-readout {
+      order: 4;
+    }
+  }
+
+  .live-chat {
+    margin-top: var(--space-lg);
   }
 
   .live-frame {
@@ -199,6 +311,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     chip.dataset.state = state;
     chip.textContent =
       state === 'offline' ? 'Offline' : state === 'connecting' ? 'Connecting' : 'Live';
+    const bar = $('live-bar');
+    const signal = $('live-signal');
+    if (bar) bar.dataset.state = state;
+    if (signal)
+      signal.textContent =
+        state === 'offline' ? 'NO SIGNAL' : state === 'connecting' ? 'ACQUIRING' : 'SIGNAL LOCKED';
     count.hidden = !online || viewers == null;
     if (viewers != null) count.textContent = `${viewers} watching`;
     overlay.hidden = online && player.kind !== 'idle';

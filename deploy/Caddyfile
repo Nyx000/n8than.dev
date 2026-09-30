@@ -232,6 +232,24 @@ n8than.dev {
 		header Cache-Control "no-store"
 	}
 
+	# Stream chat under the player — the growtent shoutbox, room pinned to `live` here (the
+	# route reads the FIRST room param, so a client-supplied ?room= can't switch rooms). Same
+	# public-write posture as /api/grow/shoutbox: Origin check on POST + pinned XFF + body cap;
+	# the backend's per-room limiter (3s spacing, 300/day) is the real enforcement.
+	handle /api/live/chat {
+		rewrite * /api/public/shoutbox?room=live&{query}
+		request_body {
+			max_size 16KB
+		}
+		@cross_origin_post {
+			method POST
+			not header Origin https://n8than.dev
+		}
+		respond @cross_origin_post 403
+		import growtent_web_clientip
+		header Cache-Control "no-store"
+	}
+
 	# WHEP: POST creates a playback session, PATCH trickles ICE, DELETE ends it. MediaMTX
 	# returns the session URL in Location rooted at /, so it is re-prefixed on the way out.
 	# The media itself flows over 8189/udp directly, not through Caddy.
