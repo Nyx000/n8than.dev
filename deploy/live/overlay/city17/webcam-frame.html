@@ -46,6 +46,7 @@
   .br.brr{left:calc(var(--hx) + var(--hw) - 10px);top:calc(var(--hy) + var(--hh) - 10px);border-bottom-width:2px;border-right-width:2px}
 
   /* header */
+  .claw{position:absolute;left:6px;top:12px;width:19px;height:19px;color:var(--scan);opacity:.9}
   .who{position:absolute;left:32px;top:9px;display:flex;align-items:baseline;gap:10px}
   .who .name{font-size:22px;font-weight:600;letter-spacing:.02em;line-height:26px}
   .who .unit{font-size:12px;letter-spacing:.14em;color:var(--scan);font-stretch:75%}
@@ -53,6 +54,7 @@
   .rec .dot{width:9px;height:9px;border-radius:50%;background:var(--resist);box-shadow:0 0 8px var(--resist);
     animation:blink 1.6s steps(1,end) infinite}
   .rec .lbl{font-size:13px;font-weight:700;letter-spacing:.16em;color:var(--resist);font-stretch:75%}
+  .rec .cast{width:21px;height:16px;color:var(--frost);opacity:.85}
   .rec .tc{font-size:20px;font-weight:300;letter-spacing:.05em;line-height:22px}
   @keyframes blink{0%,62%{opacity:1}63%,100%{opacity:.12}}
 
@@ -89,7 +91,9 @@
   .stat{font-size:14px;letter-spacing:.03em;font-stretch:87.5%;white-space:nowrap}
   .stat b{font-weight:600;color:var(--scan)}
   .code{font-size:12px;letter-spacing:.12em;opacity:.55;font-stretch:75%;margin-left:auto}
-  .tag{width:28px;height:28px;flex:none;transform:rotate(-8deg)}
+  .cmb{width:40px;height:12px;flex:none;color:var(--frost);opacity:.45}
+  /* Overwatch Elite sigil, standing a little proud of the footer */
+  .tag{width:28px;height:36px;flex:none;margin:-7px -3px 0 0}
 
   @media (prefers-reduced-motion: reduce){
     .rec .dot,.ticks i.warn{animation:none}
@@ -108,8 +112,18 @@
 
   <i class="br tl"></i><i class="br tr"></i><i class="br bl"></i><i class="br brr"></i>
 
+  <!-- Marks are drawn for this overlay after Half-Life 2's Combine iconography (fan art; Half-Life is Valve's). -->
+  <svg class="claw" viewBox="0 0 100 100" aria-hidden="true">
+    <mask id="clawCut"><rect width="100" height="100" fill="#fff"/><circle cx="60" cy="62" r="28" fill="#000"/></mask>
+    <polygon points="31,0 63,31 100,36 100,100 35,100 0,30 36,60 48,40" fill="currentColor" mask="url(#clawCut)"/>
+    <circle cx="60" cy="62" r="21" fill="currentColor"/>
+  </svg>
   <div class="who"><span class="name">Nyx000</span><span class="unit">UNIT C17:S7</span></div>
-  <div class="rec"><span class="dot"></span><span class="lbl">REC</span><span class="tc" id="tc">00:00:00</span></div>
+  <div class="rec"><span class="dot"></span><svg class="cast" viewBox="0 0 42 32" aria-hidden="true">
+      <rect x="1.5" y="1.5" width="39" height="29" rx="5" fill="none" stroke="currentColor" stroke-width="3"/>
+      <circle cx="21" cy="13" r="5.5" fill="currentColor"/>
+      <path d="M9 29.5c1-8 6-10.5 12-10.5s11 2.500 12 10.500z" fill="currentColor"/>
+    </svg><span class="lbl">BREENCAST</span><span class="tc" id="tc">00:00:00</span></div>
 
   <div class="slats"><i></i><i></i><i><span class="lift"></span></i><i></i><i></i></div>
   <div class="ruler"><span class="caret"></span></div>
@@ -118,9 +132,16 @@
     <span class="ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i class="warn"></i><i class="dim"></i></span>
     <span class="stat" id="stat">Biosignal <b>steady</b></span>
     <span class="code" id="code">CAM 01</span>
-    <svg class="tag" viewBox="0 0 28 28" aria-hidden="true">
-      <circle cx="14" cy="14" r="12" fill="none" stroke="#ff6600" stroke-width="2.2" stroke-dasharray="66 4 3 4"/>
-      <path d="M9 21 L13.2 12.4 L11.2 7.5 M13.2 12.4 L18.6 21" fill="none" stroke="#ff6600" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <svg class="cmb" viewBox="0 0 120 36" aria-hidden="true" fill="currentColor">
+      <path d="M0 0H36V10H12V14H0ZM0 19H12V26H36V36H0Z"/>
+      <path d="M42 0H76V36H67V10H63.500V36H54.500V10H51V36H42Z"/>
+      <path fill-rule="evenodd" d="M82 0H92V13H120V36H82ZM92 21H110V28H92Z"/>
+    </svg>
+    <svg class="tag" viewBox="0 0 100 128" aria-hidden="true">
+      <path d="M30 3 4 74 50 125 96 74 70 3 64 45Q50 37 36 45Z" fill="#d6f1ff" stroke="#0a1118" stroke-width="5" stroke-linejoin="round"/>
+      <circle cx="50" cy="76" r="26" fill="#0a1118"/>
+      <circle cx="50" cy="76" r="13" fill="none" stroke="#ff6600" stroke-width="5"/>
+      <circle cx="50" cy="76" r="4.500" fill="#ff6600"/>
     </svg>
   </div>
 

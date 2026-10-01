@@ -1,0 +1,6 @@
+# local allowlist and settings: names of folders on the streamer's machine, never published
+config.json
+*.log
+*.log.*
+__pycache__/
+.pytest_cache/

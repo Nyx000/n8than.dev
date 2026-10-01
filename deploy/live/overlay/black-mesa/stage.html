@@ -7,7 +7,8 @@
   Always-on layer of the Black Mesa overlay: ONE info console in the top-right corner.
   It sits directly above the webcam frame (webcam-frame.html), so with the cam off it is
   a corner console and with the cam on the two read as one equipment tower.
-  Data: n8than.dev status/chat/now-playing + optional Deadlock match history.
+  Data: n8than.dev status/chat/now-playing + optional Deadlock match history + the local
+  Claude Code activity feed (../../agentfeed, 127.0.0.1:47801), which is metadata only.
   Config constants are at the top of the script. Add ?mock=1 to preview with fake data.
 -->
 <style>
@@ -45,6 +46,20 @@
   .hz{position:absolute;right:10px;top:4px;width:48px;height:9px;
     background:repeating-linear-gradient(-45deg, var(--stripe) 0 4px, #111 4px 8px);
     box-shadow:0 0 0 1px rgba(0,0,0,.45)}
+
+  /* automation lamps: one LED per Claude Code session, set into the enamel between the plate and the hazard strip.
+     dim = standing by, lit = thinking, pulsing = running a tool. No sessions (or no feed): no lamps at all. */
+  .procs{position:absolute;right:68px;top:6px;height:5px;display:flex;gap:4px}
+  .procs:empty{display:none}
+  .procs i{width:5px;height:5px;border-radius:50%;background:#2e281c;
+    box-shadow:inset 0 1px 1px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.4)}
+  .procs i::after{content:"";display:block;width:5px;height:5px;border-radius:50%;opacity:.16;box-shadow:0 0 4px rgba(255,130,0,.95);
+    background:radial-gradient(circle at 40% 35%, #ffd27a, var(--warn) 85%)}
+  .procs i.lit::after,.procs i.run::after{opacity:1}
+  .procs i.run::after{animation:proc 1.7s ease-in-out infinite}
+  .procs i:nth-child(2n).run::after{animation-delay:-.6s}
+  .procs i:nth-child(3n).run::after{animation-delay:-1.1s}
+  @keyframes proc{0%,100%{opacity:1}55%{opacity:.42}}
 
   .glass{position:absolute;left:6px;right:6px;top:18px;bottom:6px;background:var(--glass);border-radius:4px;overflow:hidden;
     box-shadow:inset 0 0 0 1px rgba(0,0,0,.8), inset 0 2px 5px rgba(0,0,0,.9)}
@@ -110,7 +125,7 @@
   .cb.wrap .l2{display:none}
 
   @media (prefers-reduced-motion: reduce){
-    .colon,.card.in,.card.fresh .tag{animation:none}
+    .colon,.card.in,.card.fresh .tag,.procs i.run::after{animation:none}
     .face{transition:none}
   }
 </style>
@@ -118,6 +133,7 @@
 <body>
   <div class="info">
     <div class="plate"><b>NYX000</b><span>CHAMBER C-33/a</span></div>
+    <span class="procs" id="procs" aria-hidden="true"></span>
     <i class="hz"></i>
     <div class="glass">
       <div class="faces" id="faces" data-face="idle">
@@ -152,10 +168,13 @@
   const API_BASE = "https://n8than.dev";      // "" if this page is itself served from n8than.dev (same origin, no CORS needed)
   const STEAM_ACCOUNT_ID = "";                // Deadlock account: SteamID3 (the N in [U:1:N]) or SteamID64. Empty = Deadlock pieces off.
   const DEADLOCK_API = "https://api.deadlock-api.com";   // community API, sends CORS *
-  const EVERY = { status: 30e3, chat: 15e3, music: 30e3, match: 420e3 };   // ms between polls (never faster)
+  const AGENT_FEED = "http://127.0.0.1:47801/agents.json";   // local Claude Code activity feed (agentfeed.py); metadata only
+  const EVERY = { status: 30e3, chat: 15e3, music: 30e3, match: 420e3, agents: 4e3 };   // ms between polls (never faster; agents is a local daemon)
   const LIVE_STALE_MS = 100e3;    // status older than this counts as missing
   const CHAT_MAX_AGE = 3 * 3600e3;
   const GAME_MAX_AGE = 12 * 3600e3;
+  const AGENTS_STALE_MS = 30e3;   // a feed that stopped answering counts as missing
+  const MAX_LAMPS = 6;
   const HOLD_MS = 8000;           // how long each ticker card stays
 
   const FLAVOR = [       // [line, small print]: shown when there is little or no live data
@@ -169,11 +188,11 @@
   const Data = (() => {
     const q = new URLSearchParams(location.search);
     const MOCK = q.get("mock") === "1";
-    const OFF = new Set((q.get("off") || "").split(","));      // mock only: off=status,chat,music,match,deadlock
+    const OFF = new Set((q.get("off") || "").split(","));      // mock only: off=status,chat,music,match,deadlock,agents
     // ?steam= wins over the constant, so the ID can live in the local OBS source URL
     // instead of this public repo.
     const acct = MOCK ? (OFF.has("deadlock") ? null : "1") : toAccountId(q.get("steam") || STEAM_ACCOUNT_ID);
-    const state = { status: null, chat: null, music: null, match: null, deadlock: acct !== null };
+    const state = { status: null, chat: null, music: null, match: null, agents: null, deadlock: acct !== null };
     const listeners = [];
     const heroes = new Map();
     let heroesRetryAt = 0, seenChat = 0, seenTrack = null;
@@ -221,6 +240,19 @@
         hero_id: hero, player_kills: k, player_deaths: d, player_assists: a, match_duration_s: dur })),
       heroes: () => [{ id: 1, name: "Infernus" }, { id: 2, name: "Seven" }, { id: 6, name: "Abrams" },
                      { id: 7, name: "Wraith" }, { id: 8, name: "McGinnis" }, { id: 10, name: "Paradox" }],
+      agents: () => {
+        if (OFF.has("agents")) return { schema: 1, updated: Date.now() / 1000, sessions: [] };
+        const step = Math.floor((Date.now() - T0) / 8000);          // the scripted sessions move on every 8 s
+        const pick = (list, i) => list[(step + i) % list.length];
+        const s = (alias, [state, action], ops, tok, subs, ageMin) => ({ alias, public: alias !== "Classified", state, action,
+          tool_calls: ops + step * 3, tokens_out: tok + step * 900, subagents: subs, age_s: ageMin * 60 + step * 8, idle_s: state === "idle" ? 190 : 2 });
+        return { schema: 1, updated: Date.now() / 1000, sessions: [
+          s("n8than.dev", pick([["tool", "Editing stage.html"], ["tool", "Running tests"], ["thinking", "Thinking"], ["tool", "Editing README.md"]], 0), 214, 88400, 0, 47),
+          s("Classified", pick([["tool", "Running tests"], ["tool", "Searching"], ["tool", "Using git"]], 1), 533, 388000, 2, 190),
+          s("wardogs-ocr", pick([["thinking", "Thinking"], ["tool", "Driving a browser"], ["tool", "Researching"]], 2), 61, 20950, 0, 12),
+          s("Classified", ["idle", "Standing by"], 96, 41200, 0, 320),
+        ] };
+      },
     };
 
     /* ---- sources: load raw, apply to state (throw on a malformed payload) ---- */
@@ -258,6 +290,19 @@
           state.music = { id: String(t.id || t.name), name: clean(t.name, 90), artists: clean(t.artists, 90) };
           if (state.music.id !== seenTrack){ const was = seenTrack; seenTrack = state.music.id; if (!first && was !== null) emit("music"); }
         },
+      },
+    };
+    sources.agents = {
+      every: EVERY.agents,
+      load: () => MOCK ? mock.agents() : getJSON(AGENT_FEED),
+      apply(d){
+        if (!d || d.schema !== 1 || !Array.isArray(d.sessions)) throw new Error("agents shape");
+        const num = (v, hi) => { const n = Math.trunc(Number(v)); return Number.isFinite(n) ? Math.min(hi, Math.max(0, n)) : 0; };
+        const list = d.sessions.slice(0, 12).filter(s => s && typeof s === "object").map(s => ({
+          alias: clean(s.alias, 16) || "Classified", action: clean(s.action, 27) || "Working",
+          state: s.state === "tool" || s.state === "thinking" ? s.state : "idle",
+          ops: num(s.tool_calls, 1e6), tokens: num(s.tokens_out, 1e9), subs: num(s.subagents, 99), age: num(s.age_s, 1e7), idle: num(s.idle_s, 1e6) }));
+        state.agents = list.length ? { at: Date.now(), list } : null;
       },
     };
     if (acct !== null){
@@ -313,7 +358,7 @@
   const pad = n => String(n).padStart(2, "0");
   const el = { faces: $("faces"), up: $("up"), rd: $("rd"), third: $("third"), sw: $("sw"), sl: $("sl"), pips: $("pips"),
     h2: $("h2"), m2: $("m2"), hh: $("hh"), mm: $("mm"),
-    card: $("card"), tag: $("tag"), meta: $("meta"), age: $("age"), cb: $("cb"), b1: $("b1"), b2: $("b2") };
+    procs: $("procs"), card: $("card"), tag: $("tag"), meta: $("meta"), age: $("age"), cb: $("cb"), b1: $("b1"), b2: $("b2") };
   const setText = (node, v) => { v = String(v); if (node.textContent !== v) node.textContent = v; };
 
   for (let i = 0; i < 5; i++) el.pips.appendChild(document.createElement("i"));
@@ -323,6 +368,9 @@
   const fmtUp = s => { s = Math.max(0, Math.floor(s));      // always H:MM:SS so 12 minutes never reads as 12:00 o'clock
     return Math.floor(s / 3600) + ":" + pad(Math.floor(s / 60) % 60) + ":" + pad(s % 60); };
   const shortAge = ms => { const m = Math.floor(ms / 60e3); return m < 1 ? "now" : m < 60 ? m + "m" : Math.floor(m / 60) + "h"; };
+  const span = s => { const m = Math.floor(s / 60); return m < 1 ? "new" : m < 60 ? m + "m" : Math.floor(m / 60) + "h"; };
+  const kilo = n => n < 1000 ? String(n) : n < 1e6 ? (n / 1000).toFixed(n < 1e4 ? 1 : 0) + "k" : (n / 1e6).toFixed(1) + "M";
+  const count = (n, one, many) => n + " " + (n === 1 ? one : many || one + "s");
   const longAge = ms => { const m = Math.floor(ms / 60e3); return m < 1 ? "just now" : m < 60 ? m + " min ago" : Math.floor(m / 60) + "h ago"; };
 
   // Deadlock view: session record since the broadcast started (local midnight if the start is unknown)
@@ -339,8 +387,26 @@
     return { w, l: sess.length - w, form: scored.slice(0, 5).reverse(), last };
   }
 
+  // Claude Code sessions, or null when the feed is missing, silent or empty
+  function agentsView(now){
+    const a = Data.state.agents;
+    return a && now - a.at < AGENTS_STALE_MS ? a.list : null;
+  }
+  let lampKey = "";
+  function lamps(now){
+    const list = (agentsView(now) || []).slice(0, MAX_LAMPS);
+    const key = list.map(s => s.state[1]).join("");
+    if (key === lampKey) return;
+    lampKey = key;
+    while (el.procs.childElementCount > list.length) el.procs.lastElementChild.remove();
+    while (el.procs.childElementCount < list.length) el.procs.appendChild(document.createElement("i"));
+    list.forEach((s, i) => { el.procs.children[i].className = s.state === "tool" ? "run" : s.state === "thinking" ? "lit" : ""; });
+  }
+
   function render(){
     const now = Date.now(), d = new Date(now), s = Data.state.status;
+    lamps(now);
+    if (shown === "auto" && !agentsView(now)) step();   // the feed went away: do not leave its card up
     const live = !!(s && s.live && now - s.at < LIVE_STALE_MS);
     const face = live ? "live" : "idle";
     if (el.faces.dataset.face !== face) el.faces.dataset.face = face;
@@ -364,8 +430,20 @@
   }
 
   /* ---- ticker: one card at a time ---- */
-  const ORDER = ["music", "chat", "match", "log"];
-  let shown = "", fl = 0, timer = 0;
+  const ORDER = ["music", "chat", "match", "auto", "log"];
+  let shown = "", fl = 0, timer = 0, autoTurn = 0;
+  // the automation card names one session per appearance: the working ones in turn, then a head count
+  function autoCard(now){
+    const list = agentsView(now);
+    if (!list) return null;
+    const busy = list.filter(s => s.state !== "idle").sort((a, b) => (b.state === "tool") - (a.state === "tool")), subs = list.reduce((n, s) => n + s.subs, 0);
+    const faces = (busy.length ? busy : list.slice(0, 1)).map(s => ({ meta: s.alias, age: span(s.age), body: [s.action,
+      s.state === "idle" ? "Quiet " + span(s.idle) + ", " + count(s.ops, "op")
+        : count(s.ops, "op") + ", " + (s.subs ? count(s.subs, "agent") + " out" : kilo(s.tokens) + " tokens")] }));
+    if (list.length > 1) faces.push({ meta: "All sessions", age: "", body: [count(list.length, "process", "processes") + ", " + busy.length + " busy",
+      (subs ? count(subs, "agent") + " out, " : "") + count(list.reduce((n, s) => n + s.ops, 0), "op")] });
+    return { key: "auto", tag: "Automation", cls: "", ...faces[autoTurn % faces.length] };
+  }
   function items(now){
     const out = [], st = Data.state;
     if (st.music) out.push({ key: "music", tag: "Now playing", cls: "", meta: "", body: [st.music.name, st.music.artists] });
@@ -377,6 +455,8 @@
       out.push({ key: "match", tag: g.win ? "Win" : g.loss ? "Loss" : "Game", cls: g.win ? "w" : g.loss ? "l" : "", meta: "Last game",
         body: [Data.heroName(g.hero) + "  " + g.k + "/" + g.d + "/" + g.a, Math.round(g.dur / 60) + " min match, " + longAge(now - g.t - g.dur * 1000)] });
     }
+    const auto = autoCard(now);
+    if (auto) out.push(auto);
     if (out.length < 2)       // little or no data: the chamber talks
       out.push({ key: "log", tag: "Log", cls: "", meta: "Test chamber", body: FLAVOR[fl] });
     return out;
@@ -401,6 +481,7 @@
     shown = it.key;
     show(it, jump);
     if (it.key === "log") fl = (fl + 1) % FLAVOR.length;
+    if (it.key === "auto") autoTurn++;
     timer = setTimeout(step, jump ? HOLD_MS + 2000 : HOLD_MS);
   }
 

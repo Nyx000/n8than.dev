@@ -1,0 +1,10 @@
+{
+  "classified_label": "Classified",
+  "idle_s": 600,
+  "port": 47801,
+  "projects": [
+    { "path": "~/Documents/Projects/example-project" },
+    { "path": "~/Documents/Projects/another-one", "name": "another.one", "exclude": ["private", "notes/drafts"] }
+  ],
+  "deny": []
+}

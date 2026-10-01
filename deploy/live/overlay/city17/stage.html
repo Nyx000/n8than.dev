@@ -32,12 +32,32 @@
   .log::after{content:"";position:absolute;left:0;top:55px;width:3px;height:17px;background:var(--resist);opacity:.9}
 
   .hdr{position:absolute;left:14px;right:14px;top:7px;height:13px;display:flex;align-items:center;gap:8px}
-  .pip{width:6px;height:6px;border-radius:50%;background:var(--scan);box-shadow:0 0 6px var(--scan);flex:none}
-  .live .pip{animation:pip 2.4s steps(1,end) infinite}
+  /* Combine claw in place of a status dot; it blinks while the feed is live */
+  .mark{width:13px;height:13px;flex:none;color:var(--scan);filter:drop-shadow(0 0 3px rgba(127,214,255,.7))}
+  .live .mark{animation:pip 2.4s steps(1,end) infinite}
+  /* City 17 ring, half off the panel's right end, behind everything */
+  .wm{position:absolute;right:-26px;top:-18px;width:112px;height:112px;color:var(--scan);opacity:.09;pointer-events:none}
   .code{font-size:11px;line-height:13px;letter-spacing:.14em;color:var(--scan);font-stretch:75%;white-space:nowrap}
   .code b{font-weight:600;color:var(--frost);opacity:.55}
-  .clock{margin-left:auto;font-size:12px;line-height:13px;letter-spacing:.08em;opacity:.7;font-stretch:87.5%}
-  @keyframes pip{0%,70%{opacity:1}71%,100%{opacity:.15}}
+  .right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .clock{font-size:12px;line-height:13px;letter-spacing:.08em;opacity:.7;font-stretch:87.5%}
+  @keyframes pip{0%,70%{opacity:1}71%,100%{opacity:.35}}
+
+  /* unit telemetry: one tick per Claude Code session, beside the clock.
+     dim = standing by, lit = thinking, pulsing = running a tool. No sessions (or no feed): no ticks at all. */
+  .ai{display:flex;align-items:center;gap:5px}
+  .ai svg{width:11px;height:11px;flex:none;color:#e08a63}
+  .units{display:flex;gap:3px;align-items:center;height:13px}
+  /* viewers on the stream page, from the relay; absent while off air */
+  .view{display:flex;align-items:center;gap:5px;font-size:12px;line-height:13px;letter-spacing:.08em;font-stretch:87.5%}
+  .view svg{width:15px;height:11px;flex:none;color:var(--scan)}
+  [hidden]{display:none !important}
+  .units i{display:block;width:3px;height:9px;border-radius:1px;background:var(--scan);opacity:.2}
+  .units i.lit,.units i.run{opacity:.95}
+  .units i.run{animation:unit 1.6s ease-in-out infinite}
+  .units i:nth-child(2n).run{animation-delay:-.55s}
+  .units i:nth-child(3n).run{animation-delay:-1.05s}
+  @keyframes unit{0%,100%{opacity:.95}55%{opacity:.45}}
 
   /* the two faces of the panel share one box and crossfade */
   .face{position:absolute;left:14px;right:14px;top:21px;height:30px;transition:opacity .5s ease}
@@ -68,7 +88,7 @@
   .evt .tag{font-size:11px;letter-spacing:.14em;font-stretch:75%;font-weight:600;color:var(--scan);flex:none}
   .evt .tag.k-down{color:var(--resist)}
   .evt .tag.k-cash{color:var(--amber)}
-  .evt .tag.k-rev,.evt .tag.k-idle{color:var(--frost);opacity:.7}
+  .evt .tag.k-rev,.evt .tag.k-idle,.evt .tag.k-unit,.evt .tag.k-info{color:var(--frost);opacity:.7}
   .evt .at{font-size:12px;letter-spacing:.06em;opacity:.5;font-stretch:87.5%;flex:none}
   .evt .at:empty{display:none}
   .evt .txt{font-size:16px;line-height:17px;font-stretch:87.5%;overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -85,18 +105,45 @@
   @keyframes fresh{0%{opacity:1}50%{opacity:.2}}
 
   @media (prefers-reduced-motion: reduce){
-    .live .pip,.tag.fresh{animation:none}
+    .live .mark,.tag.fresh,.units i.run{animation:none}
     .sweep{display:none}
     .face,.flavor,.swap{transition:none}
   }
 </style>
 </head>
 <body>
+  <!-- Marks are drawn for this overlay after Half-Life 2's Combine iconography (fan art; Half-Life is Valve's). -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="claw" viewBox="0 0 100 100">
+        <mask id="clawCut"><rect width="100" height="100" fill="#fff"/><circle cx="60" cy="62" r="28" fill="#000"/></mask>
+        <polygon points="31,0 63,31 100,36 100,100 35,100 0,30 36,60 48,40" fill="currentColor" mask="url(#clawCut)"/>
+        <circle cx="60" cy="62" r="21" fill="currentColor"/>
+      </symbol>
+      <symbol id="c17ring" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="19" stroke-dasharray="196 55.3" transform="rotate(-48 50 50)"/>
+        <circle cx="50" cy="50" r="24" fill="none" stroke="currentColor" stroke-width="6" stroke-dasharray="52 14 70 14.8" transform="rotate(20 50 50)"/>
+      </symbol>
+      <symbol id="spark" viewBox="0 0 24 24">
+        <path d="M12 1v22M1 12h22M4.2 4.2l15.6 15.6M19.8 4.2 4.2 19.8M7.5 2l9 20M16.5 2l-9 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="eye" viewBox="0 0 30 22">
+        <path d="M1.5 11Q15-5 28.5 11Q15 27 1.5 11Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+        <circle cx="15" cy="11" r="4.6" fill="currentColor"/>
+      </symbol>
+    </defs>
+  </svg>
+
   <div class="panel log" id="log">
+    <svg class="wm" aria-hidden="true"><use href="#c17ring"/></svg>
     <div class="hdr">
-      <span class="pip"></span>
+      <svg class="mark" aria-hidden="true"><use href="#claw"/></svg>
       <span class="code" id="code">C17 <b>/</b> DISPATCH</span>
-      <span class="clock" id="clock">00:00</span>
+      <span class="right">
+        <span class="ai" id="ai" aria-hidden="true" hidden><svg><use href="#spark"/></svg><span class="units" id="units"></span></span>
+        <span class="view" id="view" hidden><svg aria-hidden="true"><use href="#eye"/></svg><span id="viewers">0</span></span>
+        <span class="clock" id="clock">00:00</span>
+      </span>
     </div>
 
     <div class="face dispatch-face"><div class="flavor" id="flavor">Sector 7 under observation</div></div>
@@ -118,7 +165,13 @@
 <script>
 (() => {
   // Session feed from wardogs-ocr's live.py. ?mock=1 swaps in scripted data for previews.
+  // Claude Code activity from agentfeed.py (metadata only). ?mock=1 scripts this one too.
   const FEED = "http://127.0.0.1:47800/wardogs.json";
+  const UNIT_FEED = "http://127.0.0.1:47801/agents.json";
+  const STATUS = "https://n8than.dev/api/live/status";   // public endpoint: 30 s, never lower
+  const STATUS_MS = 30000;
+  const FACTIONS = ["Blue", "Red", "Green"];             // the HUD's score order, left to right
+  const MAX_UNITS = 8, UNIT_EVERY = 4;
   const POLL_MS = 3000, ROTATE_MS = 6000, HOLD_NEW_MS = 12000, FLAVOR_MS = 8000;
   const STALE_S = 900;          // incidents older than this drop out of the rotation
   const RECENT = 4;             // how many recent incidents the line cycles through
@@ -143,13 +196,13 @@
   ]);
   const $ = id => document.getElementById(id);
   const log = $("log"), code = $("code"), clock = $("clock"), flavorEl = $("flavor");
-  const evtEl = $("evt"), tagEl = $("tag"), atEl = $("at"), txtEl = $("txt"), sweep = $("sweep");
+  const unitsEl = $("units"), evtEl = $("evt"), tagEl = $("tag"), atEl = $("at"), txtEl = $("txt"), sweep = $("sweep");
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const pad = n => String(n).padStart(2, "0");
 
-  // feed text is untrusted: plain strings only, whitespace collapsed, length capped
+  // feed text is untrusted: plain strings only, control and bidi characters out, whitespace collapsed, length capped
   const clip = (s, n) => {
-    s = String(s ?? "").replace(/\s+/g, " ").trim();
+    s = String(s ?? "").replace(/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069]+/g, " ").replace(/\s+/g, " ").trim();
     return s.length > n ? s.slice(0, n - 1) + "…" : s;
   };
   const int = (v, lo, hi) => {
@@ -174,10 +227,17 @@
     if (on === live) return;
     live = on;
     log.classList.toggle("live", on);
-    code.replaceChildren("C17 ", Object.assign(document.createElement("b"), {textContent: "/"}),
-      on ? " CP INCIDENT LOG" : " DISPATCH");
+    setCode();
     events = []; shownId = null; holdUntil = 0; lastTop = null;
     if (!on) showLine();   // going live, apply() picks the line once it has the events
+  }
+
+  let matchN = 0;
+  function setCode(){
+    const slash = () => Object.assign(document.createElement("b"), {textContent: "/"});
+    const parts = ["C17 ", slash(), live ? " CP INCIDENT LOG" : " DISPATCH"];
+    if (live && matchN) parts.push(" ", slash(), " MATCH " + pad(matchN));
+    code.replaceChildren(...parts);
   }
 
   // ---------- incident line ----------
@@ -215,6 +275,19 @@
   }
   function showLine(){
     const list = live ? recent() : [];
+    const unit = unitLines();
+    if (unit.length && ++turn % UNIT_EVERY === 0){   // a unit report takes every fourth turn
+      shownId = "unit";
+      swapLine("UNITS", "k-unit", "", unit[unitTurn++ % unit.length], false);
+      return;
+    }
+    const info = live ? infoLines() : [];
+    if (info.length && (turn % 2 === 1 || !list.length)){   // session context shares the line with incidents
+      shownId = "info";
+      const [tag, text] = info[infoTurn++ % info.length];
+      swapLine(tag, "k-info", "", text, false);
+      return;
+    }
     if (!list.length){
       shownId = null;
       swapLine(live ? "DISPATCH" : "STATUS", "k-idle", "",
@@ -223,6 +296,63 @@
     }
     idx = (idx + 1) % list.length;
     showEvent(list[idx], false);
+  }
+
+  // ---------- session context the game's own HUD does not spell out ----------
+  let match = null, cash = null, infoTurn = 0;
+  function infoLines(){
+    const out = [];
+    const sc = match && Array.isArray(match.scores) && match.scores.length === 3 ? match.scores.map(n => int(n, 0, 9999)) : null;
+    const contested = !!match && match.zone === "CONTESTED";
+    if (sc && sc.some(n => n > 0)){
+      const top = Math.max(...sc), lead = sc.indexOf(top), tied = sc.filter(n => n === top).length > 1;
+      const next = Math.max(...sc.filter((_, i) => i !== lead));
+      out.push(["SECTOR", (contested ? "Zone contested, " : "") +
+        (tied ? "factions level at " + top : FACTIONS[lead] + " leads " + top + " to " + next)]);
+    } else if (contested){
+      out.push(["SECTOR", "Control zone contested"]);
+    }
+    if (cash && typeof cash.balance === "number"){
+      const game = typeof cash.game === "number" ? int(cash.game, -9999999, 9999999) : 0;
+      out.push(["LEDGER", "Balance $" + int(cash.balance, 0, 99999999).toLocaleString("en-US") +
+        (game ? ", this deployment " + money(game) : "")]);
+    }
+    return out;
+  }
+
+  // ---------- units: Claude Code sessions as ticks by the clock, plus one line in the rotation ----------
+  let units = [], unitTurn = 0, unitKey = "", turn = 0;
+  function unitLines(){   // the working sessions in turn, then a head count
+    if (!units.length) return [];
+    const busy = units.filter(u => u.state !== "idle").sort((a, b) => (b.state === "tool") - (a.state === "tool")), subs = units.reduce((n, u) => n + u.subs, 0);
+    const lines = (busy.length ? busy : units.slice(0, 1)).map(u => u.alias + ": " + u.action);
+    if (units.length > 1) lines.push(units.length + " units online, " +
+      (subs ? subs + (subs === 1 ? " agent" : " agents") + " dispatched" : busy.length + " active"));
+    return lines;
+  }
+  function applyUnits(doc){
+    const had = units.length > 0;
+    units = doc && doc.schema === 1 && Array.isArray(doc.sessions)
+      ? doc.sessions.slice(0, 12).filter(s => s && typeof s === "object").map(s => ({
+          alias: clip(s.alias, 16) || "Classified", action: clip(s.action, 30) || "Working",
+          state: s.state === "tool" || s.state === "thinking" ? s.state : "idle", subs: int(s.subagents, 0, 99)}))
+      : [];
+    const shown = units.slice(0, MAX_UNITS), key = shown.map(u => u.state[1]).join("");
+    if (key !== unitKey){
+      unitKey = key;
+      while (unitsEl.childElementCount > shown.length) unitsEl.lastElementChild.remove();
+      while (unitsEl.childElementCount < shown.length) unitsEl.append(document.createElement("i"));
+      shown.forEach((u, i) => { unitsEl.children[i].className = u.state === "tool" ? "run" : u.state === "thinking" ? "lit" : ""; });
+      $("ai").hidden = !shown.length;
+    }
+    if (had && !units.length && shownId === "unit"){ idx = -1; showLine(); }   // the feed went away mid-line
+  }
+
+  // ---------- viewers ----------
+  function applyStatus(doc){
+    const on = !!doc && doc.online === true && Array.isArray(doc.readers);
+    $("view").hidden = !on;
+    if (on) $("viewers").textContent = pad(Math.min(doc.readers.length, 999));
   }
 
   // ---------- feed ----------
@@ -237,6 +367,10 @@
     bars($("deathBars"), d);
     $("net").textContent = money(net);
     $("netStat").className = "stat net " + (net > 0 ? "up" : net < 0 ? "down" : "flat");
+    match = s.match && typeof s.match === "object" ? s.match : null;
+    cash = s.cash && typeof s.cash === "object" ? s.cash : null;
+    const m = int(s.matches, 0, 99);
+    if (m !== matchN){ matchN = m; setCode(); }
 
     if (s.id !== sessionId){ sessionId = s.id; lastTop = null; }
     events = (Array.isArray(s.events) ? s.events : []).slice(0, 8).map(e => ({
@@ -253,22 +387,27 @@
     if (top) lastTop = Math.max(lastTop ?? 0, top.id);
   }
 
-  let fails = 0;
-  async function poll(){
-    if (MOCK) return apply(mock());
+  async function pull(src){
+    if (MOCK) return src.apply(src.mock());
     const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), 2000);
+    const timer = setTimeout(() => ctl.abort(), src.timeout || 2000);
     try {
-      const r = await fetch(FEED, {cache: "no-store", signal: ctl.signal});
+      const r = await fetch(src.url, {cache: "no-store", signal: ctl.signal});
       if (!r.ok) throw new Error("HTTP " + r.status);
-      apply(await r.json());
-      fails = 0;
+      src.apply(await r.json());
+      src.fails = 0;
     } catch {
-      if (++fails >= 2) setLive(false);   // one missed poll is not an outage
+      if (++src.fails >= 2) src.apply(null);   // one missed poll is not an outage; two and the piece stands down
     } finally {
       clearTimeout(timer);
     }
   }
+  const feeds = [
+    {url: FEED, apply, mock, fails: 0},
+    {url: UNIT_FEED, apply: applyUnits, mock: mockUnits, fails: 0},
+  ];
+  const status = {url: STATUS, apply: applyStatus, mock: () => ({online: true, readers: [1, 2, 3]}), fails: 0, timeout: 8000};
+  const poll = () => feeds.forEach(pull);
 
   // ---------- scripted data for ?mock=1 ----------
   const t0 = Date.now() / 1000;
@@ -297,7 +436,21 @@
     }
     return {schema: 1, status: "live", source: "obs", player: "Nyx000", session: {
       id: 1, kills: mockState.k, deaths: mockState.d, revived: 1, matches: 2,
-      cash: {net: mockState.net}, events: mockState.events.slice()}};
+      cash: {net: mockState.net, balance: 14540 + mockState.net, game: mockState.net - 400},
+      match: {state: "alive", scores: [12, 4, 21], zone: mockTick % 20 < 10 ? "CONTESTED" : null},
+      events: mockState.events.slice()}};
+  }
+
+  function mockUnits(){   // the scripted sessions move on every 9 s
+    const step = Math.floor((Date.now() / 1000 - t0) / 9);
+    const pick = (list, i) => list[(step + i) % list.length];
+    const s = (alias, [state, action], subagents) => ({alias, public: alias !== "Classified", state, action, subagents});
+    return {schema: 1, updated: Date.now() / 1000, sessions: [
+      s("n8than.dev", pick([["tool", "Editing stage.html"], ["tool", "Running tests"], ["thinking", "Thinking"]], 0), 0),
+      s("Classified", pick([["tool", "Running tests"], ["tool", "Searching"], ["tool", "Using git"]], 1), 2),
+      s("wardogs-ocr", pick([["thinking", "Thinking"], ["tool", "Driving a browser"], ["tool", "Researching"]], 2), 0),
+      s("Classified", ["idle", "Standing by"], 0),
+    ]};
   }
 
   // ---------- clocks ----------
@@ -320,7 +473,9 @@
   tick();
   poll();
   setInterval(tick, 1000);
+  pull(status);
   setInterval(poll, POLL_MS);
+  setInterval(() => pull(status), STATUS_MS);
   setInterval(rotate, ROTATE_MS);
   setInterval(nextFlavor, FLAVOR_MS);
 })();
