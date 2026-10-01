@@ -276,7 +276,8 @@
   function showLine(){
     const list = live ? recent() : [];
     const unit = unitLines();
-    if (unit.length && ++turn % UNIT_EVERY === 0){   // a unit report takes every fourth turn
+    turn++;
+    if (unit.length && turn % UNIT_EVERY === 0){   // a unit report takes every fourth turn
       shownId = "unit";
       swapLine("UNITS", "k-unit", "", unit[unitTurn++ % unit.length], false);
       return;
