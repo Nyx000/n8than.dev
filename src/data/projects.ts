@@ -33,23 +33,6 @@ export const projects: Project[] = [
       <p class="stats">Delivered July 2026 · 9 catalogs · pilot accepted and paid</p>`,
   },
   {
-    title: 'Grow Tent Telemetry',
-    live: true,
-    description:
-      'Live environmental monitoring for an automated grow tent, streaming to this site. A read-only TypeScript poller captures three climate probes into Postgres, backed by a deterministic alert engine, an MCP server for AI-assisted queries, and a weekly LLM advisory analyst.',
-    url: '/grow',
-    tags: ['TypeScript', 'Node', 'PostgreSQL', 'Drizzle ORM', 'Next.js', 'IoT', 'MCP'],
-    expandable: true,
-    details: `
-      <p class="hook">Three probes, one reading every ten seconds, running since June 2026. The controller is only ever read, never written, so every adjustment stays a human decision made with better data. <a href="/grow">Watch it live →</a></p>
-      <ul class="highlights">
-        <li><strong>Multi-probe climate model.</strong> Canopy, lower-tent, and intake probes drive VPD targeting, stratification detection, and a night dew-point sentinel that guards against condensation.</li>
-        <li><strong>Alerts raise and resolve from data.</strong> Pure, unit-tested rules with sustain windows and reconciliation, so a brief excursion never pages and a resolved one never lingers.</li>
-        <li><strong>The AI layer is advisory by construction.</strong> An MCP server exposes the tent to assistants, and a weekly analyst turns 30-day aggregates into reviewable recommendations. There is no write path to the hardware for either of them to use.</li>
-      </ul>
-      <p class="stats">10s poll cadence · 3 probes · read-only by design</p>`,
-  },
-  {
     title: 'CafeNightClub',
     live: true,
     description:
@@ -101,7 +84,7 @@ export const projects: Project[] = [
   {
     title: 'n8than.dev',
     description:
-      'This site. Astro 5 and hand-written CSS, static-first with JavaScript only where it earns it — the procedural film-grain hero, the live /grow telemetry, view transitions. Enforced Content-Security-Policy and a full security-header set, on Caddy on a Hetzner VPS with CI deploys.',
+      'This site. Astro 5 and hand-written CSS, static-first with JavaScript only where it earns it — the procedural film-grain hero, view transitions. Enforced Content-Security-Policy and a full security-header set, on Caddy on a Hetzner VPS with CI deploys.',
     tags: ['Astro 5', 'TypeScript', 'CSS'],
   },
 ];

@@ -1,5 +1,5 @@
 ---
-// The amber CRT chat used on /grow and /live. Posts and reads go to `endpoint`, a Caddy
+// The amber CRT chat used on /game. Posts and reads go to `endpoint`, a Caddy
 // route onto the growtent shoutbox (deploy/Caddyfile); each route pins its own room.
 interface Props {
   title: string;
@@ -75,8 +75,8 @@ const { title, channel, endpoint, pollMs, placeholder, class: className, ...rest
 
 <style is:global>
   /* ============================================================
-     CHATTER — an amber-phosphor IRC terminal (the /grow tent chat and
-     the /live stream chat). Stays in the page's HL2-orange palette but treats the
+     CHATTER — an amber-phosphor IRC terminal (the stream chat on
+     /game). Stays in the page's HL2-orange palette but treats the
      whole panel like a lit CRT screen (recessed warm bg, scanlines,
      phosphor glow). GLOBAL on purpose: the log rows are created in JS,
      so Astro's scoped CSS would miss them. Every selector is uniquely

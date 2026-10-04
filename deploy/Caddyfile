@@ -75,46 +75,6 @@ n8than.dev {
 	encode zstd gzip
 	import n8than_headers
 
-	# Live climate slice — proxied from the Pi's own web over Tailscale (the Pi holds the live
-	# local DB since the BLE cutover; the box's local Postgres is stale).
-	handle /api/grow/live {
-		rewrite * /api/public/live
-		reverse_proxy https://growtent.taile16d94.ts.net {
-			header_up Host growtent.taile16d94.ts.net
-			header_down -Vary
-			header_down -Via
-		}
-		header Cache-Control "public, max-age=5"
-	}
-
-	# Tent shoutbox (anonymous chat) — GET ?limit=… + POST.
-	handle /api/grow/shoutbox {
-		rewrite * /api/public/shoutbox
-		request_body {
-			max_size 16KB
-		}
-		# WS8: browsers always send Origin on POST; blocks casual cross-site abuse.
-		# Trivially spoofable by curl — real enforcement is the backend per-IP limiter.
-		@cross_origin_post {
-			method POST
-			not header Origin https://n8than.dev
-		}
-		respond @cross_origin_post 403
-		import growtent_web_clientip
-		header Cache-Control "no-store"
-	}
-
-	# Live tent camera (MJPEG) — same Pi web over Tailscale; concurrency-capped at the Pi.
-	handle /api/grow/cam/stream {
-		rewrite * /api/public/cam/stream
-		reverse_proxy https://growtent.taile16d94.ts.net {
-			header_up Host growtent.taile16d94.ts.net
-			flush_interval -1
-			header_down -Vary
-			header_down -Via
-		}
-	}
-
 	# Spotify now-playing — proxied from the growtent web on Hetzner (it owns the token;
 	# a 10s server-side memo there bounds Spotify calls regardless of visitor count).
 	handle /api/spotify/now-playing {
@@ -181,42 +141,6 @@ n8than.dev {
 		respond @cross_origin_post 403
 		import growtent_web_clientip
 		header Cache-Control "no-store"
-	}
-
-	# Public HD quality toggle (POST) — request the shared 1440p window. Same public-write posture as
-	# the PTZ + jukebox POSTs: Origin check + pinned XFF + a tiny body cap; the REAL enforcement is the
-	# edge's kill switch + token-bucket rate-limit + 10-min/hard-cap bounds. Declared BEFORE the HLS
-	# wildcard below so this specific path wins. (GET /quality is a safe read — it falls through to the
-	# wildcard.)
-	handle_path /api/grow/cam/hls/hd {
-		request_body {
-			max_size 1KB
-		}
-		@cross_origin_post {
-			method POST
-			not header Origin https://n8than.dev
-		}
-		respond @cross_origin_post 403
-		rewrite * /api/cam/hls/hd
-		reverse_proxy https://growtent.taile16d94.ts.net {
-			header_up Host growtent.taile16d94.ts.net
-			header_up X-Forwarded-For {remote_host}
-			header_down -Vary
-			header_down -Via
-		}
-		header Cache-Control "no-store"
-	}
-
-	# Live tent camera (HLS) — same Pi edge over Tailscale, re-targets its /api/cam/hls/* routes.
-	handle_path /api/grow/cam/hls/* {
-		# Strip the /api/grow/cam/hls prefix, then re-target the edge's HLS routes
-		# (/api/cam/hls/stream.m3u8, /api/cam/hls/segN.ts). No flush_interval: HLS bodies are finite.
-		rewrite * /api/cam/hls{http.request.uri.path}
-		reverse_proxy https://growtent.taile16d94.ts.net {
-			header_up Host growtent.taile16d94.ts.net
-			header_down -Vary
-			header_down -Via
-		}
 	}
 
 	# The stream page moved from /live to /game on 2026-09-30; old links keep working.
