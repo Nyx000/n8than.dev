@@ -32,36 +32,11 @@
 # `<script type="module">` survives in dist — astro.config assetsInlineLimit:0 forces
 # every bundled script to a hashed /_astro file); Flip B dropped the Google Fonts hosts
 # (fonts are self-hosted via @fontsource). `style-src 'unsafe-inline'` stays on purpose
-# (Astro inlineStylesheets:auto + ClientRouter fallback styles). frame-src admits the
-# Spotify now-playing embed (open.spotify.com); img-src admits Spotify's album-art
-# CDNs (i.scdn.co, *.spotifycdn.com) — forward-looking for Phase 2 (jukebox art
-# thumbnails), since Phase 1's embed only needs frame-src.
+# (Astro inlineStylesheets:auto + ClientRouter fallback styles). The Spotify frame and
+# image hosts and the blob: media/worker sources went with the widget and the /game
+# player (2026-10-20).
 (n8than_csp_site) {
-	header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; frame-src https://open.spotify.com; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://i.scdn.co https://*.spotifycdn.com; media-src 'self' blob:; worker-src blob:; connect-src 'self'"
-}
-
-# Upstream for every public route whose backend keys on the CLIENT IP (rate limits,
-# salted identity hashes): the growtent Next app on THIS box, 127.0.0.1:3001
-# (growtent-web.service, PORT=3001). One hop, so X-Forwarded-For survives.
-#
-# It MUST NOT go via https://growtent.taile16d94.ts.net. That path is
-# Hetzner -> Pi -> back to Hetzner, and it crosses `tailscale serve` twice —
-# which REPLACES X-Forwarded-For with the tailnet peer address. Every visit logged
-# between 2026-07-28 and 2026-08-15 was therefore attributed to a single constant
-# (the Pi's 100.82.197.58): 90 sessions, exactly ONE distinct ip_hash. Per-IP rate
-# limits degraded to one global bucket and all sessions merged into shared rows.
-# Only genuinely Pi-local routes (cam, HLS, live) belong on the tailnet path.
-#
-# The XFF pin is redundant with Caddy's own default — with `trusted_proxies` unset,
-# Caddy REPLACES client-supplied X-Forwarded-* rather than appending (verified on
-# v2.11.4 against a forged header). It stays anyway so the guarantee is stated
-# locally and survives anyone later declaring trusted_proxies.
-(growtent_web_clientip) {
-	reverse_proxy 127.0.0.1:3001 {
-		header_up X-Forwarded-For {remote_host}
-		header_down -Vary
-		header_down -Via
-	}
+	header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'"
 }
 
 # Single-hop http -> https apex for both hosts (WS6). ACME HTTP-01 is handled
@@ -75,149 +50,11 @@ n8than.dev {
 	encode zstd gzip
 	import n8than_headers
 
-	# Spotify now-playing — proxied from the growtent web on Hetzner (it owns the token;
-	# a 10s server-side memo there bounds Spotify calls regardless of visitor count).
-	handle /api/spotify/now-playing {
-		rewrite * /api/public/spotify/now-playing
-		reverse_proxy https://growtent.taile16d94.ts.net {
-			header_up Host growtent.taile16d94.ts.net
-			header_down -Vary
-			header_down -Via
-		}
-		# No Cache-Control stamp here: the route sets it per-status (max-age=5 on 200, no-store on 503) and a handle-level header would override the 503's no-store.
-		# Readable cross-origin for the stream overlay (OBS serves local pages from its own origin).
-		@overlay_read method GET
-		header @overlay_read Access-Control-Allow-Origin "*"
-	}
-
-	# Jukebox search proxy — per-IP limited at the backend (XFF pinned so it can't be spoofed).
-	handle /api/spotify/search {
-		rewrite * /api/public/spotify/search
-		import growtent_web_clientip
-		header Cache-Control "no-store"
-	}
-
-	# Jukebox song request — anonymous public write (playlist add + conditional live queue).
-	# Same posture as the shoutbox POST: Origin check + pinned XFF + body cap; the real
-	# enforcement is the backend limiter stack.
-	handle /api/spotify/request {
-		rewrite * /api/public/spotify/request
-		request_body {
-			max_size 2KB
-		}
-		@cross_origin_post {
-			method POST
-			not header Origin https://n8than.dev
-		}
-		respond @cross_origin_post 403
-		import growtent_web_clientip
-		header Cache-Control "no-store"
-	}
-
-	# Jukebox public request log (pseudonymous — never carries ip hashes).
-	handle /api/spotify/requests {
-		rewrite * /api/public/spotify/requests
-		reverse_proxy https://growtent.taile16d94.ts.net {
-			header_up Host growtent.taile16d94.ts.net
-			header_down -Vary
-			header_down -Via
-		}
-		header Cache-Control "no-store"
-	}
-
-	# Site visit logger beacon — anonymous public write, same posture as the jukebox
-	# request POST: Origin check + pinned XFF (real client IP, not the proxy hop) + tiny
-	# body cap. The real enforcement (rate limit, bot filter) is the backend, which since
-	# growtent 60c4bf0 stores the raw client IP this XFF pins — not a salted hash.
-	handle /api/site/visit {
-		rewrite * /api/public/site-visit
-		request_body {
-			max_size 1KB
-		}
-		@cross_origin_post {
-			method POST
-			not header Origin https://n8than.dev
-		}
-		respond @cross_origin_post 403
-		import growtent_web_clientip
-		header Cache-Control "no-store"
-	}
-
-	# The stream page moved from /live to /game on 2026-09-30; old links keep working.
-	@old_live path /live /live/
-	redir @old_live /game/ permanent
-
-	# Live game stream (/game) — the MediaMTX relay on THIS box (deploy/live/, installed by
-	# deploy/live/setup.sh, not by this workflow). Only the read side is routed: stream
-	# status, WHEP playback and LL-HLS. Publishing (WHIP) never passes through Caddy — OBS
-	# publishes over the tailnet straight to :8889, and MediaMTX only accepts the publish
-	# user from tailnet addresses, while everything Caddy forwards arrives from 127.0.0.1.
-
-	# Status for the page: one path of the MediaMTX control API (online flag + reader list;
-	# readers carry type and id only, no IPs). The API itself listens on loopback only.
-	handle /api/live/status {
-		rewrite * /v3/paths/get/game
-		reverse_proxy 127.0.0.1:9997 {
-			header_down -Vary
-		}
-		header Cache-Control "no-store"
-		# Readable cross-origin for the stream overlay (OBS serves local pages from its own origin).
-		@overlay_read method GET
-		header @overlay_read Access-Control-Allow-Origin "*"
-	}
-
-	# Stream chat under the player — the growtent shoutbox, room pinned to `live` here (the
-	# route reads the FIRST room param, so a client-supplied ?room= can't switch rooms). Same
-	# public-write posture as /api/grow/shoutbox: Origin check on POST + pinned XFF + body cap;
-	# the backend's per-room limiter (3s spacing, 300/day) is the real enforcement.
-	handle /api/live/chat {
-		rewrite * /api/public/shoutbox?room=live&{query}
-		request_body {
-			max_size 16KB
-		}
-		@cross_origin_post {
-			method POST
-			not header Origin https://n8than.dev
-		}
-		respond @cross_origin_post 403
-		import growtent_web_clientip
-		header Cache-Control "no-store"
-		# GET only: the overlay reads chat cross-origin; writes stay same-origin (403 above).
-		@overlay_read method GET
-		header @overlay_read Access-Control-Allow-Origin "*"
-	}
-
-	# WHEP: POST creates a playback session, PATCH trickles ICE, DELETE ends it. MediaMTX
-	# returns the session URL in Location rooted at /, so it is re-prefixed on the way out.
-	# The media itself flows over 8189/udp directly, not through Caddy.
-	@live_whep {
-		path /api/live/rtc/game/whep /api/live/rtc/game/whep/*
-		method POST PATCH DELETE OPTIONS
-	}
-	handle @live_whep {
-		request_body {
-			max_size 64KB
-		}
-		uri strip_prefix /api/live/rtc
-		reverse_proxy 127.0.0.1:8889 {
-			header_down Location "^/" "/api/live/rtc/"
-			header_down -Vary
-		}
-		header Cache-Control "no-store"
-	}
-
-	# LL-HLS fallback for viewers whose network blocks WebRTC's UDP. No Cache-Control
-	# stamp: MediaMTX sets its own per playlist and segment.
-	handle /api/live/hls/game/* {
-		uri strip_prefix /api/live/hls
-		reverse_proxy 127.0.0.1:8888 {
-			header_down Location "^/" "/api/live/hls/"
-			header_down -Vary
-		}
-	}
-
-	# Anything else under /api/live (WHIP, other paths, other methods) is dead.
-	handle /api/live/* {
+	# Everything under /api is RETIRED (2026-10-20): the Spotify widget and jukebox, the
+	# visit beacon and the /game stream (status, chat, WHEP, HLS) all ran on box services
+	# that were removed (growtent-web, MediaMTX). No /api route has a backend any more, so
+	# the whole prefix falls through to handle_errors for the styled 404, like /swx-demo.
+	handle /api/* {
 		error * 404
 	}
 
