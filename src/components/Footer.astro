@@ -47,7 +47,7 @@ const year = new Date().getFullYear();
     <span class="sr-only">Hetzner (opens in new tab)</span>
   </a>
   <a
-    href="https://www.youtube.com/watch?v=9ySVuKvrdqk"
+    href="https://www.youtube.com/watch?v=nIjuXNkoa1o"
     target="_blank"
     rel="noopener noreferrer"
     class="footer-hand-link"
@@ -168,5 +168,37 @@ const year = new Date().getFullYear();
   .footer-hand-link:focus-visible .footer-hand {
     color: #ffcba4;
     opacity: 0.7;
+  }
+
+  /* Phones: flex-wrap dropped the hand (or the colophon) onto a ragged line of its own.
+     Pin the two text items in a left column and let the hand span both rows on the right.
+     Left padding matches the home hero's mobile gutter so the column lines up with it. */
+  @media (max-width: 640px) {
+    .site-footer {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-areas:
+        'copy hand'
+        'host hand';
+      align-items: center;
+      column-gap: var(--space-md);
+      padding: var(--space-md) var(--space-md) var(--space-md) 1.75rem;
+    }
+
+    .site-footer > p {
+      grid-area: copy;
+      margin: 0;
+    }
+
+    /* Block padding lifts the colophon's tap area off its 19px text height. */
+    .footer-host {
+      grid-area: host;
+      justify-self: start;
+      padding-block: var(--space-sm);
+    }
+
+    .footer-hand-link {
+      grid-area: hand;
+    }
   }
 </style>

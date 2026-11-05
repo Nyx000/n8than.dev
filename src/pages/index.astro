@@ -60,15 +60,12 @@ const personSchema = {
       </div>
       <nav class="hero-links" aria-label="Primary">
         <a class="resume-link" href="/resume.pdf" target="_blank" rel="noopener noreferrer">
-          résumé <span class="link-meta">— one pdf, no scrolling required</span>
+          résumé
           <span class="sr-only">(opens in new tab)</span>
         </a>
-        <a href="/projects">projects <span class="link-meta">— 5 built · 1 running live</span></a>
-        <a href="/recognition"
-          >recognition <span class="link-meta">— 18 thank-you notes · 1 award</span></a
-        >
-        <a href="/about">about <span class="link-meta">— kitchen to code, the long version</span></a
-        >
+        <a href="/projects">projects</a>
+        <a href="/recognition">recognition</a>
+        <a href="/about">about</a>
       </nav>
       <div class="nav-divider" aria-hidden="true"></div>
       <nav class="hero-social" aria-label="Elsewhere">
@@ -432,15 +429,6 @@ const personSchema = {
 
   .hero-links a {
     font-size: clamp(1.35rem, 2.4vw, 1.6rem);
-  }
-
-  /* Value annotation trailing each menu label — mono, muted, small. */
-  .link-meta {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    font-weight: 400;
-    letter-spacing: 0;
-    color: var(--color-muted);
   }
 
   /* Résumé: pinned first and always lit in the accent so it reads as the
