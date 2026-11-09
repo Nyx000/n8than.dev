@@ -50,43 +50,20 @@ n8than.dev {
 	encode zstd gzip
 	import n8than_headers
 
-	# Everything under /api is RETIRED (2026-10-20): the Spotify widget and jukebox, the
-	# visit beacon and the /game stream (status, chat, WHEP, HLS) all ran on box services
-	# that were removed (growtent-web, MediaMTX). No /api route has a backend any more, so
-	# the whole prefix falls through to handle_errors for the styled 404, like /swx-demo.
+	# Retired paths: nothing serves them any more. Declared here so a redeploy (which overwrites
+	# the box vhost) cannot bring them back; they fall through to handle_errors for the 404 page.
 	handle /api/* {
 		error * 404
 	}
 
-	# Build Sheet Studio demo (Solid Wood Worx client work) is PULLED — not reachable by
-	# any route. On the box: swx-demo.service stopped/disabled/masked (unit archived off
-	# the systemd path), the :8443 vhost archived, and 8443 NOT open in ufw. This block
-	# keeps the old public entry deliberately dead: `error 404` falls through to
-	# handle_errors, which renders the site's styled 404 page.
-	#
-	# Declared HERE rather than hand-edited on the box: the 2026-07-23 pull set this path
-	# to 410 box-side, and the next redeploy silently restored the old :8443 redirect,
-	# because this file overwrites /etc/caddy/sites/n8than.dev on every deploy. The repo
-	# is the only durable source of truth for this vhost.
 	handle /swx-demo* {
 		error * 404
 	}
 
-	# Intranet hub demo — RETIRED 2026-08-18 (was PUBLIC 2026-08-12 to 2026-08-18).
-	# On the box: hub-demo.service stopped/disabled. This block keeps the old
-	# public entry deliberately dead, same pattern as /swx-demo below — a
-	# redeploy can never resurrect the proxy, since this file overwrites the
-	# box vhost every time. Runbook (incl. restore steps): intranet repo
-	# ops/demo/README.md.
 	handle /hub* {
 		error * 404
 	}
 
-	# SeedSearch is RETIRED (2026-07-24) — project ended, source removed from this repo.
-	# Same posture as /swx-demo above: the old public entries are declared here and kept
-	# deliberately dead, so a redeploy can never resurrect the old :3002 proxy. Falls
-	# through to handle_errors for the site's styled 404. Box-side cleanup (stop/disable
-	# the sdseed units, free :3002) is manual — see the deploy notes.
 	handle /seedsearch* {
 		error * 404
 	}

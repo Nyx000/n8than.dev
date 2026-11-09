@@ -17,7 +17,7 @@ jobs:
       # NO OpenSSH and public :22 is closed; it's reachable only at its tailnet IP,
       # and access is authorized by tailnet identity (tag:ci -> tag:server in the
       # ACL), so there is no SSH key. Requires secrets TS_OAUTH_CLIENT_ID /
-      # TS_OAUTH_SECRET (OAuth client, tag:ci) and HETZNER_HOST = 100.99.198.88.
+      # TS_OAUTH_SECRET (OAuth client, tag:ci) and HETZNER_HOST (the box's tailnet address).
       - name: Connect to tailnet (ephemeral)
         uses: tailscale/github-action@v3
         with:

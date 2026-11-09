@@ -5,8 +5,7 @@ set -euo pipefail
 # One-time server setup for n8than.dev on Hetzner
 # Run as root: bash deploy/setup.sh
 #
-# Prerequisites: Node.js, bun, and Caddy should already be installed
-# (handled by cafenightclub's setup.sh or manually).
+# Prerequisites: Node.js, bun, git and Caddy should already be installed.
 # =============================================================================
 
 APP_DIR="/var/www/n8than.dev"
@@ -16,7 +15,7 @@ mkdir -p "$APP_DIR"
 
 if [ ! -d "$APP_DIR/.git" ]; then
   echo "Clone your repo into $APP_DIR:"
-  echo "  git clone git@github.com:Nyx000/n8than.dev.git $APP_DIR"
+  echo "  git clone https://github.com/Nyx000/n8than.dev.git $APP_DIR"
   echo ""
   echo "Then re-run this script."
   exit 1
@@ -40,7 +39,7 @@ echo "=== Setting up Caddy site config ==="
 mkdir -p /etc/caddy/sites
 
 # Ensure the main Caddyfile imports site configs — APPEND, never truncate (a `>`
-# here would wipe the box's security_headers snippet and cafenightclub's import).
+# here would wipe whatever else the box's main Caddyfile already holds).
 touch /etc/caddy/Caddyfile
 if ! grep -qE '^\s*import /etc/caddy/sites/\*' /etc/caddy/Caddyfile; then
   printf '\nimport /etc/caddy/sites/*\n' >> /etc/caddy/Caddyfile
@@ -71,5 +70,7 @@ echo "  caddy validate --config /etc/caddy/Caddyfile"
 echo "  systemctl status caddy"
 echo ""
 echo "Next steps:"
-echo "  1. Add GitHub secrets to Nyx000/n8than.dev: HETZNER_HOST, HETZNER_USER, HETZNER_SSH_KEY"
-echo "  2. Move cafenightclub's Caddy config to /etc/caddy/sites/cafenightclub.com"
+echo "  1. Add GitHub Actions secrets to Nyx000/n8than.dev: TS_OAUTH_CLIENT_ID and TS_OAUTH_SECRET"
+echo "     (a Tailscale OAuth client tagged tag:ci) and HETZNER_HOST (the box's tailnet address)."
+echo "     The deploy uses Tailscale SSH, so there is no SSH key or user secret."
+echo "  2. In the tailnet ACL, let tag:ci reach tag:server over SSH as root."
