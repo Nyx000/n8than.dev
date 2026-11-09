@@ -29,7 +29,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     // Progressive enhancement: show the path the visitor actually asked for.
     // This is a processed (bundled) script → served from /_astro as an external
     // module, so it passes the tightened `script-src 'self'` CSP. With JS off,
-    // the static `/requested/page` copy from §6.7 stands.
+    // the static `/requested/page` copy stands.
     document.addEventListener('astro:page-load', () => {
       const path = location.pathname;
       if (!path || path === '/404.html' || path === '/404' || path === '/404/') return;

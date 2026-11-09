@@ -5,7 +5,7 @@ export interface Testimonial {
   /** Machine date for <time datetime>, e.g. "2024-12-18". */
   iso: string;
   message: string;
-  /** Strongest quotes, pulled above the grid (§6.6). */
+  /** Strongest quotes, pulled above the grid. */
   featured?: boolean;
 }
 
