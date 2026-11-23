@@ -109,47 +109,6 @@ code {
   line-height: 1.7;
 }
 
-/* One card spec. Base is inert (informational); .card--link opts into the
-   border + glow affordance — the ONLY hover treatment (no lift anywhere). */
-.card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
-}
-.card--link {
-  transition:
-    border-color var(--dur-med) var(--ease),
-    box-shadow var(--dur-med) var(--ease);
-}
-.card--link:hover,
-.card--link:focus-within {
-  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--color-accent) 22%, transparent),
-    0 10px 28px -14px color-mix(in srgb, var(--color-accent) 45%, transparent);
-}
-
-/* One chip spec — filled squares, mono, muted. */
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.tags > * {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  line-height: 1.5;
-  color: var(--color-muted);
-  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 0.15em 0.55em;
-}
-
 /* Screen-reader-only + skip link (W9 wires the skip link into BaseLayout). */
 .sr-only {
   position: absolute;

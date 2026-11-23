@@ -10,8 +10,8 @@ interface Props {
 const { title, description, pubDate, slug, tags } = Astro.props;
 ---
 
-<article class="card card--link">
-  <h2 class="card-title"><a href={'/blog/' + slug}>{title}</a></h2>
+<article class="k-panel">
+  <h2 class="k-panel__title"><a href={'/blog/' + slug}>{title}</a></h2>
   <time datetime={pubDate.toISOString()}>
     {
       pubDate.toLocaleDateString('en-US', {
@@ -21,10 +21,10 @@ const { title, description, pubDate, slug, tags } = Astro.props;
       })
     }
   </time>
-  <p>{description}</p>
+  <p class="k-panel__body">{description}</p>
   {
     tags && tags.length > 0 && (
-      <ul class="tags">
+      <ul class="k-tags">
         {tags.map((tag) => (
           <li>{tag}</li>
         ))}
@@ -34,37 +34,23 @@ const { title, description, pubDate, slug, tags } = Astro.props;
 </article>
 
 <style>
-  /* global .card + .card--link handle surface + border/glow hover (no lift). */
-  .card {
-    padding: var(--space-md) var(--space-lg);
-  }
-
-  .card-title {
-    margin: 0 0 var(--space-xs);
-    font-size: 1.2rem;
-  }
-
-  .card-title a {
-    font-family: var(--font-display);
+  /* The title is the one link in a preview, so it carries the underline. */
+  .k-panel__title a {
     color: var(--color-text);
-    text-decoration: none;
-    transition: color var(--dur-fast) var(--ease);
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+    text-underline-offset: 0.2em;
   }
 
-  .card-title a:hover {
+  .k-panel__title a:hover {
     color: var(--color-accent);
   }
 
   time {
     display: block;
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
+    margin-top: var(--space-xs);
+    font-family: var(--font-display);
+    font-size: 0.95rem;
     color: var(--color-muted);
-  }
-
-  p {
-    color: var(--color-text);
-    margin: var(--space-sm) 0;
-    max-width: 65ch;
   }
 </style>
