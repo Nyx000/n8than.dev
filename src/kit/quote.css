@@ -17,3 +17,15 @@
   margin-top: 0.6rem;
   color: var(--color-muted);
 }
+
+/* --quiet: the same words without the spine, for a long run of quotes where a
+   mark on every one would shout. */
+.k-quote--quiet {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.k-quote--quiet > p {
+  font-size: 1rem;
+  line-height: 1.7;
+}

@@ -17,197 +17,128 @@ const rest = testimonials.filter((t) => !t.featured);
   title="Recognition | n8than.dev"
   description="Eighteen night-shift thank-you notes and one award, collected 2022–2025 at Scripps Mercy Hospital — the problem domain the software came from."
 >
-  <section class="container stagger">
-    <h1 class="section-heading">Recognition</h1>
+  <div class="container">
+    <h1 class="k-heading">Recognition</h1>
     <p class="intro">
       Eighteen thank-you notes and one award, collected 2022–2025 on the night shift at Scripps
       Mercy Hospital — kept here as evidence, not nostalgia. This is the problem domain the software
       came from.
     </p>
 
-    <div class="award">
-      <div class="award-image">
-        <img
-          src="/values-in-action-award.jpg"
-          alt="2025 Values in Action Honoree certificate for Nathan Huse, Scripps Mercy Hospital San Diego"
-          width="974"
-          height="757"
-          loading="eager"
-        />
-      </div>
-      <div class="award-details">
-        <h2>Values in Action Honoree</h2>
-        <p class="award-org">Scripps Mercy Hospital San Diego</p>
+    <div class="k-panel award">
+      <img
+        src="/values-in-action-award.jpg"
+        alt="2025 Values in Action Honoree certificate for Nathan Huse, Scripps Mercy Hospital San Diego"
+        width="974"
+        height="757"
+        loading="eager"
+      />
+      <div>
+        <h2 class="k-subheading">Values in Action Honoree</h2>
+        <p>Scripps Mercy Hospital San Diego</p>
         <p class="award-year">2025</p>
       </div>
     </div>
 
-    <section class="testimonials">
-      <h2>Colleague Testimonials</h2>
-      <p class="testimonials-summary">
-        <span class="stat">{testimonials.length}</span> recognitions from{' '}
-        <span class="stat">{colleagues}</span> colleagues,{' '}
-        <span class="stat">{spanStart}–{spanEnd}</span>
-      </p>
+    <section>
+      <h2 class="k-subheading">Colleague testimonials</h2>
+      <dl class="k-readouts">
+        <div class="k-readout">
+          <dt>Notes</dt>
+          <dd>{testimonials.length}</dd>
+        </div>
+        <div class="k-readout">
+          <dt>Colleagues</dt>
+          <dd>{colleagues}</dd>
+        </div>
+        <div class="k-readout">
+          <dt>Years</dt>
+          <dd>{spanStart}–{spanEnd}</dd>
+        </div>
+      </dl>
 
-      <div class="grid grid--featured">
+      <div class="featured">
         {
           featured.map((t) => (
-            <article class="card quote-card featured">
-              <p class="card-name">{t.name}</p>
-              <time class="card-date" datetime={t.iso}>
-                {t.date}
-              </time>
-              <p class="card-message">{t.message}</p>
-            </article>
+            <blockquote class="k-quote">
+              <p>{t.message}</p>
+              <footer>
+                {t.name}, <time datetime={t.iso}>{t.date}</time>
+              </footer>
+            </blockquote>
           ))
         }
       </div>
 
-      <div class="grid grid--rest">
+      <div class="notes">
         {
           rest.map((t) => (
-            <article class="card quote-card">
-              <p class="card-name">{t.name}</p>
-              <time class="card-date" datetime={t.iso}>
-                {t.date}
-              </time>
-              <p class="card-message">{t.message}</p>
-            </article>
+            <blockquote class="k-quote k-quote--quiet">
+              <p>{t.message}</p>
+              <footer>
+                {t.name}, <time datetime={t.iso}>{t.date}</time>
+              </footer>
+            </blockquote>
           ))
         }
       </div>
     </section>
-  </section>
+  </div>
 </BaseLayout>
 
 <style>
-  /* Award */
+  /* Layout only: the parts come from src/kit/. */
   .award {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-md);
+    gap: var(--space-md) var(--space-lg);
     margin-bottom: var(--space-xl);
-    padding: var(--space-lg) var(--space-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: var(--color-surface);
   }
 
-  .award-image {
-    max-width: 26rem;
+  .award img {
+    display: block;
     width: 100%;
-  }
-
-  .award-image img {
-    width: 100%;
+    max-width: 22rem;
     height: auto;
     border-radius: var(--radius-sm);
-    display: block;
   }
 
-  .award-details {
-    text-align: center;
-  }
-
-  .award-details h2 {
-    font-size: 1.5rem;
-    color: var(--color-accent);
-    margin-bottom: var(--space-sm);
-  }
-
-  .award-org {
-    color: var(--color-text);
-    font-size: 1.05rem;
+  .award p {
+    margin: 0;
   }
 
   .award-year {
+    font-family: var(--font-display);
     color: var(--color-muted);
-    font-family: var(--font-mono);
-    font-size: 0.9rem;
-    margin-top: 0.25rem;
   }
 
-  /* Testimonials */
-  .testimonials {
-    margin-top: var(--space-xl);
+  .k-readouts {
+    margin: var(--space-md) 0 var(--space-lg);
   }
 
-  .testimonials h2 {
-    font-size: 1.5rem;
-    margin-bottom: var(--space-sm);
-  }
-
-  .testimonials-summary {
-    color: var(--color-muted);
-    margin-bottom: var(--space-lg);
-    font-size: 0.95rem;
-  }
-
-  .testimonials-summary .stat {
-    color: var(--color-accent);
-    font-family: var(--font-mono);
-    font-weight: 500; /* 500 is a real JetBrains Mono weight (600 was synthetic) */
-  }
-
-  /* align-items: start stops short cards stretching to the tallest in a row. */
-  .grid {
+  .featured {
     display: grid;
-    align-items: start;
-    gap: var(--space-md);
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
   }
 
-  .grid--featured {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    margin-bottom: var(--space-lg);
+  /* The rest read as one run of notes: a hairline between them, no box each. */
+  .notes {
+    columns: 2;
+    column-gap: var(--space-xl);
   }
 
-  .grid--rest {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  .notes .k-quote {
+    break-inside: avoid;
+    max-width: none;
+    padding-block: var(--space-md);
+    border-top: 1px solid var(--color-border);
   }
 
-  /* Informational cards — no hover affordance (compound to beat global .card). */
-  .card.quote-card {
-    padding: 1.25rem;
-  }
-
-  /* Featured pull-quotes: warm gradient + accent spine, larger message. Static. */
-  .card.quote-card.featured {
-    border-left: 3px solid var(--color-accent);
-    background: linear-gradient(160deg, rgba(255, 102, 0, 0.12), var(--color-surface) 55%);
-  }
-
-  .card.quote-card.featured .card-message {
-    font-size: 1.05rem;
-  }
-
-  .card-name {
-    font-weight: 600;
-    color: var(--color-text);
-    font-size: 1rem;
-    margin-bottom: 0.25rem;
-  }
-
-  .card-date {
-    display: block;
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--color-muted);
-    margin-bottom: var(--space-sm);
-  }
-
-  .card-message {
-    font-size: 1rem;
-    color: var(--color-text); /* was metadata gray — testimonials are primary content */
-    line-height: 1.7;
-  }
-
-  /* Keep the 1-col override — it prevents a 300px track overflowing at 320px. */
-  @media (max-width: 640px) {
-    .grid--featured,
-    .grid--rest {
-      grid-template-columns: 1fr;
+  @media (max-width: 800px) {
+    .notes {
+      columns: 1;
     }
   }
 </style>
