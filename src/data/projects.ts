@@ -4,7 +4,7 @@
  *   delivered   client work, built and handed to the client; says nothing about whether it is in use
  *   maintained  public code that still gets updates
  *   stable      public code that is finished and works as published; not being developed now
- *   retired     finished its run; the repository is archived, read-only
+ *   retired     superseded or shut down; the code stays up for reference, not for use
  */
 export type ProjectStatus = 'live' | 'delivered' | 'maintained' | 'stable' | 'retired';
 
