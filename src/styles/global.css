@@ -4,6 +4,7 @@
 @import '@fontsource/share-tech-mono/400.css';
 @import '@fontsource-variable/outfit/index.css';
 @import '@fontsource-variable/jetbrains-mono/index.css';
+@import '../kit/kit.css';
 
 /* Reset */
 *,
@@ -14,54 +15,6 @@
 
 body {
   margin: 0;
-}
-
-/* Design Tokens */
-:root {
-  color-scheme: dark;
-
-  /* Color palette — Half-Life 2 */
-  --color-bg: #0a0a0a;
-  --color-surface: #131313;
-  --color-text: #d4d0c8;
-  /* #6b6b72 was 3.74:1 on --color-bg (fails WCAG AA); #8a8a92 is 5.78:1 (passes AA
-     for normal text). This token carries real content — nav, project descriptions,
-     testimonials, grow labels — so the bump is a contrast fix, not just chrome. */
-  --color-muted: #8a8a92;
-  --color-accent: #ff6600;
-  --color-accent-hover: #ff8833;
-  --color-border: #1e1e22;
-  --color-warn: #c9a227; /* STALE amber / band glyphs */
-  --color-danger: #b3404a; /* OFFLINE red */
-
-  /* Typography — self-hosted via @fontsource (imported above) */
-  --font-display: 'Share Tech Mono', ui-monospace, monospace;
-  --font-body: 'Outfit Variable', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
-  --text-h1: clamp(1.5rem, 1rem + 2.2vw, 2rem); /* fluid section heading */
-
-  /* Spacing scale */
-  --space-xs: 0.25rem; /* used in about.astro; was undefined → declaration dropped */
-  --space-sm: 0.5rem;
-  --space-md: 1rem;
-  --space-lg: 2rem;
-  --space-xl: 4rem;
-  --space-2xl: 6rem;
-
-  /* Layout */
-  --container: 64rem;
-  --container-narrow: 42rem;
-
-  /* Radii */
-  --radius-sm: 4px; /* chips, buttons, inputs, code, small UI */
-  --radius-md: 8px; /* cards, panels, frames, pre blocks */
-
-  /* Motion */
-  --dur-fast: 150ms; /* color/opacity micro-states */
-  --dur-med: 250ms; /* surfaces, borders, glows */
-  --dur-slow: 350ms; /* structural (expand) */
-  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
-  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 
 /* Breakpoint convention — var() is illegal in @media, so these are documentation:
