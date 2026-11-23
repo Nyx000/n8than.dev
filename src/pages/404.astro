@@ -6,22 +6,22 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   title="404 — not found | n8than.dev"
   description="That page doesn't exist. Older pages were retired; the projects page has what's current."
 >
-  <section class="container notfound stagger">
+  <section class="container notfound">
     <h1 class="code">404</h1>
-    <div class="term" role="group" aria-label="terminal output">
+    <div class="k-term" role="group" aria-label="terminal output">
       <p class="line">
-        <span class="prompt" aria-hidden="true">$</span> cat <span class="path" data-path
+        <span class="k-term__prompt" aria-hidden="true">$</span> cat <span class="path" data-path
           >/requested/page</span
         >
       </p>
-      <p class="line err">
+      <p class="line k-term__err">
         cat: <span class="path" data-path>/requested/page</span>: No such file or directory
       </p>
       <p class="line hint">older pages were retired. /projects has what's current.</p>
     </div>
     <nav class="recover" aria-label="Where to go next">
-      <a href="/"><span class="glyph" aria-hidden="true">~</span> home</a>
-      <a href="/projects">/projects</a>
+      <a class="k-btn k-btn--primary" href="/">Home</a>
+      <a class="k-btn" href="/projects">Projects</a>
     </nav>
   </section>
 
@@ -65,34 +65,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     margin-bottom: var(--space-lg);
   }
 
-  .term {
-    font-family: var(--font-mono);
-    font-size: clamp(0.85rem, 2.4vw, 0.95rem);
-    border: 1px solid color-mix(in srgb, var(--color-accent) 8%, transparent);
-    border-radius: 3px;
-    padding: var(--space-md);
-    margin-bottom: var(--space-xl);
-    overflow-wrap: anywhere;
+  .k-term {
+    margin-bottom: var(--space-lg);
   }
 
   .line {
     margin: 0;
-    line-height: 1.9;
-    color: var(--color-text);
-  }
-
-  .prompt {
-    color: var(--color-accent);
-    margin-right: 0.4em;
-    opacity: 0.8;
-  }
-
-  .path {
-    color: var(--color-text);
-  }
-
-  .err {
-    color: var(--color-danger);
   }
 
   .hint {
@@ -102,36 +80,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   .recover {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    flex-wrap: wrap;
     gap: var(--space-sm);
-  }
-
-  .recover a {
-    font-family: var(--font-display);
-    font-size: clamp(1.2rem, 2.4vw, 1.5rem);
-    color: var(--color-text);
-    text-decoration: none;
-    transition: color 0.15s ease;
-  }
-
-  .recover a:hover,
-  .recover a:focus-visible {
-    color: var(--color-accent);
-  }
-
-  .glyph {
-    color: var(--color-muted);
-  }
-
-  .recover a:hover .glyph,
-  .recover a:focus-visible .glyph {
-    color: var(--color-accent);
-  }
-
-  .aside {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--color-muted);
   }
 </style>

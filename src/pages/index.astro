@@ -139,13 +139,14 @@ const personSchema = {
           done();
         }
       }
-      // Continuous loop: type a command, hold, erase, advance (wrapping back to the
-      // first), forever — no parking.
+      // Type each command once, then park on the last. An endless loop beside the
+      // content has no pause control, which WCAG 2.2.2 asks for.
       function next() {
         type(commands[ci], 0, () => {
+          if (commands[ci] === parked) return;
           timer = setTimeout(() => {
             erase(commands[ci], commands[ci].length, () => {
-              ci = (ci + 1) % commands.length;
+              ci += 1;
               timer = setTimeout(next, 150);
             });
           }, 1400);
@@ -381,10 +382,10 @@ const personSchema = {
     }
   }
 
+  /* Full --color-muted: dimming it with opacity dropped it to 3.34:1. */
   .cmdline-prompt {
     color: var(--color-muted);
     margin-right: 0.5em;
-    opacity: 0.7;
     white-space: pre;
   }
 

@@ -6,8 +6,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   title="About | n8than.dev"
   description="A San Diego software engineer who ran a hospital's overnight cafeteria and built the ordering system its night shift used."
 >
-  <section class="container container--narrow stagger">
-    <h1 class="section-heading">About</h1>
+  <section class="container container--narrow">
+    <h1 class="k-heading">About</h1>
     <blockquote class="epigraph">
       "Accept the things to which fate binds you, and love the people with whom fate brings you
       together, and do so with all your heart."
@@ -38,7 +38,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </p>
 
     <section class="skills">
-      <h2>Technical Skills</h2>
+      <h2 class="k-subheading">Technical skills</h2>
       <dl>
         <dt>Languages</dt>
         <dd>JavaScript, TypeScript, Python, SQL, HTML, CSS</dd>
@@ -58,7 +58,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </section>
 
     <section class="education">
-      <h2>Education</h2>
+      <h2 class="k-subheading">Education</h2>
       <div class="degree">
         <p class="school">San Diego State University</p>
         <p class="program">Bachelor of Science in Computer Science</p>
@@ -72,21 +72,27 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </section>
 
     <section class="links">
-      <h2>Find me online</h2>
+      <h2 class="k-subheading">Find me online</h2>
       <ul>
         <li>
-          <a href="https://github.com/Nyx000" target="_blank" rel="noopener noreferrer"
-            >GitHub<span class="sr-only"> (opens in new tab)</span></a
+          <a
+            class="k-btn"
+            href="https://github.com/Nyx000"
+            target="_blank"
+            rel="noopener noreferrer">GitHub<span class="sr-only"> (opens in new tab)</span></a
           >
         </li>
         <li>
-          <a href="https://www.linkedin.com/in/sd-nhuse/" target="_blank" rel="noopener noreferrer"
-            >LinkedIn<span class="sr-only"> (opens in new tab)</span></a
+          <a
+            class="k-btn"
+            href="https://www.linkedin.com/in/sd-nhuse/"
+            target="_blank"
+            rel="noopener noreferrer">LinkedIn<span class="sr-only"> (opens in new tab)</span></a
           >
         </li>
-        <li><a href="mailto:husenathan@gmail.com">Email</a></li>
+        <li><a class="k-btn" href="mailto:husenathan@gmail.com">Email</a></li>
         <li>
-          <a href="/resume.pdf" target="_blank" rel="noopener noreferrer"
+          <a class="k-btn" href="/resume.pdf" target="_blank" rel="noopener noreferrer"
             >Résumé<span class="sr-only"> (opens in new tab)</span></a
           >
         </li>
@@ -113,6 +119,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   p {
+    max-width: var(--measure);
     margin-bottom: var(--space-md);
     color: var(--color-text);
     line-height: 1.75;
@@ -127,12 +134,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     margin-top: var(--space-xl);
   }
 
-  .skills h2,
-  .education h2,
-  .links h2 {
-    display: inline-block;
-    padding-bottom: var(--space-sm);
-    border-bottom: 1px solid var(--color-border);
+  .k-heading,
+  .k-subheading {
     margin-bottom: var(--space-md);
   }
 
@@ -142,23 +145,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-sm);
-  }
-
-  .links ul a {
-    display: inline-block;
-    border: 1px solid var(--color-muted);
-    padding: 0.5em 1.25em;
-    border-radius: 3px;
-    color: var(--color-text);
-    text-decoration: none;
-    transition:
-      border-color 0.2s ease,
-      color 0.2s ease;
-  }
-
-  .links ul a:hover {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
   }
 
   .skills {
@@ -171,11 +157,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   .skills dt {
-    font-family: var(--font-mono);
-    color: var(--color-accent);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-family: var(--font-display);
+    color: var(--color-muted);
+    font-size: 0.95rem;
     margin-top: var(--space-md);
   }
 
@@ -184,8 +168,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   .skills dd {
+    max-width: var(--measure);
     color: var(--color-text);
-    font-size: 0.95rem;
     line-height: 1.6;
     margin: 0.25rem 0 0 0;
   }

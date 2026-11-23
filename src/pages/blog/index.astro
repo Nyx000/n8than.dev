@@ -9,8 +9,8 @@ const posts = (await getCollection('blog')).sort(
 ---
 
 <BaseLayout title="Blog | n8than.dev" description="Build notes and write-ups.">
-  <section class="container stagger">
-    <h1 class="section-heading">Blog</h1>
+  <section class="container">
+    <h1 class="k-heading">Blog</h1>
     {
       posts.length > 0 ? (
         <div class="posts">
@@ -27,7 +27,10 @@ const posts = (await getCollection('blog')).sort(
       ) : (
         <div class="empty">
           <p class="empty-cmd">
-            <span class="prompt" aria-hidden="true">$</span> ls ./posts
+            <span class="prompt" aria-hidden="true">
+              $
+            </span>{' '}
+            ls ./posts
           </p>
           <p class="empty-msg">empty — nothing published yet.</p>
         </div>

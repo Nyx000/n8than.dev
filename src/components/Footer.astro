@@ -3,7 +3,7 @@ const year = new Date().getFullYear();
 ---
 
 <footer class="site-footer" transition:animate="none">
-  <p>&copy; {year} n8than.dev</p>
+  <p>&copy; {year} n8than.dev. Built from <a href="/kit">its own kit</a>.</p>
   <!-- Colophon: the box this site actually runs on. Wordmark inherits currentColor so it
        rests in the footer's muted grey and only lights up in Hetzner red on hover, the same
        reveal the hand below uses. -->
@@ -133,9 +133,18 @@ const year = new Date().getFullYear();
   }
 
   .footer-host-label {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.02em;
+    font-family: var(--font-display);
+    font-size: 0.875rem;
+  }
+
+  .site-footer > p a {
+    color: inherit;
+    text-decoration: underline;
+  }
+
+  .site-footer > p a:hover,
+  .site-footer > p a:focus-visible {
+    color: var(--color-text);
   }
 
   .hetzner-mark {
