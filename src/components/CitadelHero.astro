@@ -129,7 +129,7 @@
       // neighbouring dots sit closer in colour, so it reads softer (1 = the original
       // 8-colour ramp). SCANLINE is how dark every other row is drawn (1 = no scanlines).
       // FINE is built once, so the per-pixel path still only indexes a table.
-      var DITHER_STEPS=1, SCANLINE=0.84;
+      var DITHER_STEPS=2, SCANLINE=0.84;
       var FINE: number[][]=[]; for(var fi=0;fi<=7*DITHER_STEPS;fi++){ var fl=Math.floor(fi/DITHER_STEPS), ff=(fi%DITHER_STEPS)/DITHER_STEPS, fh=fl<7?fl+1:7; FINE.push([0,1,2].map(function(c){ return Math.round(RAMP[fl][c]+(RAMP[fh][c]-RAMP[fl][c])*ff); })); }
       function rampDither(level: number, x: number, y: number){ if(level<0)level=0; if(level>7)level=7; var v=level*DITHER_STEPS; var lo=Math.floor(v); var frac=v-lo; var hi=lo<7*DITHER_STEPS?lo+1:lo; return (frac>bayer(x,y))?FINE[hi]:FINE[lo]; }
       var _s=1337>>>0; function rnd(){ _s=(_s*1664525+1013904223)>>>0; return _s/4294967296; }
