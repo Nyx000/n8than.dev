@@ -3,6 +3,7 @@
      --live        filled circle, pulsing
      --delivered   filled square
      --maintained  ring
+     --stable      hollow square (the base marker, unchanged)
      --retired     hollow diamond */
 .k-status {
   display: inline-flex;

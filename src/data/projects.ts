@@ -3,9 +3,10 @@
  *   live        running somewhere a visitor can open and use (a repo link alone doesn't count)
  *   delivered   client work, built and handed to the client; says nothing about whether it is in use
  *   maintained  public code that still gets updates
+ *   stable      public code that is finished and works as published; not being developed now
  *   retired     finished its run; the repository is archived, read-only
  */
-export type ProjectStatus = 'live' | 'delivered' | 'maintained' | 'retired';
+export type ProjectStatus = 'live' | 'delivered' | 'maintained' | 'stable' | 'retired';
 
 export interface Project {
   title: string;
@@ -96,10 +97,9 @@ export const projects: Project[] = [
   {
     title: 'acinfinity-ble',
     kind: 'tools',
-    status: 'retired',
-    statusYear: 2026,
+    status: 'stable',
     description:
-      'A clean-room Bluetooth LE implementation of the AC Infinity UIS grow-controller protocol: read sensors and write settings directly, with no vendor cloud account and no network dependency. Extracted from my grow tent system, where it drove live hardware from June to October 2026. The project is finished and the repository is archived, read-only. MIT licensed.',
+      'A clean-room Bluetooth LE implementation of the AC Infinity UIS grow-controller protocol: read sensors and write settings directly, with no vendor cloud account and no network dependency. Extracted from my grow tent system, where it drove live hardware from June to October 2026. It is finished and works as published; development is paused for now. MIT licensed.',
     url: 'https://github.com/Nyx000/acinfinity-ble',
     tags: ['TypeScript', 'BLE', 'Reverse Engineering', 'Protocols', 'Node'],
     stats: [
