@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { projects } from '../data/projects';
+import { projects, statusLabel } from '../data/projects';
 import { testimonials } from '../data/testimonials';
 
 // Specimens use the site's real records, so this page cannot drift from them.
@@ -11,7 +11,6 @@ function project(title: string) {
 }
 const live = project('CafeNightClub');
 const retired = project('Arenula');
-const retiredDocs = 'https://nyx000.github.io/arenula-mcp/';
 
 const colleagues = new Set(testimonials.map((t) => t.name)).size;
 const years = testimonials.map((t) => Number(t.iso.slice(0, 4)));
@@ -137,7 +136,7 @@ const colours = [
         <article class="k-panel k-panel--live">
           <div class="k-panel__head">
             <h3 class="k-panel__title">{live.title}</h3>
-            <span class="k-status k-status--live">live</span>
+            <span class="k-status k-status--live">{statusLabel(live)}</span>
           </div>
           <p class="k-panel__body">{live.description}</p>
           <div class="k-panel__foot">
@@ -157,15 +156,15 @@ const colours = [
         <article class="k-panel k-panel--retired">
           <div class="k-panel__head">
             <h3 class="k-panel__title">{retired.title}</h3>
-            <span class="k-status k-status--retired">retired 2026</span>
+            <span class="k-status k-status--retired">{statusLabel(retired)}</span>
           </div>
           <p class="k-panel__body">{retired.description}</p>
           <div class="k-panel__foot">
             <ul class="k-tags">
               {retired.tags.map((tag) => <li>{tag}</li>)}
             </ul>
-            <a class="k-btn" href={retiredDocs} target="_blank" rel="noopener noreferrer">
-              Read the docs<span class="sr-only"> (opens in new tab)</span>
+            <a class="k-btn" href={retired.url} target="_blank" rel="noopener noreferrer">
+              View source<span class="sr-only"> (opens in new tab)</span>
             </a>
           </div>
         </article>

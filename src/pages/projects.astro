@@ -3,49 +3,51 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 import { projects } from '../data/projects';
 
-const liveProjects = projects.filter((p) => p.live);
-const restProjects = projects.filter((p) => !p.live);
+const liveCount = projects.filter((p) => p.status === 'live').length;
+const groups = [
+  { heading: 'Client and production work', items: projects.filter((p) => p.kind === 'work') },
+  { heading: 'Tools and open source', items: projects.filter((p) => p.kind === 'tools') },
+];
 ---
 
 <BaseLayout
   title="Projects | n8than.dev"
   description="Client work, production apps, and AI tooling. The live ones are a click away."
 >
-  <section class="container">
-    <h1 class="section-heading">Projects</h1>
-    <p class="intro">
-      {projects.length} projects, {liveProjects.length} running live.
-    </p>
+  <div class="container">
+    <h1 class="k-heading">Projects</h1>
+    <p class="intro">{projects.length} projects, {liveCount} running live.</p>
 
-    <h2 class="group-heading">Running live</h2>
-    <div class="grid stagger">
-      {liveProjects.map((project) => <ProjectCard {...project} />)}
-    </div>
-
-    <h2 class="group-heading">Code &amp; client work</h2>
-    <div class="grid stagger">
-      {restProjects.map((project) => <ProjectCard {...project} />)}
-    </div>
-  </section>
+    {
+      groups.map((group) => (
+        <section>
+          <h2 class="k-subheading">{group.heading}</h2>
+          <div class="records">
+            {group.items.map((project) => (
+              <ProjectCard {...project} />
+            ))}
+          </div>
+        </section>
+      ))
+    }
+  </div>
 </BaseLayout>
 
 <style>
-  .grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--space-lg);
-  }
-
-  .group-heading {
+  section {
     margin-top: var(--space-xl);
-    margin-bottom: var(--space-md);
-    font-size: 1.1rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-accent, inherit);
   }
 
-  .group-heading:first-of-type {
+  section:first-of-type {
     margin-top: var(--space-lg);
+  }
+
+  .k-subheading {
+    margin-bottom: var(--space-md);
+  }
+
+  .records {
+    display: grid;
+    gap: 1.25rem;
   }
 </style>

@@ -1,77 +1,74 @@
 ---
-import type { Project } from '../data/projects';
+import { statusLabel, type Project } from '../data/projects';
 
 type Props = Project;
 
-const { title, description, url, tags, expandable, details, live } = Astro.props;
-// Keyed off `live`, not `url` — a repo link is not a running thing (see Project.live).
-const isLive = !!live;
+const project = Astro.props;
+const { title, description, url, tags, status, stats, details } = project;
 const isExternal = !!url && !url.startsWith('/');
-const visitLabel = isLive ? (isExternal ? 'Visit site' : 'Open live') : 'View source';
+// A repo link is not a running thing: only a live project gets the filled button.
+const isLive = status === 'live';
 ---
 
-<article class:list={['card', 'card--link', { 'card--live': isLive }]}>
-  <div class="card-summary">
-    <div class="card-head">
-      <h2 class="card-title">
-        {
-          url ? (
-            <a
-              href={url}
-              target={isExternal ? '_blank' : undefined}
-              rel={isExternal ? 'noopener noreferrer' : undefined}
-            >
-              {title}
-              {isExternal && <span class="sr-only"> (opens in new tab)</span>}
-            </a>
-          ) : (
-            <span class="title-text">{title}</span>
-          )
-        }
-      </h2>
+<article
+  class:list={['k-panel', { 'k-panel--live': isLive, 'k-panel--retired': status === 'retired' }]}
+>
+  <div class="k-panel__head">
+    <h3 class="k-panel__title">{title}</h3>
+    <span class={`k-status k-status--${status}`}>{statusLabel(project)}</span>
+  </div>
+  <p class="k-panel__body">{description}</p>
+  <div class="k-panel__foot">
+    <ul class="k-tags">
+      {tags.map((tag) => <li>{tag}</li>)}
+    </ul>
+    <div class="actions">
       {
-        isLive && (
-          <span class="live-badge" title="Live, click to open">
-            <span class="dot" aria-hidden="true" />
-            Live
-          </span>
+        url && (
+          <a
+            class:list={['k-btn', { 'k-btn--primary': isLive }]}
+            href={url}
+            target={isExternal ? '_blank' : undefined}
+            rel={isExternal ? 'noopener noreferrer' : undefined}
+          >
+            {isLive ? 'Visit site' : 'View source'}
+            <span class="sr-only">
+              : {title}
+              {isExternal && ' (opens in new tab)'}
+            </span>
+          </a>
+        )
+      }
+      {
+        details && (
+          <button class="k-btn details-btn" type="button" aria-expanded="false">
+            Details
+            <span class="sr-only">: {title}</span>
+            <span class="chev" aria-hidden="true">
+              &#9656;
+            </span>
+          </button>
         )
       }
     </div>
-    <p class="description">{description}</p>
-    <div class="card-footer">
-      <ul class="tags">
-        {tags.map((tag) => <li>{tag}</li>)}
-      </ul>
-      <div class="card-actions">
-        {
-          url && (
-            <a
-              class="visit-btn"
-              href={url}
-              target={isExternal ? '_blank' : undefined}
-              rel={isExternal ? 'noopener noreferrer' : undefined}
-            >
-              {visitLabel} <span aria-hidden="true">&#8594;</span>
-              {isExternal && <span class="sr-only"> (opens in new tab)</span>}
-            </a>
-          )
-        }
-        {
-          expandable && details && (
-            <button class="details-btn" aria-expanded="false">
-              Details <span class="chev" aria-hidden="true">&#9656;</span>
-            </button>
-          )
-        }
-      </div>
-    </div>
   </div>
   {
-    expandable && details && (
-      <div class="card-expand" inert>
+    details && (
+      <div class="expand" inert>
         <div class="expand-inner">
-          <div class="expand-content" set:html={details} />
+          <div class="expand-content">
+            <Fragment set:html={details} />
+            {stats && (
+              <dl class="k-readouts">
+                {stats.map((s) => (
+                  <div class="k-readout">
+                    <dt>{s.label}</dt>
+                    <dd>{s.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </div>
         </div>
       </div>
     )
@@ -82,197 +79,47 @@ const visitLabel = isLive ? (isExternal ? 'Visit site' : 'Open live') : 'View so
   document.addEventListener('astro:page-load', () => {
     document.querySelectorAll('.details-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const card = btn.closest('.card');
-        if (!card) return;
-        const expanded = card.classList.toggle('expanded');
-        btn.setAttribute('aria-expanded', String(expanded));
+        const panel = btn.closest('.k-panel')?.querySelector('.expand');
+        if (!panel) return;
+        const open = btn.getAttribute('aria-expanded') !== 'true';
+        btn.setAttribute('aria-expanded', String(open));
         // inert keeps the collapsed panel's links out of the tab order + AT tree.
-        const panel = card.querySelector('.card-expand');
-        if (panel) panel.toggleAttribute('inert', !expanded);
+        panel.toggleAttribute('inert', !open);
       });
     });
   });
 </script>
 
 <style>
-  /* Uses the global .card + .card--link (border + glow hover). Only card-local
-     structure/overrides live here; they're scoped (0,2,0) so they win cleanly. */
-  .card {
-    padding: var(--space-md) var(--space-lg);
-  }
-
-  /* Live projects get an accent spine so it reads as clickable. Compound so it
-     beats the global .card deterministically. */
-  .card.card--live {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .card.card--live::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: var(--color-accent);
-  }
-
-  .card-head {
+  /* The record itself is the kit's panel. Only the expand behaviour and the
+     detail text live here. */
+  .actions {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-md);
-  }
-
-  .card-title {
-    margin: 0;
-    font-size: 1.2rem; /* pin: UA default h2 is 1.5em */
-  }
-
-  .card-title a {
-    font-family: var(--font-display);
-    color: var(--color-text);
-    text-decoration: none;
-    transition: color var(--dur-fast) var(--ease);
-  }
-
-  .card-title a::after {
-    content: ' \2192';
-    transition: color var(--dur-fast) var(--ease);
-  }
-
-  .card-title a:hover {
-    color: var(--color-accent);
-  }
-
-  .title-text {
-    font-family: var(--font-display);
-    color: var(--color-text);
-  }
-
-  /* "Live" badge — square chip (was a 100px pill) with a pulsing dot. */
-  .live-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45em;
-    flex-shrink: 0;
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-    border: 1px solid var(--color-accent);
-    border-radius: var(--radius-sm);
-    padding: 0.25em 0.7em;
-    white-space: nowrap;
-  }
-
-  .live-badge .dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--color-accent);
-    animation: livepulse 2.2s var(--ease-out) infinite;
-  }
-
-  /* Body copy in reading color (was metadata gray); capped for line length (M1). */
-  .description {
-    color: var(--color-text);
-    font-size: 0.95rem;
-    max-width: 65ch;
-    margin: var(--space-sm) 0;
-  }
-
-  .card-footer {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
     flex-wrap: wrap;
-    gap: var(--space-md);
-    margin-top: var(--space-sm);
-  }
-
-  .card-actions {
-    display: flex;
-    align-items: center;
     gap: var(--space-sm);
-    flex-shrink: 0;
-  }
-
-  /* Primary call-to-action: filled accent so live projects read as clickable. */
-  .visit-btn {
-    background: var(--color-accent);
-    border: 1px solid var(--color-accent);
-    color: var(--color-bg);
-    font-family: var(--font-display);
-    font-size: 0.75rem;
-    padding: 0.3em 0.9em;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    white-space: nowrap;
-    text-decoration: none;
-    transition:
-      background-color var(--dur-fast) var(--ease),
-      border-color var(--dur-fast) var(--ease);
-  }
-
-  .visit-btn:hover {
-    background: var(--color-accent-hover);
-    border-color: var(--color-accent-hover);
-    text-decoration: none;
-  }
-
-  .visit-btn:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 2px;
   }
 
   .details-btn {
-    background: transparent;
-    border: 1px solid var(--color-accent);
-    color: var(--color-accent);
-    font-family: var(--font-display);
-    font-size: 0.75rem;
-    padding: 0.3em 0.8em;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition:
-      background-color var(--dur-fast) var(--ease),
-      color var(--dur-fast) var(--ease);
+    gap: 0.5em;
   }
 
-  .details-btn:hover {
-    background-color: var(--color-accent);
-    color: var(--color-bg);
-  }
-
-  .details-btn:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 2px;
-  }
-
-  /* Chevron rotates 90° on expand instead of swapping the button's innerHTML
-     (which teleported the glyph and nudged the button width). */
+  /* Chevron rotates on expand instead of swapping the button's text, which
+     teleported the glyph and nudged the button width. */
   .chev {
-    display: inline-block;
     transition: transform var(--dur-fast) var(--ease);
   }
 
-  .card.expanded .chev {
+  .details-btn[aria-expanded='true'] .chev {
     transform: rotate(90deg);
   }
 
-  /* Expand animation */
-  .card-expand {
+  .expand {
     display: grid;
     grid-template-rows: 0fr;
     transition: grid-template-rows var(--dur-slow) var(--ease);
   }
 
-  .card.expanded .card-expand {
+  .expand:not([inert]) {
     grid-template-rows: 1fr;
   }
 
@@ -284,21 +131,16 @@ const visitLabel = isLive ? (isExternal ? 'Visit site' : 'Open live') : 'View so
     padding-top: var(--space-md);
     margin-top: var(--space-md);
     border-top: 1px solid var(--color-border);
-    opacity: 0;
-    transition: opacity var(--dur-med) var(--ease) 0.1s;
   }
 
-  .card.expanded .expand-content {
-    opacity: 1;
-  }
-
-  /* Detail content styles */
   .expand-content :global(.hook) {
-    color: var(--color-text);
-    font-size: 0.95rem;
-    line-height: 1.6;
-    max-width: 65ch;
+    max-width: var(--measure);
     margin: 0 0 var(--space-md);
+  }
+
+  /* In-text links need more than colour to stand apart from the prose. */
+  .expand-content :global(.hook a) {
+    text-decoration: underline;
   }
 
   .expand-content :global(.highlights) {
@@ -311,10 +153,7 @@ const visitLabel = isLive ? (isExternal ? 'Visit site' : 'Open live') : 'View so
   }
 
   .expand-content :global(.highlights li) {
-    color: var(--color-text);
-    font-size: 0.875rem;
-    line-height: 1.55;
-    max-width: 65ch;
+    max-width: var(--measure);
     padding-left: 1em;
     position: relative;
   }
@@ -323,7 +162,7 @@ const visitLabel = isLive ? (isExternal ? 'Visit site' : 'Open live') : 'View so
     content: '';
     position: absolute;
     left: 0;
-    top: 0.6em;
+    top: 0.65em;
     width: 4px;
     height: 4px;
     background: var(--color-accent);
@@ -331,27 +170,17 @@ const visitLabel = isLive ? (isExternal ? 'Visit site' : 'Open live') : 'View so
   }
 
   .expand-content :global(.highlights strong) {
-    color: var(--color-text);
     font-weight: 600;
   }
 
-  .expand-content :global(.stats) {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--color-muted);
+  .expand-content .k-readouts {
     margin-top: var(--space-md);
-    padding-top: var(--space-sm);
-    border-top: 1px solid var(--color-border);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .card-expand,
-    .chev,
-    .expand-content {
+    .expand,
+    .chev {
       transition: none;
-    }
-    .live-badge .dot {
-      animation: none;
     }
   }
 </style>
