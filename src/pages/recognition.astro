@@ -33,10 +33,21 @@ const rest = testimonials.filter((t) => !t.featured);
         height="757"
         loading="eager"
       />
-      <div>
+      <div class="award-text">
         <h2 class="k-subheading">Values in Action Honoree</h2>
         <p>Scripps Mercy Hospital San Diego</p>
         <p class="award-year">2025</p>
+        <p class="award-about">
+          Values in Action is one of Scripps Health's employee awards, presented each year by its
+          executive team. It is named for the three{' '}
+          <a
+            href="https://www.scripps.org/about-us/who-we-are/mission-values"
+            target="_blank"
+            rel="noopener noreferrer"
+            >values Scripps publishes<span class="sr-only"> (opens in new tab)</span></a
+          >: the highest quality of service, complete respect for the rights of every individual,
+          and care given in a responsible and efficient manner.
+        </p>
       </div>
     </div>
 
@@ -104,8 +115,22 @@ const rest = testimonials.filter((t) => !t.featured);
     border-radius: var(--radius-sm);
   }
 
+  /* Takes the room beside the certificate; drops below it when there isn't any. */
+  .award-text {
+    flex: 1 1 16rem;
+  }
+
   .award p {
     margin: 0;
+  }
+
+  .award .award-about {
+    max-width: var(--measure);
+    margin-top: var(--space-sm);
+  }
+
+  .award-about a {
+    text-decoration: underline;
   }
 
   .award-year {
