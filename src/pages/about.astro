@@ -14,7 +14,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       I'm a developer based in San Diego. CS degree from San Diego State (2020), then a pivot to
       hospital food service at Scripps Mercy during COVID. I ran the overnight cafeteria solo,
       cooking for 50+ staff at a full inner-city hospital. The more care I put into it, the more
-      people showed up. The night shift left a wall of
+      people showed up. The night shift left a wall of{' '}
       <a href="/recognition">thank-you notes</a>, and the work earned Scripps Health's 2025 Values
       in Action Award. Wait times and volume became a real problem I could actually solve.
     </p>
@@ -111,6 +111,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     margin-bottom: var(--space-md);
     color: var(--color-text);
     line-height: 1.75;
+  }
+
+  /* In-text links need more than colour to stand apart from the prose (WCAG 1.4.1). */
+  p a {
+    text-decoration: underline;
   }
 
   .links {
