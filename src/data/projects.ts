@@ -99,7 +99,7 @@ export const projects: Project[] = [
     kind: 'tools',
     status: 'stable',
     description:
-      'A clean-room Bluetooth LE implementation of the AC Infinity UIS grow-controller protocol: read sensors and write settings directly, with no vendor cloud account and no network dependency. Extracted from my grow tent system, where it drove live hardware from June to October 2026. It is finished and works as published; development is paused for now. MIT licensed.',
+      'A clean-room Bluetooth LE implementation of the AC Infinity UIS grow-controller protocol: read sensors and write settings directly, with no vendor cloud account and no network dependency. Extracted from my grow tent system, where it drove live hardware from June to October 2026. It is finished and works as published; development is paused for now and the repository is read-only. MIT licensed.',
     url: 'https://github.com/Nyx000/acinfinity-ble',
     tags: ['TypeScript', 'BLE', 'Reverse Engineering', 'Protocols', 'Node'],
     stats: [
