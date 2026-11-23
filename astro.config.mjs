@@ -2,7 +2,8 @@
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 
-const HIDDEN_FROM_SITEMAP = ['/blog/'];
+// /kit is unlinked until the pages are rebuilt from it; list it then.
+const HIDDEN_FROM_SITEMAP = ['/blog/', '/kit/'];
 
 // https://astro.build/config
 export default defineConfig({

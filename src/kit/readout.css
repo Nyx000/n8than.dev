@@ -1,0 +1,32 @@
+/* Readout: a real count with its label, after the suit HUD's label-and-number
+   box. Markup is a <dl class="k-readouts"> of <div class="k-readout"> pairs. */
+.k-readouts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.k-readout {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  padding: 0.55rem 1.1rem 0.5rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-hud) 7%, transparent);
+  font-family: var(--font-display);
+}
+
+/* The one uppercase label in the kit: it quotes the HUD. */
+.k-readout > dt {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-hud) 78%, var(--color-bg));
+}
+
+.k-readout > dd {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--color-hud);
+}

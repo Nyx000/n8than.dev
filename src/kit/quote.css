@@ -1,0 +1,19 @@
+/* Quote: someone else's words as reading text, with no surface around them.
+   Markup is a <blockquote class="k-quote"> holding <p> and <footer>. */
+.k-quote {
+  max-width: 38rem;
+  margin: 0;
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--color-accent);
+}
+
+.k-quote > p {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.55;
+}
+
+.k-quote > footer {
+  margin-top: 0.6rem;
+  color: var(--color-muted);
+}

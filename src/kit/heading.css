@@ -1,0 +1,15 @@
+.k-heading {
+  font-family: var(--font-display);
+  font-size: var(--text-h1);
+  font-weight: 400;
+  line-height: 1.15;
+  margin: 0 0 var(--space-sm);
+}
+
+.k-subheading {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 400;
+  line-height: 1.2;
+  margin: 0 0 var(--space-xs);
+}

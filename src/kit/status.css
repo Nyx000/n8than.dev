@@ -1,0 +1,67 @@
+/* Status: where a thing stands. The marker's shape carries the state and the
+   colour only repeats it, so it reads in greyscale and with colour blindness:
+     --live        filled circle, pulsing
+     --delivered   filled square
+     --maintained  ring
+     --retired     hollow diamond */
+.k-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+.k-status::before {
+  content: '';
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid currentColor;
+}
+
+.k-status--live {
+  color: var(--color-accent);
+}
+
+.k-status--live::before {
+  border-radius: 50%;
+  background: currentColor;
+  animation: k-pulse 2.2s var(--ease-out) infinite;
+}
+
+.k-status--delivered::before {
+  background: currentColor;
+}
+
+.k-status--maintained::before {
+  border-radius: 50%;
+}
+
+.k-status--retired {
+  color: var(--color-combine);
+}
+
+.k-status--retired::before {
+  transform: rotate(45deg);
+}
+
+@keyframes k-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 60%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .k-status--live::before {
+    animation: none;
+  }
+}

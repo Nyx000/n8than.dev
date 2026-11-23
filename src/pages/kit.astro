@@ -1,0 +1,340 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { projects } from '../data/projects';
+import { testimonials } from '../data/testimonials';
+
+// Specimens use the site's real records, so this page cannot drift from them.
+function project(title: string) {
+  const found = projects.find((p) => p.title === title);
+  if (!found) throw new Error(`/kit: no project titled "${title}" in src/data/projects.ts`);
+  return found;
+}
+const live = project('CafeNightClub');
+const retired = project('Arenula');
+const retiredDocs = 'https://nyx000.github.io/arenula-mcp/';
+
+const colleagues = new Set(testimonials.map((t) => t.name)).size;
+const years = testimonials.map((t) => Number(t.iso.slice(0, 4)));
+
+const colours = [
+  { token: 'accent', name: 'Suit orange', hex: '#ff6600', job: 'Live, links, the main action' },
+  { token: 'hud', name: 'HUD amber', hex: '#f2a900', job: 'Numbers' },
+  { token: 'combine', name: 'Combine teal', hex: '#6cb6c4', job: 'Retired, superseded' },
+  { token: 'danger', name: 'Alert red', hex: '#e0626e', job: 'Errors' },
+  { token: 'text', name: 'Text', hex: '#d4d0c8' },
+  { token: 'muted', name: 'Muted', hex: '#8a8a92' },
+  { token: 'surface', name: 'Surface', hex: '#131313' },
+  { token: 'bg', name: 'Background', hex: '#0a0a0a' },
+];
+---
+
+<BaseLayout
+  title="Kit | n8than.dev"
+  description="The parts n8than.dev is built from: colours, type and components borrowed from Half-Life 2."
+>
+  <div class="container">
+    <h1 class="k-heading">Kit</h1>
+    <p class="lede">
+      The parts this site is built from. The colours and shapes are borrowed from Half-Life 2: suit
+      orange for what is running, the HUD's amber for numbers, Combine teal for what has been
+      retired.
+    </p>
+
+    <section>
+      <h2 class="k-subheading">Colour</h2>
+      <p class="purpose">Four neutrals carry the page. Four signal colours each do one job.</p>
+      <ul class="swatches">
+        {
+          colours.map((c) => (
+            <li>
+              <span class={`chip chip--${c.token}`} />
+              <span>
+                <strong>{c.name}</strong>
+                <span class="note">{c.job ? `${c.hex}. ${c.job}` : c.hex}</span>
+              </span>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="k-subheading">Type</h2>
+      <p class="purpose">Two families for reading, one kept for code.</p>
+      <dl class="faces">
+        <div>
+          <dt>Share Tech Mono</dt>
+          <dd class="face-display">Titles, names, status and numbers</dd>
+        </div>
+        <div>
+          <dt>Outfit</dt>
+          <dd class="face-body">
+            Everything meant to be read. I ran the overnight cafeteria solo, cooking for the staff
+            of a full inner-city hospital, and built the ordering system they used.
+          </dd>
+        </div>
+        <div>
+          <dt>JetBrains Mono</dt>
+          <dd class="face-code">npx tsx -e 'console.log("code and commands only")'</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section>
+      <h2 class="k-subheading">Status</h2>
+      <p class="purpose">
+        Where a project stands. The shape says it and the colour repeats it, so it still reads
+        without colour.
+      </p>
+      <dl class="states">
+        <div>
+          <dt><span class="k-status k-status--live">live</span></dt>
+          <dd>Running now. A visitor can open it and use it.</dd>
+        </div>
+        <div>
+          <dt><span class="k-status k-status--delivered">delivered 2026</span></dt>
+          <dd>Client work, built and handed to the client.</dd>
+        </div>
+        <div>
+          <dt><span class="k-status k-status--maintained">maintained</span></dt>
+          <dd>Open source that still gets updates.</dd>
+        </div>
+        <div>
+          <dt><span class="k-status k-status--retired">retired 2026</span></dt>
+          <dd>Finished its run. The code stays up, read-only.</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section>
+      <h2 class="k-subheading">Readout</h2>
+      <p class="purpose">
+        A number with its label, set the way the suit shows health and ammo. For real counts only.
+      </p>
+      <dl class="k-readouts">
+        <div class="k-readout">
+          <dt>Notes</dt>
+          <dd>{testimonials.length}</dd>
+        </div>
+        <div class="k-readout">
+          <dt>Colleagues</dt>
+          <dd>{colleagues}</dd>
+        </div>
+        <div class="k-readout">
+          <dt>Years</dt>
+          <dd>{Math.min(...years)}–{Math.max(...years)}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section>
+      <h2 class="k-subheading">Panel</h2>
+      <p class="purpose">
+        One record. A live project gets an orange spine; a retired one gets the Combine's cut
+        corner.
+      </p>
+      <div class="records">
+        <article class="k-panel k-panel--live">
+          <div class="k-panel__head">
+            <h3 class="k-panel__title">{live.title}</h3>
+            <span class="k-status k-status--live">live</span>
+          </div>
+          <p class="k-panel__body">{live.description}</p>
+          <div class="k-panel__foot">
+            <ul class="k-tags">
+              {live.tags.map((tag) => <li>{tag}</li>)}
+            </ul>
+            <a
+              class="k-btn k-btn--primary"
+              href={live.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Visit site<span class="sr-only"> (opens in new tab)</span>
+            </a>
+          </div>
+        </article>
+        <article class="k-panel k-panel--retired">
+          <div class="k-panel__head">
+            <h3 class="k-panel__title">{retired.title}</h3>
+            <span class="k-status k-status--retired">retired 2026</span>
+          </div>
+          <p class="k-panel__body">{retired.description}</p>
+          <div class="k-panel__foot">
+            <ul class="k-tags">
+              {retired.tags.map((tag) => <li>{tag}</li>)}
+            </ul>
+            <a class="k-btn" href={retiredDocs} target="_blank" rel="noopener noreferrer">
+              Read the docs<span class="sr-only"> (opens in new tab)</span>
+            </a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="k-subheading">Terminal</h2>
+      <p class="purpose">The home page's typing line and the 404 share one box.</p>
+      <div class="k-term">
+        <span class="k-term__prompt">#</span> echo "Making computers do what I want."<span
+          class="k-term__cursor"></span>
+      </div>
+      <div class="k-term">
+        <div><span class="k-term__prompt">$</span> cat /grow</div>
+        <div class="k-term__err">cat: /grow: No such file or directory</div>
+        <div>older pages were retired. /projects has what's current.</div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="k-subheading">Quote</h2>
+      <p class="purpose">A thank-you note, set as reading text with no box around it.</p>
+      <blockquote class="k-quote">
+        <p>
+          When Nate takes a day off, his absence is felt throughout the entire hospital. He embodies
+          the spirit of going above and beyond.
+        </p>
+        <footer>Night-shift colleague, October 2024</footer>
+      </blockquote>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  /* Page layout only. Everything a specimen needs comes from src/kit/. */
+  section {
+    padding-top: var(--space-xl);
+  }
+
+  .lede,
+  .purpose {
+    max-width: var(--measure);
+    margin: 0;
+  }
+
+  .purpose {
+    color: var(--color-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: var(--space-md) 1.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .swatches li {
+    display: grid;
+    grid-template-columns: 3rem 1fr;
+    gap: 0.85rem;
+    align-items: center;
+  }
+
+  .swatches strong {
+    display: block;
+    font-weight: 500;
+  }
+
+  .note {
+    display: block;
+    color: var(--color-muted);
+    line-height: 1.35;
+  }
+
+  .chip {
+    height: 3rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+  .chip--accent {
+    background: var(--color-accent);
+  }
+  .chip--hud {
+    background: var(--color-hud);
+  }
+  .chip--combine {
+    background: var(--color-combine);
+  }
+  .chip--danger {
+    background: var(--color-danger);
+  }
+  .chip--text {
+    background: var(--color-text);
+  }
+  .chip--muted {
+    background: var(--color-muted);
+  }
+  .chip--surface {
+    background: var(--color-surface);
+  }
+  .chip--bg {
+    background: var(--color-bg);
+  }
+
+  .faces,
+  .states {
+    margin: 0;
+  }
+
+  .faces > div,
+  .states > div {
+    display: grid;
+    grid-template-columns: 11rem 1fr;
+    gap: 0.25rem 1.5rem;
+    align-items: baseline;
+  }
+
+  .faces > div {
+    padding: 0.9rem 0;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .states > div + div {
+    margin-top: 0.75rem;
+  }
+
+  .faces dt,
+  .states dd {
+    color: var(--color-muted);
+  }
+
+  .faces dd,
+  .states dd {
+    margin: 0;
+  }
+
+  .face-display {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    line-height: 1.2;
+  }
+
+  .face-body {
+    max-width: var(--measure);
+  }
+
+  .face-code {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    overflow-wrap: anywhere;
+  }
+
+  .records {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .k-term + .k-term {
+    margin-top: 0.75rem;
+  }
+
+  @media (max-width: 640px) {
+    .faces > div,
+    .states > div {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

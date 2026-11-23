@@ -14,7 +14,12 @@
   --color-accent-hover: #ff8833;
   --color-border: #1e1e22;
   --color-warn: #c9a227; /* STALE amber / band glyphs */
-  --color-danger: #b3404a; /* OFFLINE red */
+  /* Errors. #b3404a was 3.53:1 on --color-bg (fails AA); this is 5.79:1. */
+  --color-danger: #e0626e;
+  /* Signal colours beyond the accent, one job each: orange (--color-accent) is what
+     is live or clickable, amber is numbers, teal is what has been retired. */
+  --color-hud: #f2a900; /* 9.85:1 on --color-bg */
+  --color-combine: #6cb6c4; /* 8.60:1 on --color-bg */
 
   /* Typography — self-hosted via @fontsource (imported above) */
   --font-display: 'Share Tech Mono', ui-monospace, monospace;
@@ -33,6 +38,7 @@
   /* Layout */
   --container: 64rem;
   --container-narrow: 42rem;
+  --measure: 34rem; /* prose line length: about 65-75 characters in the body face */
 
   /* Radii */
   --radius-sm: 4px; /* chips, buttons, inputs, code, small UI */

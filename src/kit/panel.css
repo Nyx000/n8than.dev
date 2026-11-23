@@ -1,0 +1,75 @@
+/* Panel: one record. A surface says "this is one thing", so it does not go on
+   every section of a page. */
+.k-panel {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem var(--space-lg) 1.4rem;
+}
+
+.k-panel--live {
+  border-left: 3px solid var(--color-accent);
+}
+
+/* The cut corner is clip-path, which also clips shadows and outlines that reach
+   past the panel edge. Anything focusable inside sits within the padding, and
+   the panel itself takes no glow. */
+.k-panel--retired {
+  --k-cut: 22px;
+  border-left: 3px solid var(--color-combine);
+  clip-path: polygon(0 0, calc(100% - var(--k-cut)) 0, 100% var(--k-cut), 100% 100%, 0 100%);
+}
+
+/* The border is clipped away along the cut, so draw that edge. */
+.k-panel--retired::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--k-cut) / 2);
+  right: calc(var(--k-cut) * -0.2);
+  width: calc(var(--k-cut) * 1.42);
+  height: 1px;
+  background: var(--color-combine);
+  opacity: 0.6;
+  transform: rotate(45deg);
+}
+
+.k-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem var(--space-md);
+}
+
+/* Keeps the status clear of the cut corner. */
+.k-panel--retired > .k-panel__head {
+  padding-right: var(--k-cut);
+}
+
+.k-panel__title {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 400;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.k-panel__body {
+  max-width: var(--measure);
+  margin: 0.6rem 0 var(--space-md);
+}
+
+.k-panel__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+@media (max-width: 640px) {
+  .k-panel {
+    padding: var(--space-md) 1.1rem 1.2rem;
+  }
+}

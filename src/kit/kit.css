@@ -1,2 +1,10 @@
 /* The kit: tokens, then one file per part. Nothing here may name a page of this site. */
 @import './tokens.css';
+@import './heading.css';
+@import './panel.css';
+@import './status.css';
+@import './readout.css';
+@import './button.css';
+@import './tags.css';
+@import './terminal.css';
+@import './quote.css';

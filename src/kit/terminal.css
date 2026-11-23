@@ -1,0 +1,29 @@
+/* Terminal: a command line and what it printed. The only place the code face
+   appears outside <code>. */
+.k-term {
+  max-width: 36rem;
+  padding: 0.8rem var(--space-md);
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  background: color-mix(in srgb, var(--color-surface) 50%, var(--color-bg));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.k-term__prompt {
+  color: var(--color-muted);
+}
+
+.k-term__err {
+  color: var(--color-danger);
+}
+
+.k-term__cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.05em;
+  vertical-align: text-bottom;
+  background: var(--color-accent);
+}
