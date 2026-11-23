@@ -11,10 +11,10 @@ export interface Project {
 }
 
 /**
- * Depth is deliberately uneven. The two projects with the most behind them get a
- * full detail panel; the next three get one bullet — the single non-obvious thing;
- * the last two carry everything in the description and don't expand at all.
- * Giving all seven equal airtime flattened the ranking and buried the good ones.
+ * Depth is deliberately uneven. The project with the most behind it gets a full
+ * detail panel; the next few get one bullet — the single non-obvious thing; the
+ * rest carry everything in the description and don't expand at all. Giving every
+ * entry equal airtime flattened the ranking and buried the good ones.
  */
 export const projects: Project[] = [
   {
@@ -28,7 +28,7 @@ export const projects: Project[] = [
       <ul class="highlights">
         <li><strong>Adding a kit means adding a file.</strong> Every vehicle-specific fact — parts, rules, sheet layout, provenance — lives in a versioned YAML catalog. Nine catalogs ship today and none of them needed code.</li>
         <li><strong>It says when it doesn't know.</strong> An order it can't fully resolve produces a gap report naming exactly what it couldn't work out. Two lint gates check every catalog before it ships, and the sheet renderer is pinned to golden files so printed output can't quietly drift.</li>
-        <li><strong>Theirs to run.</strong> Intake reads order PDFs and screenshots through one deterministic parser (pdfplumber plus platform OCR), with optional Shopify pull by order number. Handed off as source they host on their own hardware — no vendor account, no dependency on me.</li>
+        <li><strong>Built to be self-hosted.</strong> Intake reads order PDFs and screenshots through one deterministic parser (pdfplumber plus platform OCR), with optional Shopify pull by order number. Handed over as source, built to run on their own hardware with no vendor account and no dependency on me.</li>
       </ul>
       <p class="stats">Delivered July 2026 · 9 catalogs · pilot accepted and paid</p>`,
   },
@@ -36,27 +36,27 @@ export const projects: Project[] = [
     title: 'CafeNightClub',
     live: true,
     description:
-      'The project that started it all — a full-stack ordering platform I built for the 80+ night-shift staff I worked alongside at Scripps Health, in production January–March 2026 with real orders flowing through it every shift. It runs today as a cyberpunk-themed public demo: no sign-in, no account, just order from it.',
+      'A full-stack ordering platform I built for the 80+ night-shift staff I worked alongside at Scripps Health, in production January–March 2026 with real orders flowing through it every shift. It runs today as a public demo: no sign-in, no account, just order from it.',
     url: 'https://cafenightclub.com',
     tags: ['Next.js', 'React 19', 'Supabase', 'Tailwind CSS', 'TypeScript'],
   },
   {
     title: 'Arenula',
     description:
-      'Three MCP servers that give an AI coding assistant real hands inside the s&box game engine: manipulating scenes, compiling code, managing assets, and reading an offline type reference covering ~1,800 types and ~15,000 members.',
+      'MCP tooling for the s&box game engine, built three months before the engine shipped its own. Three servers gave an AI coding assistant real hands inside the editor: manipulating scenes, compiling code, managing assets, and reading an offline type reference covering ~1,800 types and ~15,000 members. Retired November 2026; the repository is archived.',
     tags: ['C#', 'TypeScript', 'Node', 'MCP', 'SSE', 's&box'],
     expandable: true,
     details: `
-      <p class="hook">An assistant that can only write code into a file is guessing about the result. Arenula lets it change the scene, compile, and read back what actually happened. <a href="https://nyx000.github.io/arenula-mcp/" target="_blank" rel="noopener noreferrer">Read the docs →</a></p>
+      <p class="hook">An assistant that can only write code into a file is guessing about the result. Arenula let it change the scene, compile, and read back what actually happened. <a href="https://nyx000.github.io/arenula-mcp/" target="_blank" rel="noopener noreferrer">Read the docs →</a></p>
       <ul class="highlights">
-        <li><strong>Every write proves itself.</strong> Mutations return a <code>verified</code> read-back of engine state, so the caller can tell a real change from a silent no-op. Anything that doesn't resolve to a real engine resource errors with a usable suggestion.</li>
+        <li><strong>Every write proved itself.</strong> Mutations returned a <code>verified</code> read-back of engine state, so the caller could tell a real change from a silent no-op. Anything that didn't resolve to a real engine resource errored with a usable suggestion.</li>
       </ul>
-      <p class="stats">3 servers · ~1,800 types indexed · C# editor plugin over SSE</p>`,
+      <p class="stats">3 servers · ~1,800 types indexed · C# editor plugin over SSE · retired November 2026</p>`,
   },
   {
     title: 'acinfinity-ble',
     description:
-      'A clean-room Bluetooth LE implementation of the AC Infinity UIS grow-controller protocol: read sensors and write settings directly, with no vendor cloud account and no network dependency. Extracted from my grow tent system, where it drove live hardware from June to October 2026.',
+      'A clean-room Bluetooth LE implementation of the AC Infinity UIS grow-controller protocol: read sensors and write settings directly, with no vendor cloud account and no network dependency. Extracted from my grow tent system, where it drove live hardware from June to October 2026. The project is finished and the repository is archived, read-only.',
     url: 'https://github.com/Nyx000/acinfinity-ble',
     tags: ['TypeScript', 'BLE', 'Reverse Engineering', 'Protocols', 'Node'],
     expandable: true,
@@ -77,9 +77,16 @@ export const projects: Project[] = [
     details: `
       <p class="hook">Claude Code gives a plugin no way to know which model it runs against, so instructions written for older models quietly degrade newer ones: mandatory verification steps, standing review gates, delegate-by-default. This layer measures that drift and corrects it from the one layer that outranks every plugin. <a href="https://github.com/Nyx000/claude-conformance" target="_blank" rel="noopener noreferrer">Read the source →</a></p>
       <ul class="highlights">
-        <li><strong>Classes, not plugin names.</strong> Six superseded instruction classes, each traceable to a specific line of Anthropic guidance. The scanner matches on what an instruction does rather than who ships it, so a plugin installed tomorrow is already covered.</li>
+        <li><strong>Classes, not plugin names.</strong> Seven superseded instruction classes, each traceable to a specific line of Anthropic guidance. The scanner matches on what an instruction does rather than who ships it, so a plugin installed tomorrow is already covered.</li>
       </ul>
-      <p class="stats">6 instruction classes · 42 units scanned · MIT</p>`,
+      <p class="stats">7 instruction classes · MIT</p>`,
+  },
+  {
+    title: 'WarmupTS',
+    description:
+      "A TypeScript framework for Counter-Strike 2 gamemodes written with Valve's cs_script. The engine lets a script register each callback only once; WarmupTS registers all of them and hands every event to every plugin, so a headshot rule and a weapon ladder can both react to the same kill without knowing about each other. Plugins hot-reload in the local game client, and the built script runs on Windows and Linux dedicated servers. Early, MIT.",
+    url: 'https://github.com/Nyx000/warmup-ts',
+    tags: ['TypeScript', 'Bun', 'CS2', 'cs_script'],
   },
   {
     title: 'n8than.dev',
