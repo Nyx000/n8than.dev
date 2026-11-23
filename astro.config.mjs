@@ -1,16 +1,18 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
+import { existsSync, readdirSync } from 'node:fs';
 
-const HIDDEN_FROM_SITEMAP = ['/blog/'];
+// /blog stays out of the sitemap while it has no post, and returns with the first one.
+const BLOG_DIR = './src/data/blog';
+const blogIsEmpty = !existsSync(BLOG_DIR) || readdirSync(BLOG_DIR).length === 0;
 
 // https://astro.build/config
 export default defineConfig({
   site: 'https://n8than.dev',
-  // /blog is empty until a first post exists; drop it from this list then.
   integrations: [
     sitemap({
-      filter: (page) => !HIDDEN_FROM_SITEMAP.includes(new URL(page).pathname),
+      filter: (page) => !(blogIsEmpty && new URL(page).pathname.replace(/\/$/, '') === '/blog'),
     }),
   ],
   // assetsInlineLimit: 0 forces every bundled script out to a hashed /_astro file
